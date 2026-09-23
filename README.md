@@ -192,9 +192,11 @@ act because those two sources genuinely disagree right now.
    marked as measured or assumed, and the commands to re-measure them.
 2. [`docs/hedera-landmines.md`](docs/hedera-landmines.md) — the five failures,
    reproducible.
-3. `contracts/interfaces/INocturneStrategy.sol` — four functions.
-4. `contracts/strategies/HeartbeatStrategy.sol` — the simplest implementation.
-5. `contracts/NocturneVault.sol` — `executeScheduled` is the heart of it.
+3. [`docs/dead-ends.md`](docs/dead-ends.md) — what was tried and abandoned, and
+   what closed it.
+4. `contracts/interfaces/INocturneStrategy.sol` — four functions.
+5. `contracts/strategies/HeartbeatStrategy.sol` — the simplest implementation.
+6. `contracts/NocturneVault.sol` — `executeScheduled` is the heart of it.
 
 ---
 
