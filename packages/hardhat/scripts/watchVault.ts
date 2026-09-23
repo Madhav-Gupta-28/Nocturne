@@ -48,19 +48,44 @@ async function main() {
   }
 }
 
-/** Who actually sent the vault's recent transactions, straight from the mirror node. */
-export async function recentTransactions(vaultAddr: string): Promise<void> {
-  const account = await fetch(`${MIRROR}/api/v1/accounts/${vaultAddr}`)
+/**
+ * Who actually paid for the vault's executions, straight from the mirror node.
+ *
+ * Read the transfer list, not the transaction id. A scheduled transaction's id
+ * carries the id of the account that created the schedule, which makes it look
+ * as though someone sent the call — they did not. The transfer list is what
+ * settles it: for a genuine unattended run the vault's own account is debited
+ * the fee and the owner's account does not appear at all.
+ */
+export async function proveNobodySentIt(vaultAddr: string, ownerAddr: string): Promise<void> {
+  const vaultAccount: string = await fetch(`${MIRROR}/api/v1/accounts/${vaultAddr}`)
     .then(r => r.json())
-    .then(j => j.account as string);
-
-  const txs = await fetch(`${MIRROR}/api/v1/transactions?account.id=${account}&limit=10&order=desc`)
+    .then(j => j.account);
+  const ownerAccount: string = await fetch(`${MIRROR}/api/v1/accounts/${ownerAddr}`)
     .then(r => r.json())
-    .then(j => j.transactions as Array<{ consensus_timestamp: string; name: string; result: string }>);
+    .then(j => j.account);
 
-  console.log(`\nvault account ${account}`);
-  for (const t of txs) {
-    console.log(`  ${t.consensus_timestamp}  ${t.name}  ${t.result}`);
+  type Tx = {
+    consensus_timestamp: string;
+    name: string;
+    result: string;
+    scheduled: boolean;
+    transfers?: Array<{ account: string; amount: number }>;
+  };
+
+  const txs: Tx[] = await fetch(`${MIRROR}/api/v1/transactions?account.id=${vaultAccount}&limit=15&order=desc`)
+    .then(r => r.json())
+    .then(j => j.transactions);
+
+  console.log(`\nvault ${vaultAccount}   owner ${ownerAccount}`);
+  for (const t of txs.filter(t => t.scheduled)) {
+    const paid = (t.transfers ?? []).find(x => x.account === vaultAccount && x.amount < 0);
+    const ownerPaid = (t.transfers ?? []).some(x => x.account === ownerAccount && x.amount < 0);
+    const hbar = paid ? (-paid.amount / 1e8).toFixed(4) : "?";
+    console.log(
+      `  ${t.consensus_timestamp}  ${t.name}  ${t.result}  ` +
+        `vault paid ${hbar} HBAR  owner paid ${ownerPaid ? "SOMETHING — investigate" : "nothing"}`,
+    );
   }
 }
 
