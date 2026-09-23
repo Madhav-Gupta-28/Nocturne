@@ -341,9 +341,30 @@ describe("NocturneVault", () => {
   describe("fuel", () => {
     it("reports runway in whole runs", async () => {
       const { vault } = await loadFixture(deployFixture);
-      const perRun = await vault.TINYBAR_PER_RUN();
+      const perRun = await vault.reservePerRun();
       const balance = await ethers.provider.getBalance(await vault.getAddress());
       expect(await vault.runway()).to.equal(balance / perRun);
+    });
+
+    /**
+     * The reserve is what the network demands up front, which is far more than
+     * a run is then charged. Measuring runway against the charge is how a vault
+     * reports fuel it cannot actually spend — see `reservePerRun`.
+     */
+    it("measures runway against the whole gas allowance, not the gas burned", async () => {
+      const { vault } = await loadFixture(deployFixture);
+      const reserve = await vault.reservePerRun();
+      const address = await vault.getAddress();
+
+      // A balance one tinybar short of the reserve buys nothing, however close
+      // it looks. This is the case that killed the first demo vault: it held
+      // more than a run had ever been *charged*, and the network still refused
+      // it for not covering the allowance.
+      await vault.withdrawHbar((await ethers.provider.getBalance(address)) - reserve + 1n);
+      expect(await vault.runway()).to.equal(0);
+
+      await vault.depositHbar({ value: 1n });
+      expect(await vault.runway()).to.equal(1);
     });
 
     it("warns before the fuel runs out rather than after", async () => {
@@ -351,7 +372,7 @@ describe("NocturneVault", () => {
       await strategy.setActions(await pingAction(sink));
 
       // Leave just under the warning threshold.
-      const perRun = await vault.TINYBAR_PER_RUN();
+      const perRun = await vault.reservePerRun();
       const balance = await ethers.provider.getBalance(await vault.getAddress());
       const keep = perRun * 3n;
       await vault.withdrawHbar(balance - keep);

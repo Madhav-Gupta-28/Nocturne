@@ -96,10 +96,19 @@ contract NocturneVault is Ownable, ReentrancyGuard {
      */
     uint256 public constant CLOCK_SKEW = 10;
 
-    /// @notice Tinybar charged for one scheduled execution, measured on testnet.
+    /// @notice Tinybar one scheduled execution was observed to *cost*.
     /// @dev 40.00 HBAR fell to 35.21 across three unattended runs: ~1.6 HBAR
-    ///      each, which is 160,000,000 tinybar. Used only to estimate runway.
+    ///      each. Reported for context only — see `reservePerRun` for the
+    ///      figure that actually decides whether the next run happens.
     uint256 public constant TINYBAR_PER_RUN = 160_000_000;
+
+    /**
+     * @notice Gas price to assume when the EVM reports none, in tinybar per gas.
+     * @dev Only reached on chains that leave `tx.gasprice` at zero. Hedera's
+     *      relay substitutes the network price even for `eth_call`, measured at
+     *      109 tinybar per gas on testnet in September 2026.
+     */
+    uint256 public constant FALLBACK_GAS_PRICE = 109;
 
     /// @notice Warn when fewer than this many runs remain in the balance.
     uint256 public constant FUEL_WARN_RUNS = 5;
@@ -489,7 +498,37 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         return _runway();
     }
 
-    /// @notice HBAR held, in tinybar.
+    /**
+     * @notice Balance a vault must hold for its next execution to be accepted.
+     *
+     * @dev Not what a run costs. What it reserves.
+     *
+     *      The network takes the payer's ability to cover the *whole* gas
+     *      allowance as a precondition, then charges only for the gas actually
+     *      burned. Those two numbers are far apart here: a run burns about 1.43M
+     *      gas and reserves `MIN_SCHEDULE_GAS`, which is 3M. Funding a vault
+     *      against the cost rather than the reserve is how it dies with money
+     *      still in it.
+     *
+     *      That is not a hypothetical. The first long-running demo vault stopped
+     *      holding 2.7628 HBAR, having been charged 1.6299 HBAR for each of its
+     *      thirteen runs. It had over one run's worth of cost left, and the
+     *      fourteenth failed anyway — `INSUFFICIENT_PAYER_BALANCE`, because the
+     *      reserve at the time was 3M x 109 = 3.27 HBAR.
+     *
+     *      `tx.gasprice` is the right source for the price and needs no
+     *      conversion: inside the EVM it is quoted in tinybar per gas, the same
+     *      unit as `address(this).balance`. The relay substitutes the network's
+     *      price even during `eth_call`, so a UI reading this gets a live figure
+     *      rather than a stale constant. On chains that leave it at zero, the
+     *      fallback keeps the division safe.
+     */
+    function reservePerRun() public view returns (uint256) {
+        uint256 price = tx.gasprice == 0 ? FALLBACK_GAS_PRICE : tx.gasprice;
+        return MIN_SCHEDULE_GAS * price;
+    }
+
+    /// @notice HBAR held, in tinybar. Compare against `reservePerRun`.
     function fuel() external view returns (uint256) {
         return address(this).balance;
     }
@@ -509,7 +548,7 @@ contract NocturneVault is Ownable, ReentrancyGuard {
     }
 
     function _runway() private view returns (uint256) {
-        return address(this).balance / TINYBAR_PER_RUN;
+        return address(this).balance / reservePerRun();
     }
 
     function _explain() private view returns (string memory, uint256, uint256) {
