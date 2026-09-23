@@ -54,8 +54,9 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
         {status && status.runsLeft <= FUEL_WARN_RUNS && status.armed ? (
           <div className="alert alert-warning mt-5 py-3">
             <span className="text-sm">
-              Fuel is nearly out. When a vault cannot pay, it stops booking its successor — quietly, with no error
-              anywhere. Top it up to keep the chain alive.
+              Fuel is nearly out, and it runs out earlier than it looks: each run has to reserve the whole gas allowance
+              up front, about twice what it is then charged. A vault that still holds a run&apos;s worth of cost gets
+              refused anyway. Top it up to keep the chain alive.
             </span>
           </div>
         ) : null}
@@ -73,10 +74,13 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
 /**
  * What to do when the chain has stopped.
  *
- * A chain of scheduled calls ends the moment one of them fails to book its
- * successor — most often because the vault ran out of HBAR, since it pays for
- * its own executions. Nothing reverts and nothing is logged anywhere a wallet
- * would show you; the runs simply stop.
+ * It ends in one of two ways, and neither leaves anything a wallet would show
+ * you. Either an execution failed to book its successor, or — much more often —
+ * the successor was booked, fired on time, and the vault could not pay for it.
+ * The second is what happened to the first long-running demo vault: it held 2.76
+ * HBAR, more than the 1.63 each of its thirteen runs had been charged, and the
+ * fourteenth was refused with INSUFFICIENT_PAYER_BALANCE because the reserve is
+ * the whole gas allowance rather than the gas burned.
  *
  * The recovery is deliberately open to anyone: `executeScheduled` has no access
  * control, and it books the next run before it does any work. So a stalled vault
@@ -89,8 +93,9 @@ const Overdue = ({ vault, onDone }: { vault: Address; onDone: () => Promise<void
   return (
     <div className="alert alert-error mt-5 py-3 flex-col items-start gap-3">
       <span className="text-sm">
-        This run is late, which means the chain stopped: a previous execution could not book its successor. Almost
-        always that is an empty balance. Top it up, then restart it — anyone can, the call is not owner-only.
+        This run is late, which means the chain stopped. Almost always the balance could not cover the next run&apos;s
+        gas reserve — check the runway above, and remember it is refused while it still holds HBAR. Top it up, then
+        restart it. Anyone can: the call is not owner-only.
       </span>
       <button
         className="btn btn-sm"

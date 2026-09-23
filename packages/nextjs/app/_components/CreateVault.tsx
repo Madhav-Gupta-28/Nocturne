@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Panel } from "./ui";
 import { parseEther } from "viem";
 import { useDeployedContractInfo, useScaffoldWriteContract } from "~~/hooks/scaffold-hbar";
+import { useReservePerRun } from "~~/hooks/useNocturneVault";
 
 /**
  * Creating a vault, and being honest about the deposit while doing it.
@@ -15,15 +16,13 @@ import { useDeployedContractInfo, useScaffoldWriteContract } from "~~/hooks/scaf
  * buys.
  */
 
-/** Roughly what one execution costs. Measured, not guessed — see the README. */
-const HBAR_PER_RUN = 1.6;
-
 /** The factory's constructor-deploy plus the transfer needs real headroom. */
 const CREATE_GAS = 4_000_000n;
 
 export const CreateVault = () => {
   const [fuel, setFuel] = useState("24");
   const { data: strategy } = useDeployedContractInfo({ contractName: "HeartbeatStrategy" });
+  const reserve = useReservePerRun();
   const { writeContractAsync, isMining } = useScaffoldWriteContract({
     contractName: "NocturneFactory",
     // The vault's constructor runs inside this call; simulating it through the
@@ -31,8 +30,12 @@ export const CreateVault = () => {
     disableSimulate: true,
   });
 
+  // Quoted against what a run reserves, not what it is charged. The two differ
+  // by about a factor of two, and quoting the smaller one is how a vault ends
+  // up refused while it still holds HBAR.
+  const hbarPerRun = reserve === undefined ? undefined : Number(reserve) / 1e8;
   const amount = Number(fuel);
-  const runs = Number.isFinite(amount) ? Math.floor(amount / HBAR_PER_RUN) : 0;
+  const runs = hbarPerRun && Number.isFinite(amount) ? Math.floor(amount / hbarPerRun) : undefined;
 
   return (
     <Panel
@@ -71,9 +74,16 @@ export const CreateVault = () => {
           {isMining ? "Creating…" : "Create vault"}
         </button>
 
-        <p className="text-sm opacity-60 m-0 pb-3">
-          about <span className="font-semibold tabular-nums">{runs}</span> executions at ~{HBAR_PER_RUN} HBAR each.
-          Withdraw the remainder any time.
+        <p className="text-sm opacity-60 m-0 pb-3 max-w-xs">
+          {runs === undefined || hbarPerRun === undefined ? (
+            "reading the current gas price…"
+          ) : (
+            <>
+              about <span className="font-semibold tabular-nums">{runs}</span> executions. Each one has to reserve{" "}
+              <span className="tabular-nums">{hbarPerRun.toFixed(2)}</span> HBAR at today&apos;s gas price, though it is
+              charged about half that. Withdraw the remainder any time.
+            </>
+          )}
         </p>
       </div>
     </Panel>

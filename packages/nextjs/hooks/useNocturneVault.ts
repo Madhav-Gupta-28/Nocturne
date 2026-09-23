@@ -1,7 +1,7 @@
 "use client";
 
 import { Abi, Address } from "viem";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useGasPrice, useReadContract, useWriteContract } from "wagmi";
 import runtimeContracts from "~~/contracts/runtimeContracts";
 import { useSelectedNetwork, useTransactor } from "~~/hooks/scaffold-hbar";
 import { notification } from "~~/utils/scaffold-hbar";
@@ -30,11 +30,40 @@ const VAULT_ABI = runtimeContracts.NocturneVault.abi as unknown as Abi;
 const GAS_BOOKING = 4_000_000n;
 const GAS_PLAIN = 1_000_000n;
 
-/** A vault pays for its own executions; this is roughly what one costs. */
-export const TINYBAR_PER_RUN = 160_000_000n;
-
 /** Tinybar per HBAR. In-EVM balances are 8 decimals, not 18. */
 export const TINYBAR = 100_000_000n;
+
+/** Weibar per tinybar. The relay quotes gas prices 1e10 larger than the EVM. */
+const WEIBAR_PER_TINYBAR = 10_000_000_000n;
+
+/**
+ * What one execution requires a vault to hold, in tinybar.
+ *
+ * Not what a run costs — what it reserves. The network tests the payer against
+ * the whole gas allowance before accepting the transaction and then charges
+ * only for the gas burned, which is roughly half. A vault holding one run's
+ * worth of *cost* is refused; that is how the first demo vault died with 2.76
+ * HBAR in it. See `docs/hedera-landmines.md`, landmine 5.
+ *
+ * An existing vault answers this itself with `reservePerRun()`. This hook is
+ * for the case before one exists, where there is nothing to ask.
+ *
+ * The relay's `eth_gasPrice` runs a few percent above the price the EVM reports,
+ * so the figure here is slightly high — the safe direction for a deposit.
+ */
+export function useReservePerRun(): bigint | undefined {
+  const chainId = useSelectedNetwork().id;
+  const { data: weibarPerGas } = useGasPrice({ chainId });
+  if (weibarPerGas === undefined) return undefined;
+  return (GAS_BOOKING_RESERVE * weibarPerGas) / WEIBAR_PER_TINYBAR;
+}
+
+/**
+ * `NocturneVault.MIN_SCHEDULE_GAS`, which is what every schedule is booked with
+ * and therefore what each one reserves. Mirrored here because the figure is
+ * needed before any vault exists to be asked.
+ */
+const GAS_BOOKING_RESERVE = 3_000_000n;
 
 export type VaultStatus = {
   armed: boolean;
