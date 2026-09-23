@@ -141,13 +141,13 @@ Requires **Node ≥ 20.18.3** (tested on 22).
 ```bash
 npm install
 cp packages/hardhat/.env.example packages/hardhat/.env
-npm run account:import      # or account:generate, then fund at the faucet
+npm run hardhat:account:import   # or :generate, then fund at the faucet
 ```
 
 Deploy and arm a vault that beats every two minutes:
 
 ```bash
-npm run deploy -- --network hederaTestnet
+npm run hardhat:deploy -- --network hederaTestnet
 cd packages/hardhat
 FUEL_HBAR=12 INTERVAL=120 npx hardhat run scripts/armVault.ts --network hederaTestnet
 ```
@@ -176,8 +176,8 @@ Create a vault, arm it, watch the countdown, then close the tab.
 ## Tests
 
 ```bash
-npm run test                    # 115 offline
-npm run test:live               # 5 against live testnet contracts
+npm run hardhat:test          # 115 offline
+npm run hardhat:test:live     # 5 against live testnet contracts
 ```
 
 The live ones are the interesting ones: they read the real SaucerSwap pool and
