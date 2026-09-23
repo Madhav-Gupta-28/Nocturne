@@ -98,9 +98,23 @@ contract NocturneVault is Ownable, ReentrancyGuard {
 
     /// @notice Tinybar one scheduled execution was observed to *cost*.
     /// @dev 40.00 HBAR fell to 35.21 across three unattended runs: ~1.6 HBAR
-    ///      each. Reported for context only — see `reservePerRun` for the
-    ///      figure that actually decides whether the next run happens.
+    ///      each. Reported for context only — see `reservePerRun` and
+    ///      `chargePerRun` for the figures the runway is actually built from.
     uint256 public constant TINYBAR_PER_RUN = 160_000_000;
+
+    /**
+     * @notice Gas one execution actually burns.
+     * @dev Measured at ~1.43M across thirteen unattended runs on testnet, from
+     *      a charge of 162,987,482 tinybar at 109 tinybar per gas. Rounded up,
+     *      because overstating what a run costs understates the runway, and of
+     *      the two errors that is the one that does no harm.
+     *
+     *      Kept separate from `MIN_SCHEDULE_GAS` because they answer different
+     *      questions: that one is what a run must *reserve* before the network
+     *      will accept it, this is what it is then *charged*. They differ by
+     *      more than a factor of two, and conflating them is landmine 5.
+     */
+    uint256 public constant GAS_PER_RUN = 1_500_000;
 
     /**
      * @notice Gas price to assume when the EVM reports none, in tinybar per gas.
@@ -524,8 +538,20 @@ contract NocturneVault is Ownable, ReentrancyGuard {
      *      fallback keeps the division safe.
      */
     function reservePerRun() public view returns (uint256) {
-        uint256 price = tx.gasprice == 0 ? FALLBACK_GAS_PRICE : tx.gasprice;
-        return MIN_SCHEDULE_GAS * price;
+        return MIN_SCHEDULE_GAS * _gasPrice();
+    }
+
+    /// @notice Tinybar a run is actually charged, at the current gas price.
+    /// @dev The companion to `reservePerRun`. A run has to hold the reserve to
+    ///      be accepted and is then charged this, which is less than half of it.
+    function chargePerRun() public view returns (uint256) {
+        return GAS_PER_RUN * _gasPrice();
+    }
+
+    /// @dev Tinybar per gas. Hedera's relay reports the network price even for
+    ///      `eth_call`; the fallback is for chains that leave it at zero.
+    function _gasPrice() private view returns (uint256) {
+        return tx.gasprice == 0 ? FALLBACK_GAS_PRICE : tx.gasprice;
     }
 
     /// @notice HBAR held, in tinybar. Compare against `reservePerRun`.
@@ -547,8 +573,29 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         return strategy.explain(config);
     }
 
+    /**
+     * @dev Executions this balance will actually see.
+     *
+     *      Two different numbers govern it, which is why this is not a single
+     *      division. A run only happens if the balance covers the whole gas
+     *      allowance — `reservePerRun` — but what it then takes out of the
+     *      balance is only `chargePerRun`, under half as much. So the reserve is
+     *      a threshold crossed once and the charge is what erodes the balance
+     *      toward it:
+     *
+     *          runs = 0                                  if balance < reserve
+     *          runs = (balance - reserve) / charge + 1    otherwise
+     *
+     *      Dividing by the reserve alone would be safe but pessimistic, and
+     *      dividing by the charge alone is the mistake that let a vault holding
+     *      2.76 HBAR believe it had a run left when the network had already
+     *      stopped accepting it.
+     */
     function _runway() private view returns (uint256) {
-        return address(this).balance / reservePerRun();
+        uint256 balance = address(this).balance;
+        uint256 reserve = reservePerRun();
+        if (balance < reserve) return 0;
+        return (balance - reserve) / chargePerRun() + 1;
     }
 
     function _explain() private view returns (string memory, uint256, uint256) {

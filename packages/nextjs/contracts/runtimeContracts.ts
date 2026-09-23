@@ -497,6 +497,19 @@ const runtimeContracts = {
       },
       {
         inputs: [],
+        name: "FALLBACK_GAS_PRICE",
+        outputs: [
+          {
+            internalType: "uint256",
+            name: "",
+            type: "uint256",
+          },
+        ],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [],
         name: "FUEL_WARN_RUNS",
         outputs: [
           {
@@ -789,6 +802,19 @@ const runtimeContracts = {
         name: "renounceOwnership",
         outputs: [],
         stateMutability: "nonpayable",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "reservePerRun",
+        outputs: [
+          {
+            internalType: "uint256",
+            name: "",
+            type: "uint256",
+          },
+        ],
+        stateMutability: "view",
         type: "function",
       },
       {

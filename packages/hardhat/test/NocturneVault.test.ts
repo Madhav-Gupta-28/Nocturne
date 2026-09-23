@@ -341,9 +341,12 @@ describe("NocturneVault", () => {
   describe("fuel", () => {
     it("reports runway in whole runs", async () => {
       const { vault } = await loadFixture(deployFixture);
-      const perRun = await vault.reservePerRun();
+      const [reserve, charge] = [await vault.reservePerRun(), await vault.chargePerRun()];
       const balance = await ethers.provider.getBalance(await vault.getAddress());
-      expect(await vault.runway()).to.equal(balance / perRun);
+
+      // A run needs the reserve to be accepted but only removes the charge, so
+      // the reserve is a threshold and the charge is the drain.
+      expect(await vault.runway()).to.equal((balance - reserve) / charge + 1n);
     });
 
     /**
@@ -365,6 +368,10 @@ describe("NocturneVault", () => {
 
       await vault.depositHbar({ value: 1n });
       expect(await vault.runway()).to.equal(1);
+
+      // And the charge, not the reserve, is what each further run costs.
+      await vault.depositHbar({ value: await vault.chargePerRun() });
+      expect(await vault.runway()).to.equal(2);
     });
 
     it("warns before the fuel runs out rather than after", async () => {
