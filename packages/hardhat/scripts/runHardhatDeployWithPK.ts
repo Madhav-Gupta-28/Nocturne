@@ -29,7 +29,9 @@ async function main() {
   const encryptedKey = process.env.DEPLOYER_PRIVATE_KEY_ENCRYPTED;
 
   if (!encryptedKey) {
-    console.log("🚫️ You don't have a deployer account. Run `npm run account:generate` or `npm run account:import` first");
+    console.log(
+      "🚫️ You don't have a deployer account. Run `npm run account:generate` or `npm run account:import` first",
+    );
     return;
   }
 
