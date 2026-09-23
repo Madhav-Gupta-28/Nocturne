@@ -18,6 +18,7 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 
 import generateTsAbis from "./scripts/generateTsAbis";
+import generateRuntimeAbis from "./scripts/generateRuntimeAbis";
 
 // Hedera JSON-RPC URL (testnet default). Set HEDERA_RPC_URL in .env for mainnet.
 const hederaRpcUrl = process.env.HEDERA_RPC_URL || "https://testnet.hashio.io/api";
@@ -102,6 +103,8 @@ const config: HardhatUserConfig = {
 task("deploy").setAction(async (args, hre, runSuper) => {
   await runSuper(args);
   await generateTsAbis(hre);
+  // Vaults are created by the factory, so they never appear in deployments/.
+  await generateRuntimeAbis(hre);
 });
 
 // Extend the verify task to show HashScan link after Sourcify verification.
