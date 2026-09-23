@@ -79,13 +79,7 @@ describe("MockHederaScheduleService", () => {
     // The real scheduleCall never reverts. A mock that did would let a vault
     // pass tests it would fail on chain, so this is asserted explicitly.
     await hss.setRefuseNextBooking(true);
-    const [rc, addr] = await hss.scheduleCall.staticCall(
-      ethers.ZeroAddress,
-      (await now()) + 600,
-      3_000_000,
-      0,
-      "0x",
-    );
+    const [rc, addr] = await hss.scheduleCall.staticCall(ethers.ZeroAddress, (await now()) + 600, 3_000_000, 0, "0x");
     expect(rc).to.not.equal(22n);
     expect(addr).to.equal(ethers.ZeroAddress);
   });
