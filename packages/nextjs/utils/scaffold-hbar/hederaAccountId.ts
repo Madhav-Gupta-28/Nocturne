@@ -13,6 +13,17 @@ export function chainIdToHederaNetwork(chainId: number): HederaNetwork {
 }
 
 /**
+ * The public mirror node for a network.
+ *
+ * Worth linking to directly rather than only to an explorer: the mirror node
+ * returns the raw record, including the transfer list that says which account
+ * actually paid a transaction's fee. An explorer summarises that away.
+ */
+export function mirrorNodeUrl(network: HederaNetwork = "testnet"): string {
+  return `https://${network}.mirrornode.hedera.com`;
+}
+
+/**
  * Returns the Hedera account ID (e.g. "0.0.8041897") for an EVM address.
  *
  * @param evmAddress - EVM address (0x...)
