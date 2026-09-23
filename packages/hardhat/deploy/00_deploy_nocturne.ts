@@ -5,11 +5,16 @@ import { getDeployGasPrice } from "../utils/getDeployGasPrice";
 /**
  * Deploys the engine and the reference strategy.
  *
- * Three contracts, in dependency order:
+ * Five contracts:
  *
- *   Heartbeat          something for a vault to call, and the evidence that it did
- *   HeartbeatStrategy  the reference INocturneStrategy implementation
- *   NocturneFactory    makes a vault per owner
+ *   Heartbeat               something for a vault to call, and the evidence it did
+ *   HeartbeatStrategy       the reference INocturneStrategy implementation
+ *   ProtectiveExitStrategy  sells a position when a floor breaks
+ *   DriftRebalanceStrategy  restores a target ratio when it drifts
+ *   NocturneFactory         makes a vault per owner
+ *
+ * Strategies hold nothing and keep no per-user state, so one deployment of each
+ * serves every vault. Only vaults are per-owner.
  *
  * A vault is deliberately not deployed here. Vaults belong to whoever created
  * them, so they come from the factory at the owner's request — see
@@ -28,13 +33,17 @@ const deployNocturne: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const common = { from: deployer, log: true, autoMine: true, gasPrice, gasLimit: 4_000_000 };
 
   const heartbeat = await deploy("Heartbeat", { ...common, args: [] });
-  const strategy = await deploy("HeartbeatStrategy", { ...common, args: [] });
+  const heartbeatStrategy = await deploy("HeartbeatStrategy", { ...common, args: [] });
+  const exitStrategy = await deploy("ProtectiveExitStrategy", { ...common, args: [] });
+  const rebalanceStrategy = await deploy("DriftRebalanceStrategy", { ...common, args: [] });
   const factory = await deploy("NocturneFactory", { ...common, args: [] });
 
   log("");
-  log("  Heartbeat          %s", heartbeat.address);
-  log("  HeartbeatStrategy  %s", strategy.address);
-  log("  NocturneFactory    %s", factory.address);
+  log("  Heartbeat               %s", heartbeat.address);
+  log("  HeartbeatStrategy       %s", heartbeatStrategy.address);
+  log("  ProtectiveExitStrategy  %s", exitStrategy.address);
+  log("  DriftRebalanceStrategy  %s", rebalanceStrategy.address);
+  log("  NocturneFactory         %s", factory.address);
   log("");
   log("  Next: npx hardhat run scripts/armVault.ts --network %s", hre.network.name);
   log("");

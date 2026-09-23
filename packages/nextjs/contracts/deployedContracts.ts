@@ -6,6 +6,326 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-hbar/contract";
 
 const deployedContracts = {
   296: {
+    DriftRebalanceStrategy: {
+      address: "0x312cB4dE71515b32571e9d6a9a27B6241FAB16b4",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "int24",
+              name: "tick",
+              type: "int24",
+            },
+          ],
+          name: "TickOutOfBounds",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "vault",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "assetA",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "assetB",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "router",
+                  type: "address",
+                },
+                {
+                  internalType: "uint24",
+                  name: "fee",
+                  type: "uint24",
+                },
+                {
+                  internalType: "uint16",
+                  name: "targetBpsA",
+                  type: "uint16",
+                },
+                {
+                  internalType: "uint16",
+                  name: "bandBps",
+                  type: "uint16",
+                },
+                {
+                  internalType: "uint256",
+                  name: "minTradeValue1e18",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "slippageBps",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint8",
+                  name: "decimalsA",
+                  type: "uint8",
+                },
+                {
+                  internalType: "uint8",
+                  name: "decimalsB",
+                  type: "uint8",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "pool",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint32",
+                      name: "twapWindow",
+                      type: "uint32",
+                    },
+                    {
+                      internalType: "address",
+                      name: "feed",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "maxFeedAge",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "maxDivergenceBps",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "bool",
+                      name: "assetIsToken0",
+                      type: "bool",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "assetDecimals",
+                      type: "uint8",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "quoteDecimals",
+                      type: "uint8",
+                    },
+                  ],
+                  internalType: "struct PriceGuard.Sources",
+                  name: "sources",
+                  type: "tuple",
+                },
+              ],
+              internalType: "struct DriftRebalanceStrategy.Config",
+              name: "c",
+              type: "tuple",
+            },
+          ],
+          name: "encodeConfig",
+          outputs: [
+            {
+              internalType: "bytes",
+              name: "",
+              type: "bytes",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "explain",
+          outputs: [
+            {
+              internalType: "string",
+              name: "",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "inspect",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "bool",
+                  name: "priced",
+                  type: "bool",
+                },
+                {
+                  internalType: "string",
+                  name: "reason",
+                  type: "string",
+                },
+                {
+                  internalType: "uint256",
+                  name: "price",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "balanceA",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "balanceB",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "totalValue",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "currentBpsA",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "driftBps",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bool",
+                  name: "overweightA",
+                  type: "bool",
+                },
+                {
+                  internalType: "uint256",
+                  name: "tradeValue",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct DriftRebalanceStrategy.Position",
+              name: "",
+              type: "tuple",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "nextInterval",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "plan",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "target",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "value",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bytes",
+                  name: "data",
+                  type: "bytes",
+                },
+              ],
+              internalType: "struct INocturneStrategy.Action[]",
+              name: "actions",
+              type: "tuple[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "validateConfig",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {
+        explain: "contracts/interfaces/INocturneStrategy.sol",
+        nextInterval: "contracts/interfaces/INocturneStrategy.sol",
+        plan: "contracts/interfaces/INocturneStrategy.sol",
+        validateConfig: "contracts/interfaces/INocturneStrategy.sol",
+      },
+      deployedOnBlock: 40892392,
+    },
     Heartbeat: {
       address: "0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b",
       abi: [
@@ -98,7 +418,7 @@ const deployedContracts = {
       deployedOnBlock: 40889899,
     },
     HeartbeatStrategy: {
-      address: "0xdd0B4184102C3F93EbEb38257196b6E0d552De77",
+      address: "0xA5638e6682e2FDCC89CEE92Ffc9EC98F3D602428",
       abi: [
         {
           inputs: [
@@ -234,7 +554,7 @@ const deployedContracts = {
         plan: "contracts/interfaces/INocturneStrategy.sol",
         validateConfig: "contracts/interfaces/INocturneStrategy.sol",
       },
-      deployedOnBlock: 40889903,
+      deployedOnBlock: 40892384,
     },
     NocturneFactory: {
       address: "0x562Ae6DB6CeDed23Fe72590767695d122A864DA2",
@@ -415,6 +735,269 @@ const deployedContracts = {
       ],
       inheritedFunctions: {},
       deployedOnBlock: 40889908,
+    },
+    ProtectiveExitStrategy: {
+      address: "0x669862bBc4BBD814c3733587539230084dAf0ad6",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "int24",
+              name: "tick",
+              type: "int24",
+            },
+          ],
+          name: "TickOutOfBounds",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "cadence",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "distance1e18",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "intervalSeconds",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "vault",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "asset",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "quote",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "router",
+                  type: "address",
+                },
+                {
+                  internalType: "uint24",
+                  name: "fee",
+                  type: "uint24",
+                },
+                {
+                  internalType: "uint256",
+                  name: "floorPrice1e18",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "slippageBps",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint8",
+                  name: "assetDecimals",
+                  type: "uint8",
+                },
+                {
+                  internalType: "uint8",
+                  name: "quoteDecimals",
+                  type: "uint8",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "pool",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint32",
+                      name: "twapWindow",
+                      type: "uint32",
+                    },
+                    {
+                      internalType: "address",
+                      name: "feed",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "maxFeedAge",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "maxDivergenceBps",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "bool",
+                      name: "assetIsToken0",
+                      type: "bool",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "assetDecimals",
+                      type: "uint8",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "quoteDecimals",
+                      type: "uint8",
+                    },
+                  ],
+                  internalType: "struct PriceGuard.Sources",
+                  name: "sources",
+                  type: "tuple",
+                },
+              ],
+              internalType: "struct ProtectiveExitStrategy.Config",
+              name: "c",
+              type: "tuple",
+            },
+          ],
+          name: "encodeConfig",
+          outputs: [
+            {
+              internalType: "bytes",
+              name: "",
+              type: "bytes",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "explain",
+          outputs: [
+            {
+              internalType: "string",
+              name: "",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "nextInterval",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "plan",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "target",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "value",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bytes",
+                  name: "data",
+                  type: "bytes",
+                },
+              ],
+              internalType: "struct INocturneStrategy.Action[]",
+              name: "actions",
+              type: "tuple[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "config",
+              type: "bytes",
+            },
+          ],
+          name: "validateConfig",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {
+        explain: "contracts/interfaces/INocturneStrategy.sol",
+        nextInterval: "contracts/interfaces/INocturneStrategy.sol",
+        plan: "contracts/interfaces/INocturneStrategy.sol",
+        validateConfig: "contracts/interfaces/INocturneStrategy.sol",
+      },
+      deployedOnBlock: 40892388,
     },
   },
 } as const;
