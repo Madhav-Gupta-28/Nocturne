@@ -167,6 +167,41 @@ npx hardhat run scripts/probeGasPrice.ts --network hederaTestnet
 price and ignores any the caller nominates — so a view function can report a
 live figure rather than a frozen one.
 
+### Confirmed by prediction, not just by post-mortem
+
+The first vault died by accident. A second one was funded deliberately to see
+whether the corrected arithmetic could call the death in advance.
+
+Vault `0.0.10685769`, funded with **5 HBAR**, beating every 120 seconds. Before a
+single run, the contract was asked what it expected:
+
+```
+balance  5.0000 HBAR
+reserve  3.2700 HBAR per run   (accepted only above this)
+charge   1.6350 HBAR per run   (what it actually costs)
+runway   2 runs                <-- prediction
+```
+
+What the network then did:
+
+| Time (UTC) | Result | Charged | Balance after |
+| --- | --- | --- | --- |
+| 18:46:00 | SUCCESS | 1.6331 | 3.3669 |
+| 18:47:58 | SUCCESS | 1.6301 | 1.7368 |
+| 18:49:56 | **INSUFFICIENT_PAYER_BALANCE** | 0.0231 | 1.7137 |
+
+Two runs, as predicted, and the vault stopped holding **1.74 HBAR** — again more
+than the 1.63 a run is charged, and again below the 3.27 it must reserve. The old
+arithmetic would have reported one run remaining at that moment. `runway()` read
+`0`.
+
+Reproduce the whole thing in about six minutes:
+
+```bash
+cd packages/hardhat
+FUEL_HBAR=5 INTERVAL=120 npx hardhat run scripts/armVault.ts --network hederaTestnet
+```
+
 ### The same rule applies to your own wallet
 
 This is not only a contract problem. Every transaction reserves its gas limit

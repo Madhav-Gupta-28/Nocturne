@@ -45,7 +45,8 @@ transaction that armed it.
 | --- | --- |
 | Heartbeat | [`0x8b63C92F…3ec0b`](https://hashscan.io/testnet/contract/0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b) |
 | Factory | [`0x8BCF0110…A104`](https://hashscan.io/testnet/contract/0x8BCF01104d2748F29b36efF9538C5064b6FcA104) |
-| First demo vault | `0.0.10684549` — 13 unattended runs, then died (see below) |
+| First demo vault | `0.0.10684549` — 13 unattended runs, then died holding 2.76 HBAR (see below) |
+| Second demo vault | `0.0.10685769` — funded with 5 HBAR, predicted 2 runs, ran exactly 2 |
 
 ---
 
@@ -110,6 +111,11 @@ command that produced it in [`docs/hedera-landmines.md`](docs/hedera-landmines.m
    killed the first demo vault with 2.76 HBAR still in it: thirteen runs charged
    1.63 HBAR each, and the fourteenth was refused because the reserve is
    3,000,000 gas × 109 tinybar = **3.27 HBAR**.
+
+A second vault was then funded with 5 HBAR to check the corrected arithmetic
+against the network *before* the fact. It predicted two runs. It ran twice and
+was refused on the third, holding 1.74 HBAR — and `runway()` read `0` rather than
+the `1` the old formula would have reported.
 
 Landmine 5 is why `runway()` is not a single division:
 
