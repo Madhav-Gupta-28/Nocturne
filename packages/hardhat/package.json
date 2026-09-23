@@ -16,10 +16,11 @@
     "format": "prettier --write './**/*.(ts|sol)'",
     "lint": "eslint",
     "lint-staged": "eslint",
-    "test": "HEDERA_FORKING=true REPORT_GAS=true hardhat test",
+    "test": "REPORT_GAS=true hardhat test test/*.test.ts",
     "verify": "hardhat verify",
     "verify:testnet": "hardhat verify --network hederaTestnet",
-    "verify:mainnet": "hardhat verify --network hederaMainnet"
+    "verify:mainnet": "hardhat verify --network hederaMainnet",
+    "test:live": "hardhat test test/live/*.test.ts --network hederaTestnet"
   },
   "devDependencies": {
     "@ethersproject/abi": "~5.7.0",
