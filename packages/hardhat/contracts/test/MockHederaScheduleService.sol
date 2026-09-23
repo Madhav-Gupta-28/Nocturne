@@ -174,6 +174,21 @@ contract MockHederaScheduleService {
         refuseDelete = v;
     }
 
+    /// @notice Wipe every schedule and flag.
+    /// @dev Needed because `hardhat_setCode` installs bytecode without touching
+    ///      storage, so a mock written to a fixed address inherits whatever the
+    ///      previous suite left at that address. Every test file installs this
+    ///      mock at 0x16b, so without an explicit reset the fourth suite starts
+    ///      out holding the third suite's pending schedules.
+    function reset() external {
+        delete _schedules;
+        refuseNextBooking = false;
+        refuseCapacity = false;
+        refuseDelete = false;
+        _bookedInTx = 0;
+        _lastTxMarker = 0;
+    }
+
     /// @notice Start a fresh transaction window for the one-per-transaction rule.
     /// @dev Tests that book twice on purpose call this between bookings.
     function newTransaction() external {

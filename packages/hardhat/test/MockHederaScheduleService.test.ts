@@ -31,9 +31,12 @@ export const HSS_ADDRESS = "0x000000000000000000000000000000000000016b";
  * 1. The handle returned here is bound to 0x16b. The originally deployed copy
  *    keeps its own separate state, and using it by accident means writing flags
  *    the vault will never read.
- * 2. Whatever storage 0x16b already held is still there. This function does not
- *    give you a clean instance — only a snapshot does. Call it inside a
- *    `loadFixture` and never in a bare `beforeEach`.
+ * 2. Whatever storage 0x16b already held is still there. Every suite in this
+ *    repo installs the mock at the same address, so without an explicit reset a
+ *    later suite starts out holding an earlier one's pending schedules — which
+ *    surfaces as a pendingCount that is one too high, somewhere unrelated.
+ *    `reset()` below deals with it; a snapshot alone does not, because the
+ *    snapshot may itself have been taken over dirty storage.
  */
 export async function installMockScheduleService(): Promise<MockHederaScheduleService> {
   const factory = await ethers.getContractFactory("MockHederaScheduleService");
@@ -43,7 +46,9 @@ export async function installMockScheduleService(): Promise<MockHederaScheduleSe
   const runtimeCode = await ethers.provider.getCode(await deployed.getAddress());
   await network.provider.send("hardhat_setCode", [HSS_ADDRESS, runtimeCode]);
 
-  return factory.attach(HSS_ADDRESS) as MockHederaScheduleService;
+  const mock = factory.attach(HSS_ADDRESS) as MockHederaScheduleService;
+  await mock.reset();
+  return mock;
 }
 
 async function deployFixture() {
