@@ -37,11 +37,7 @@ contract HeartbeatStrategy is INocturneStrategy {
         Config memory c = abi.decode(config, (Config));
 
         actions = new Action[](1);
-        actions[0] = Action({
-            target: c.heartbeat,
-            value: 0,
-            data: abi.encodeCall(Heartbeat.beat, ())
-        });
+        actions[0] = Action({ target: c.heartbeat, value: 0, data: abi.encodeCall(Heartbeat.beat, ()) });
     }
 
     /// @inheritdoc INocturneStrategy

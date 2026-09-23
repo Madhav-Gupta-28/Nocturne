@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { installMockScheduleService } from "./MockHederaScheduleService.test";
 import {
   MockAggregator,
@@ -312,10 +313,16 @@ describe("ProtectiveExitStrategy", () => {
     await vault.arm();
 
     // First run: still above the floor, so it holds and asks again later.
-    await runDue(vault, feed, hss);
+    //
+    // Asserted on the REASON, not just the count. A refusal count of one is
+    // satisfied by "holding", by "feed stale", and by "sources disagree"
+    // equally — which is how an earlier version of this test passed while
+    // actually exercising a stale feed rather than a healthy hold.
+    await expect(runDue(vault, feed, hss))
+      .to.emit(vault, "Refused")
+      .withArgs(1n, "holding", anyValue, anyValue);
     expect(await vault.runCount()).to.equal(1n);
     expect(await router.swaps()).to.equal(0n);
-    expect(await vault.refusalCount()).to.equal(1n);
 
     // The price falls through the floor.
     await setPrices(pool, feed, 1.9, 1.9);
@@ -331,6 +338,42 @@ describe("ProtectiveExitStrategy", () => {
     expect(await quote.balanceOf(await vault.getAddress())).to.be.greaterThan(0n);
 
     // And it is still armed, still booked, ready for whatever comes next.
+    expect(await hss.pendingCount()).to.equal(1n);
+  });
+
+  it("refuses forever when maxFeedAge is shorter than the feed's own heartbeat", async () => {
+    // The trap this suite walked into. A feed that legitimately updates slowly
+    // — Chainlink pairs update on deviation as well as heartbeat, and USDC/USD
+    // on Hedera testnet was 18.8 hours old when this was written — paired with
+    // a tight maxFeedAge means every single check refuses, forever, and the
+    // position is never protected at all.
+    //
+    // The vault keeps running and keeps saying why, which is the best it can
+    // do. Recognising it is the operator's job, so the reason has to be exact.
+    const { vault, pool, feed, hss, strategy, config } = await loadFixture(deployFixture);
+
+    const cfg = await config({
+      sources: {
+        pool: await pool.getAddress(),
+        twapWindow: 300,
+        feed: await feed.getAddress(),
+        maxFeedAge: 60n, // tighter than this feed will ever be
+        maxDivergenceBps: 200n,
+        assetIsToken0: false,
+        assetDecimals: ASSET_DECIMALS,
+        quoteDecimals: QUOTE_DECIMALS,
+      },
+    });
+    await vault.configure(cfg);
+    await vault.arm();
+
+    await setPrices(pool, feed, 1.5, 1.5); // well below the floor
+    await time.increaseTo((await vault.nextRunAt()) + 1n);
+    await expect(hss.fireLatest()).to.emit(vault, "Refused").withArgs(1n, "feed stale", anyValue, anyValue);
+
+    expect(await vault.refusalCount()).to.equal(1n);
+    expect((await strategy.explain(cfg))[0]).to.equal("feed stale");
+    // Still alive and still trying, which is the only sane behaviour here.
     expect(await hss.pendingCount()).to.equal(1n);
   });
 

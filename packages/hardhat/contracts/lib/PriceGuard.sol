@@ -50,7 +50,21 @@ library PriceGuard {
         uint32 twapWindow;
         /// @dev Chainlink aggregator quoting the asset.
         address feed;
-        /// @dev Older than this and the feed stops counting as corroboration.
+        /**
+         * @dev Older than this and the feed stops counting as corroboration.
+         *
+         * **Set this above the feed's own heartbeat or the guard refuses
+         * forever.** Chainlink pairs update on deviation as well as on a
+         * heartbeat, so a quiet pair is legitimately old: USDC/USD on Hedera
+         * testnet read 18.8 hours old when this was written, while HBAR/USD
+         * read 105 seconds. Pairing a slow feed with a tight maxFeedAge means
+         * every check refuses and the position is never protected at all.
+         *
+         * The failure is at least loud — every run emits `Refused` with
+         * "feed stale" — but nothing on chain can distinguish it from a feed
+         * that has genuinely died, so choosing this number is the operator's
+         * job.
+         */
         uint256 maxFeedAge;
         /// @dev How far apart the two may be before acting is refused.
         uint256 maxDivergenceBps;
