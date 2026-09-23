@@ -52,6 +52,9 @@ contract MockHederaScheduleService {
     bool public refuseNextBooking;
     /// @notice Set by a test to make `hasScheduleCapacity` answer false.
     bool public refuseCapacity;
+    /// @notice Set by a test to make `deleteSchedule` fail, so a schedule can
+    ///         outlive the disarm that tried to release it.
+    bool public refuseDelete;
 
     /// @dev Bookings made in the current transaction, so the one-per-transaction
     ///      rule can be enforced the way the network enforces it.
@@ -119,6 +122,7 @@ contract MockHederaScheduleService {
     }
 
     function deleteSchedule(address scheduleAddress) external returns (int64) {
+        if (refuseDelete) return CAPACITY_REFUSED;
         uint256 i = _indexOf(scheduleAddress);
         if (i == type(uint256).max) return CAPACITY_REFUSED;
         if (_schedules[i].executed) return CAPACITY_REFUSED;
@@ -143,7 +147,7 @@ contract MockHederaScheduleService {
         s.executed = true;
 
         _newTransaction();
-        (success, ret) = s.to.call{gas: s.gasLimit, value: s.value}(s.callData);
+        (success, ret) = s.to.call{ gas: s.gasLimit, value: s.value }(s.callData);
         emit Fired(scheduleAddress, success, ret);
     }
 
@@ -164,6 +168,10 @@ contract MockHederaScheduleService {
 
     function setRefuseCapacity(bool v) external {
         refuseCapacity = v;
+    }
+
+    function setRefuseDelete(bool v) external {
+        refuseDelete = v;
     }
 
     /// @notice Start a fresh transaction window for the one-per-transaction rule.
