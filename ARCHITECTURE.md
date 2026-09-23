@@ -1,4 +1,4 @@
-# Vigil — Architecture
+# Nocturne — Architecture
 
 **Recurring on-chain jobs on Hedera, without a bot.**
 
@@ -8,17 +8,18 @@ two price sources disagree. Two strategies ship on top of it: a position that
 exits itself, and a portfolio that rebalances itself.
 
 ```bash
-npm create scaffold-hbar@latest --template <owner>/scaffold-hbar-vigil
+npm create scaffold-hbar@latest --template <owner>/scaffold-hbar-nocturne
 ```
 
-> *Vigil* — a watch kept through the night over something that matters.
+> *Nocturne* — a piece written for the night, played whether or not anyone
+> is listening.
 
 ---
 
 ## 0. How to read this file
 
 This is the complete specification. Someone with no prior context should be able
-to build Vigil from this document alone.
+to build Nocturne from this document alone.
 
 Every address, number and interface below was **verified against the live
 network on 2026-09-22 or 2026-09-23**, with the command that produced it given
@@ -126,7 +127,7 @@ and borrowed roughly 6.6M USDC and 34.5M WHBAR against it.
 The vulnerability was not in Bonzo's contracts. It was a third-party oracle that
 lied, and a protocol that believed it.
 
-That matters here for one reason. Vigil is automation that *acts on a price*.
+That matters here for one reason. Nocturne is automation that *acts on a price*.
 An automated seller that believes a single manipulated feed is not a safety
 tool; it is a liquidation bot working for the attacker. So the first design
 constraint of this system is not "act quickly." It is **do not act on a price
@@ -159,7 +160,7 @@ holds no funds.
 §1.5 is the argument. A single feed is a single point of failure with a
 nine-million-dollar precedent on this exact chain.
 
-Vigil reads two sources that fail independently:
+Nocturne reads two sources that fail independently:
 
 - **SaucerSwap TWAP** — derived from the pool the trade would actually execute
   against, so it cannot be "right" about a price the trade cannot get.
@@ -298,7 +299,7 @@ The under-gassed contract flatlined for the entire observation window:
 40.00 → 35.21 HBAR across three unattended executions. The contract is the
 schedule's `payer_account_id`, so it pays for its own future gas.
 
-This is why `VigilVault` enforces a `MIN_SCHEDULE_GAS` floor, exposes
+This is why `NocturneVault` enforces a `MIN_SCHEDULE_GAS` floor, exposes
 `runway()`, and emits `FuelLow`. It is also why the demo shows a live tick
 counter: an automation you cannot see the liveness of is an automation you
 cannot trust.
@@ -325,7 +326,7 @@ cast call 0xb4f980DBdb7b62f5193d5Ab0680DB468b5143445 "ticks()(uint256)"  --rpc-u
 2. **HTS system contracts have no EVM bytecode.** `eth_getCode(0x16b)` returns
    `0x`. Solidity ≥ 0.8.10 skips the `extcodesize` check for calls that return
    data, so typed interface calls to `scheduleCall` work — but a call with **no
-   return value** would revert. Vigil uses raw `call`/`staticcall` to HSS
+   return value** would revert. Nocturne uses raw `call`/`staticcall` to HSS
    regardless, so the same bytecode is deployable on a chain without HSS and
    degrades to "scheduling unavailable" rather than reverting.
 
@@ -431,7 +432,7 @@ ETH/USD   $2,713.97   updated 51 m ago
 USDC/USD  $0.999931   updated 18.8 h ago   (deviation-triggered; normal)
 ```
 
-Vigil therefore treats **staleness as divergence**: a feed older than
+Nocturne therefore treats **staleness as divergence**: a feed older than
 `MAX_FEED_AGE` is not a second opinion, and the strategy refuses rather than
 falling back to one source.
 
@@ -452,11 +453,11 @@ established by attempting to associate a Bonzo aToken (a real ERC-20 with 3,561
 bytes of code and symbol `amWHBAR`) and getting 167 while the two real HTS
 tokens returned 22.
 
-So the rule Vigil follows: **associate the tokens it will custody; never
+So the rule Nocturne follows: **associate the tokens it will custody; never
 associate a contract-deployed ERC-20.**
 
 Association is idempotent-ish but not free, so it is done once at vault
-creation, and `VigilFactory` funds the new vault with enough HBAR to pay for it.
+creation, and `NocturneFactory` funds the new vault with enough HBAR to pay for it.
 
 ### 3.8 Dead ends — documented so the next person does not repeat them
 
@@ -496,10 +497,10 @@ it, and is out of scope (§13).
 ```
 packages/foundry/            (or hardhat — the manifest declares both)
   contracts/
-    VigilVault.sol           custody + HSS scheduling + fuel. Holds funds.
-    VigilFactory.sol         one vault per user, per strategy. Real deploys.
+    NocturneVault.sol           custody + HSS scheduling + fuel. Holds funds.
+    NocturneFactory.sol         one vault per user, per strategy. Real deploys.
     interfaces/
-      IVigilStrategy.sol     plan() + nextInterval(). Pure. Holds nothing.
+      INocturneStrategy.sol     plan() + nextInterval(). Pure. Holds nothing.
       IHederaScheduleService.sol
       IHederaTokenService.sol
       ISwapRouter.sol        SaucerSwap V2 (Uniswap V3 shape, with deadline)
@@ -529,7 +530,7 @@ allowance, and can be swapped out by the owner.
 The vault executes those calls **as itself**, so a hostile strategy could at
 worst propose calls that lose the vault's own money — which is why the vault
 bounds what it will execute (§9). This mirrors the separation Hedera's own
-`ScheduledVault` established, and Vigil keeps it deliberately rather than
+`ScheduledVault` established, and Nocturne keeps it deliberately rather than
 inventing a new one.
 
 ### 4.3 Data flow of one unattended cycle
@@ -538,7 +539,7 @@ inventing a new one.
 HSS (network)
    │  calls executeScheduled() at the booked second
    ▼
-VigilVault
+NocturneVault
    │  1. book the NEXT schedule FIRST (see §8.1)
    │  2. staticcall strategy.plan(config)
    ▼
@@ -548,7 +549,7 @@ Strategy (view)
    │  agree?  ──no──►  return [] and a SHORTER interval
    │     yes
    ▼  returns [approve, exactInputSingle]
-VigilVault
+NocturneVault
    │  3. execute each action, catching failures per action
    │  4. emit Executed / Refused / FuelLow
    ▼
@@ -560,12 +561,12 @@ SaucerSwap SwapRouter  ── the swap that actually moves the position
 
 ## 5. The contracts
 
-### 5.1 `IVigilStrategy`
+### 5.1 `INocturneStrategy`
 
 The whole contribution is the second function.
 
 ```solidity
-interface IVigilStrategy {
+interface INocturneStrategy {
     struct Action { address target; uint256 value; bytes data; }
 
     /// @notice The calls the vault should execute now. Empty means "do nothing".
@@ -592,10 +593,10 @@ interface IVigilStrategy {
 `plan()` being `view` is inherited from Hedera's interface and kept on purpose:
 a planner that cannot write cannot be the thing that drains you.
 
-### 5.2 `VigilVault`
+### 5.2 `NocturneVault`
 
 ```solidity
-contract VigilVault is Ownable, ReentrancyGuard {
+contract NocturneVault is Ownable, ReentrancyGuard {
     address private constant HSS = address(0x16b);
     address private constant HTS = address(0x167);
     int64   private constant HSS_SUCCESS = 22;
@@ -612,7 +613,7 @@ contract VigilVault is Ownable, ReentrancyGuard {
     /// that gates on a deadline must be scheduled past it, not at it.
     uint256 public constant CLOCK_MARGIN = 60;
 
-    IVigilStrategy public strategy;
+    INocturneStrategy public strategy;
     bytes   public config;
     address public nextSchedule;
     uint64  public lastRunAt;
@@ -667,7 +668,7 @@ function executeScheduled() external nonReentrant {
     _bookNext(gap);
 
     // 2. Plan. A strategy that reverts is a bug, not a reason to stop.
-    try strategy.plan(config) returns (IVigilStrategy.Action[] memory actions) {
+    try strategy.plan(config) returns (INocturneStrategy.Action[] memory actions) {
         if (actions.length == 0) {
             refusalCount++;
             (string memory why, uint256 a, uint256 b) = _explainSafely();
@@ -712,10 +713,10 @@ function _bookNext(uint256 gap) private {
 }
 ```
 
-### 5.3 `VigilFactory`
+### 5.3 `NocturneFactory`
 
 ```solidity
-contract VigilFactory {
+contract NocturneFactory {
     mapping(address => address[]) public vaultsOf;
     event VaultCreated(address indexed owner, address vault, address strategy);
 
@@ -724,7 +725,7 @@ contract VigilFactory {
 }
 ```
 
-**`new VigilVault(...)`, never a clone.** EIP-1167 minimal proxies are
+**`new NocturneVault(...)`, never a clone.** EIP-1167 minimal proxies are
 `DELEGATECALL`, and a schedule booked from a delegatecall frame receives a
 `delegatable_contract_id` admin key that the payer-signature check does not
 handle at execution: the schedule fires on time and then fails
@@ -987,7 +988,7 @@ vault uses, and it survived every test here. 1M does not, and fails **silently**
 - **The Hedera network** to execute a booked schedule. That is the entire
   premise; if it fails, so does the chain.
 - **Chainlink and SaucerSwap** each to be honest *or* to be caught by the other.
-  Vigil does not assume either is correct, only that both are not wrong in the
+  Nocturne does not assume either is correct, only that both are not wrong in the
   same direction at the same moment.
 - **The owner** to set a sane floor. The contract validates ranges, not wisdom.
 
@@ -1074,7 +1075,7 @@ The bounty's mechanical gate, run before submission:
 
 ## 12. Build order
 
-1. **Engine + mock HSS.** `IVigilStrategy`, `VigilVault`, `VigilFactory`, unit
+1. **Engine + mock HSS.** `INocturneStrategy`, `NocturneVault`, `NocturneFactory`, unit
    tests. Nothing else until the chain survives a reverting strategy.
 2. **Live scheduling proof.** Deploy the vault with a trivial strategy, arm it,
    watch three unattended runs. Capture the HashScan links now — they are the
