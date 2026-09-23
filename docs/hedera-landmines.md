@@ -1,10 +1,11 @@
-# Four ways HSS automation fails silently
+# Five ways HSS automation fails silently
 
 Everything here was measured on Hedera testnet, with the command that measured
-it. None of it is in Hedera's documentation, and all four will bite anyone who
+it. None of it is in Hedera's documentation, and all five will bite anyone who
 writes a self-rescheduling contract.
 
-The first one is the dangerous one, because it does not look like a failure.
+The first one is the dangerous one, because it does not look like a failure. The
+fifth was found the expensive way, by a vault that died with money still in it.
 
 ---
 
@@ -115,6 +116,62 @@ done
 **What Nocturne does:** `MAX_INTERVAL` is 60 days, leaving two days of margin,
 and every interval a strategy asks for is clamped into
 `[MIN_INTERVAL, MAX_INTERVAL]`.
+
+---
+
+## 5. A payer must cover the whole gas allowance, not the gas it burns
+
+This one cost a running demo vault its life, with 2.76 HBAR still in it.
+
+The vault ran thirteen unattended executions. Each was charged **1.6299 HBAR**.
+The fourteenth failed:
+
+```bash
+curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?account.id=0.0.10684549&limit=2&order=desc" \
+  | jq -r '.transactions[] | "\(.result) charged=\(.charged_tx_fee)"'
+# INSUFFICIENT_PAYER_BALANCE charged=2306440
+# SUCCESS                    charged=162987482
+```
+
+It held 2.7628 HBAR at that moment — **1.7 times** what a run had ever cost. The
+network refused it anyway, because acceptance is tested against the full gas
+allowance the schedule was created with, and only the gas actually burned is
+then charged. Those are very different numbers: a run burns about 1.43M gas and
+reserves `MIN_SCHEDULE_GAS`, which is 3M.
+
+At 109 tinybar per gas, the reserve is **3.27 HBAR**, and 2.7628 does not cover
+it. A run costing 1.63 needs twice that in the account before it will start.
+
+The price is not a constant either. Hedera prices gas in USD, so tinybar per gas
+moves with the exchange rate; a vault funded when HBAR was expensive dies earlier
+than its own arithmetic predicts when HBAR falls.
+
+**Reading the price from inside the EVM needs no conversion**, which is the one
+piece of good news here and the opposite of what the tinybar/weibar rule below
+would lead you to expect:
+
+```
+tx.gasprice (in EVM)   109              <- tinybar per gas
+eth_gasPrice (RPC)     1140000000000    <- weibar per gas, and marked up
+block.basefee          0                <- always zero on Hedera, do not use it
+balance after 1 HBAR   100000000        <- tinybar, same unit as tx.gasprice
+```
+
+Reproduce it with `contracts/test/GasPriceProbe.sol`, live at `0.0.10685635`:
+
+```bash
+npx hardhat run scripts/probeGasPrice.ts --network hederaTestnet
+```
+
+`tx.gasprice` also survives `eth_call` — the relay substitutes the network's
+price and ignores any the caller nominates — so a view function can report a
+live figure rather than a frozen one.
+
+**What Nocturne does:** `reservePerRun()` returns
+`MIN_SCHEDULE_GAS * tx.gasprice`, and `runway()` divides the balance by that
+rather than by what a run has historically cost. The earlier constant,
+`TINYBAR_PER_RUN`, is kept and reported, but only as context; using it to size a
+deposit overstates the runway by about half.
 
 ---
 

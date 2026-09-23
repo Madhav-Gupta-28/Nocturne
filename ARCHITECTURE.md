@@ -99,7 +99,7 @@ It cannot do the sentence above. Four gaps, each verified by reading its source:
 4. **No HTS association.** `depositTokens` calls `transferFrom` on a token the
    vault was never associated with, which fails for any HTS asset (§3.7).
 
-### 1.4 The four ways HSS automation silently breaks
+### 1.4 The five ways HSS automation silently breaks
 
 This is the contribution. None of it is in Hedera's documentation.
 
@@ -109,10 +109,20 @@ This is the contribution. None of it is in Hedera's documentation.
 | 2 | Scheduled calls see `block.timestamp` ~2 seconds **early** | A call scheduled for `deadline + 1` reverts on a `> deadline` check, in production, while every unit test passes | 3.2 |
 | 3 | At most **one** scheduled call per transaction | An action that books two schedules is rejected outright and the whole transaction fails | 3.2 |
 | 4 | Expiry is capped at **62 days** | A schedule booked further out is refused, and the job silently never exists | 3.2 |
+| 5 | The payer must cover the **whole gas allowance**, not the gas burned | A vault funded against what a run *costs* dies with roughly a run's worth of HBAR still in it | 3.3 |
 
 Landmine 1 is the dangerous one, because it does not look like a failure. The
 work succeeds. The transaction succeeds. The explorer shows green. The
 automation simply stops, forever, and nothing anywhere says why.
+
+Landmine 5 is the one this project got wrong first and fixed afterwards, which
+is why it is written down in that order. The first long-running demo vault
+stopped after thirteen executions holding **2.7628 HBAR**, having been charged
+**1.6299 HBAR** for every run it ever made. It had more than a run's cost left
+and the fourteenth still failed with `INSUFFICIENT_PAYER_BALANCE`, because
+acceptance is tested against `MIN_SCHEDULE_GAS`, and 3,000,000 gas at 109 tinybar
+per gas is **3.27 HBAR**. Sizing a deposit by observed cost overstates the
+runway by about half (§3.3).
 
 ### 1.5 The failure this design is a response to
 
@@ -299,8 +309,12 @@ The under-gassed contract flatlined for the entire observation window:
 40.00 → 35.21 HBAR across three unattended executions. The contract is the
 schedule's `payer_account_id`, so it pays for its own future gas.
 
+**The balance it must hold is roughly twice that**, because the payer is tested
+against the whole `MIN_SCHEDULE_GAS` allowance and only charged for the gas it
+burns (§1.4 landmine 5, §7.2). Budget 3.27 HBAR per run, not 1.63.
+
 This is why `NocturneVault` enforces a `MIN_SCHEDULE_GAS` floor, exposes
-`runway()`, and emits `FuelLow`. It is also why the demo shows a live tick
+`runway()` and `reservePerRun()`, and emits `FuelLow`. It is also why the demo shows a live tick
 counter: an automation you cannot see the liveness of is an automation you
 cannot trust.
 
@@ -647,6 +661,7 @@ contract NocturneVault is Ownable, ReentrancyGuard {
 
     // ---- views the UI lives on ----
     function runway() external view returns (uint256 runsRemaining);
+    function reservePerRun() external view returns (uint256 tinybar);
     function fuel() external view returns (uint256 tinybar);
     function status() external view
         returns (bool armed_, uint64 runs, uint64 refusals, uint256 nextAt, uint256 runsLeft);
@@ -912,13 +927,38 @@ argument for `nextInterval()`, and it is measured rather than asserted.**
 
 ### 7.2 Runway
 
+Runway is governed by what a run **reserves**, not what it **costs**, and the two
+are roughly a factor of two apart:
+
 ```
-runsRemaining = floor(tinybarBalance / TINYBAR_PER_RUN)      // 160_000_000
+reservePerRun = MIN_SCHEDULE_GAS * tx.gasprice          // 3_000_000 * 109 = 3.27 HBAR
+runsRemaining = floor(tinybarBalance / reservePerRun)
 ```
 
-`TINYBAR_PER_RUN` is a constant set from §3.3 and revisable by the owner within
-bounds. The UI converts to days using the *current* cadence and says so, because
-a runway quoted at calm cadence is a lie during a crash.
+The network tests a payer against the whole gas allowance before accepting the
+transaction, then charges only for the gas burned (~1.43M of the 3M reserved,
+about 1.63 HBAR). Dividing by the observed cost therefore reports fuel the vault
+cannot actually spend — which is exactly how the first demo vault died with
+2.7628 HBAR in it (§1.4, landmine 5).
+
+Two properties of `tx.gasprice` make this safe to compute on chain, both measured
+rather than assumed (`contracts/test/GasPriceProbe.sol`, live at `0.0.10685635`):
+
+- Inside the EVM it is quoted in **tinybar per gas**, the same unit as
+  `address(this).balance`, so no 1e10 conversion applies. The JSON-RPC
+  `eth_gasPrice` is weibar *and* marked up — 1.14e12 weibar against the EVM's
+  109 tinybar.
+- It survives `eth_call`: the relay substitutes the network's price and ignores
+  any the caller nominates, so a UI reading `runway()` gets a live figure. This
+  matters because Hedera prices gas in USD, so tinybar per gas moves with the
+  exchange rate and a frozen constant goes wrong on its own.
+
+`block.basefee` is **0** on Hedera and must not be used for this.
+
+`TINYBAR_PER_RUN` (160,000,000) is retained and reported as the observed cost,
+for the cadence table in §7.1, but no longer sizes the runway. The UI converts
+runway to days using the *current* cadence and says so, because a runway quoted
+at calm cadence is a lie during a crash.
 
 ### 7.3 When a rebalance is worth doing
 
