@@ -24,10 +24,16 @@ const VAULT_ABI = runtimeContracts.NocturneVault.abi as unknown as Abi;
  * `arm` and `executeScheduled` both book a schedule through HIP-1215, which
  * needs roughly 1.4M gas of its own on top of the call. An estimate that comes
  * back low here does not revert — the schedule simply never gets created, the
- * transaction reports SUCCESS, and the automation is silently dead. Unused gas
- * is refunded, so the headroom is close to free and the alternative is not.
+ * transaction reports SUCCESS, and the automation is silently dead.
+ *
+ * Headroom is not free, though, and the cost lands on the wallet rather than the
+ * vault: the sender has to hold the whole limit times the gas price before the
+ * relay will submit anything, even though only the gas burned is charged. Arming
+ * measured 1,501,968 gas, so 2.5M is comfortable headroom that reserves ~2.9
+ * HBAR, where 4M would reserve ~4.6 and can leave an owner unable to arm a vault
+ * they just funded.
  */
-const GAS_BOOKING = 4_000_000n;
+const GAS_BOOKING = 2_500_000n;
 const GAS_PLAIN = 1_000_000n;
 
 /** Tinybar per HBAR. In-EVM balances are 8 decimals, not 18. */

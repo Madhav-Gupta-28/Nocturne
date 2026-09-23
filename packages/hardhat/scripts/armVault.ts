@@ -71,8 +71,15 @@ async function main() {
   await (await vault.configure(config, { gasLimit: 1_000_000 })).wait();
 
   // 4. Arm. This books the first schedule; every run after it books the next.
+  //
+  // 2.5M rather than 4M, and the difference is the owner's problem rather than
+  // the vault's. Arming measured 1,501,968 gas, but the *owner* has to hold the
+  // whole limit times the gas price before the relay will submit it at all — 4M
+  // reserves about 4.6 HBAR for a call that burns under 1.7. Fund a vault
+  // generously and the owner can be left unable to arm it, which is how this
+  // number got measured in the first place.
   console.log(`arming...`);
-  const armTx = await vault.arm({ gasLimit: 4_000_000 });
+  const armTx = await vault.arm({ gasLimit: 2_500_000 });
   await armTx.wait();
 
   const [armed, runs, refusals, nextAt, runsLeft] = await vault.status();

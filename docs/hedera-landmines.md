@@ -167,6 +167,24 @@ npx hardhat run scripts/probeGasPrice.ts --network hederaTestnet
 price and ignores any the caller nominates — so a view function can report a
 live figure rather than a frozen one.
 
+### The same rule applies to your own wallet
+
+This is not only a contract problem. Every transaction reserves its gas limit
+against the *sender's* balance before the relay will submit it, so a generous
+`gasLimit` on a cheap call quietly locks up HBAR the sender may not have.
+
+Arming a vault burns **1,501,968** gas. Sending it with `gasLimit: 4_000_000`
+reserves about **4.6 HBAR** to do it. Fund a vault with most of your balance and
+the next line fails:
+
+```
+ProviderError: Insufficient funds for transfer
+```
+
+— which is how this got measured: an owner with 4.68 HBAR could not arm a vault
+they had just funded with 5. `scripts/armVault.ts` now arms at 2.5M, which is
+still 66% headroom over what the call burns and reserves ~2.9 HBAR instead.
+
 **What Nocturne does:** `reservePerRun()` returns
 `MIN_SCHEDULE_GAS * tx.gasprice`, and `runway()` divides the balance by that
 rather than by what a run has historically cost. The earlier constant,
