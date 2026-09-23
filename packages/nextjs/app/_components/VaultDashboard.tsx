@@ -13,11 +13,20 @@ const FUEL_WARN_RUNS = 5n;
 /** The vault's own floor. Anything shorter is clamped on chain. */
 const MIN_INTERVAL = 60;
 
+/**
+ * How late a run has to be before the chain is treated as broken rather than
+ * imminent. A schedule normally fires within a second or two of its time, and
+ * the vault allows itself 10 seconds of clock skew either way; a minute is well
+ * past both, and past it the honest word is "overdue", not "due now".
+ */
+const OVERDUE_GRACE = 60;
+
 export const VaultDashboard = ({ vault }: { vault: Address }) => {
   const now = useNow();
   const { status, fuelTinybar, decision, refetch } = useVaultStatus(vault);
 
   const secondsToGo = status ? Number(status.nextRunAt) - now : 0;
+  const overdue = !!status?.armed && secondsToGo < -OVERDUE_GRACE;
 
   return (
     <>
@@ -25,7 +34,11 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
         <div className="flex flex-wrap gap-10">
           <Stat label="runs" value={status ? status.runs.toString() : "—"} />
           <Stat label="refusals" value={status ? status.refusals.toString() : "—"} hint="declined, with a reason" />
-          <Stat label="next run" value={!status ? "—" : status.armed ? formatDuration(secondsToGo) : "not armed"} />
+          <Stat
+            label="next run"
+            value={!status ? "—" : !status.armed ? "not armed" : overdue ? "overdue" : formatDuration(secondsToGo)}
+            hint={overdue ? `${formatDuration(-secondsToGo)} late` : undefined}
+          />
           <Stat
             label="runway"
             value={status ? `${status.runsLeft}` : "—"}
@@ -47,11 +60,49 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
           </div>
         ) : null}
 
+        {overdue ? <Overdue vault={vault} onDone={refetch} /> : null}
+
         <Controls vault={vault} armed={status?.armed ?? false} onDone={refetch} />
       </Panel>
 
       <Proof vault={vault} />
     </>
+  );
+};
+
+/**
+ * What to do when the chain has stopped.
+ *
+ * A chain of scheduled calls ends the moment one of them fails to book its
+ * successor — most often because the vault ran out of HBAR, since it pays for
+ * its own executions. Nothing reverts and nothing is logged anywhere a wallet
+ * would show you; the runs simply stop.
+ *
+ * The recovery is deliberately open to anyone: `executeScheduled` has no access
+ * control, and it books the next run before it does any work. So a stalled vault
+ * is one call away from alive again, and the person making that call does not
+ * have to be its owner.
+ */
+const Overdue = ({ vault, onDone }: { vault: Address; onDone: () => Promise<void> }) => {
+  const { send, isPending } = useVaultWrite(vault);
+
+  return (
+    <div className="alert alert-error mt-5 py-3 flex-col items-start gap-3">
+      <span className="text-sm">
+        This run is late, which means the chain stopped: a previous execution could not book its successor. Almost
+        always that is an empty balance. Top it up, then restart it — anyone can, the call is not owner-only.
+      </span>
+      <button
+        className="btn btn-sm"
+        disabled={isPending}
+        onClick={async () => {
+          await send({ functionName: "executeScheduled", books: true });
+          await onDone();
+        }}
+      >
+        {isPending ? "Working…" : "Run it now"}
+      </button>
+    </div>
   );
 };
 
