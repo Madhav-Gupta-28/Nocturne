@@ -557,7 +557,7 @@ const deployedContracts = {
       deployedOnBlock: 40892384,
     },
     NocturneFactory: {
-      address: "0x1DaE3E729aDE24257D0e7FEd988594c9a3139110",
+      address: "0x8BCF01104d2748F29b36efF9538C5064b6FcA104",
       abi: [
         {
           inputs: [],
@@ -734,7 +734,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 40893072,
+      deployedOnBlock: 40893119,
     },
     ProtectiveExitStrategy: {
       address: "0x669862bBc4BBD814c3733587539230084dAf0ad6",

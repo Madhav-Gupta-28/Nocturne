@@ -523,6 +523,19 @@ const runtimeContracts = {
       },
       {
         inputs: [],
+        name: "GAS_PER_RUN",
+        outputs: [
+          {
+            internalType: "uint256",
+            name: "",
+            type: "uint256",
+          },
+        ],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [],
         name: "MAX_INTERVAL",
         outputs: [
           {
@@ -629,6 +642,19 @@ const runtimeContracts = {
           },
         ],
         stateMutability: "nonpayable",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "chargePerRun",
+        outputs: [
+          {
+            internalType: "uint256",
+            name: "",
+            type: "uint256",
+          },
+        ],
+        stateMutability: "view",
         type: "function",
       },
       {

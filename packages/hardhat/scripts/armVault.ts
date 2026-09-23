@@ -13,11 +13,23 @@ import { ethers, deployments, network } from "hardhat";
  *   npx hardhat run scripts/watchVault.ts --network hederaTestnet
  */
 
-/** Seconds between beats. The vault's floor is 60. */
-const INTERVAL = 120;
+/**
+ * Seconds between beats. The vault's floor is 60.
+ *
+ * Override with `INTERVAL=300 npx hardhat run ...`.
+ */
+const INTERVAL = Number(process.env.INTERVAL ?? 120);
 
-/** HBAR to leave in the vault. It pays for its own gas at roughly 1.6 per run. */
-const FUEL_HBAR = "24";
+/**
+ * HBAR to leave in the vault, overridable with `FUEL_HBAR=5`.
+ *
+ * Budget it against what a run *reserves*, not what it costs. The network only
+ * accepts an execution whose payer covers the whole gas allowance — about 3.27
+ * HBAR — and then charges roughly 1.63 of it. So the first run needs twice what
+ * the later ones consume, and the script prints the vault's own arithmetic below
+ * rather than asking you to do it here.
+ */
+const FUEL_HBAR = process.env.FUEL_HBAR ?? "24";
 
 async function main() {
   const [signer] = await ethers.getSigners();
@@ -69,6 +81,14 @@ async function main() {
   console.log(`\narmed    ${armed}`);
   console.log(`runs     ${runs}  refusals ${refusals}`);
   console.log(`next run ${new Date(Number(nextAt) * 1000).toISOString()}`);
+
+  // Print the two figures the runway is built from, because they are far apart
+  // and the gap is the thing most likely to be misjudged.
+  const [reserve, charge, balance] = [await vault.reservePerRun(), await vault.chargePerRun(), await vault.fuel()];
+  const hbar = (t: bigint) => (Number(t) / 1e8).toFixed(4);
+  console.log(`balance  ${hbar(balance)} HBAR`);
+  console.log(`reserve  ${hbar(reserve)} HBAR per run  (accepted only above this)`);
+  console.log(`charge   ${hbar(charge)} HBAR per run  (what it actually costs)`);
   console.log(`runway   ${runsLeft} runs`);
   console.log(`schedule ${schedule}   (0.0.${BigInt(schedule)})`);
   console.log(`beats    ${await heartbeat.beats()}`);
