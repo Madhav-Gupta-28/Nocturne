@@ -48,12 +48,27 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      forking: {
-        url: hederaRpcUrl,
-        // @ts-expect-error - custom property for hedera-forking plugin
-        chainId: 296,
-        workerPort: 10001,
-      },
+      // Forking is opt-in, and deliberately off by default.
+      //
+      // The plugin above already loads only when HEDERA_FORKING=true, but the
+      // network config used to fork unconditionally — so every unit test
+      // reached out to testnet, which makes the suite slow, flaky and unable to
+      // run on a plane. Unit tests mock the Hedera system contracts instead
+      // (see contracts/test/MockHederaScheduleService.sol); the fork is for the
+      // integration tests that genuinely need live state.
+      //
+      //   npm run test                 offline, mocked system contracts
+      //   HEDERA_FORKING=true npm run test:testnet   against live testnet
+      ...(process.env.HEDERA_FORKING === "true"
+        ? {
+            forking: {
+              url: hederaRpcUrl,
+              // @ts-expect-error - custom property for hedera-forking plugin
+              chainId: 296,
+              workerPort: 10001,
+            },
+          }
+        : {}),
     },
     hederaTestnet: {
       url: "https://testnet.hashio.io/api",
