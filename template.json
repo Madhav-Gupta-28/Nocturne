@@ -1,0 +1,72 @@
+{
+  "name": "nocturne",
+  "description": "Recurring on-chain jobs on Hedera, without a keeper. A vault books its own next run through the Hedera Schedule Service, picks the interval from what it observes, and refuses to trade when its two price sources disagree.",
+  "version": "0.1.0",
+  "create-scaffold-hbar": {
+    "capabilities": {
+      "frontend": ["nextjs-app"],
+      "solidityFramework": ["hardhat"],
+      "packageManager": ["npm", "yarn"]
+    },
+    "defaults": {
+      "frontend": "nextjs-app",
+      "solidityFramework": "hardhat",
+      "packageManager": "npm"
+    },
+    "requirements": {
+      "node": ">=20.18.3"
+    },
+    "envVars": [
+      {
+        "key": "HEDERA_RPC_URL",
+        "description": "Hedera JSON-RPC endpoint. Defaults to testnet; change it for mainnet."
+      },
+      {
+        "key": "DEPLOYER_PRIVATE_KEY_ENCRYPTED",
+        "description": "Written by `npm run hardhat:account:generate` or `:import`. Never paste a raw key here."
+      }
+    ],
+    "outro": {
+      "sections": [
+        {
+          "title": "Fund a deployer",
+          "steps": [
+            {
+              "label": "Create a testnet account and claim HBAR",
+              "url": "https://portal.hedera.com/faucet"
+            },
+            {
+              "label": "Generate or import a deployer key",
+              "command": "{run:hardhat:account:generate}"
+            }
+          ]
+        },
+        {
+          "title": "Put a vault on testnet and walk away",
+          "steps": [
+            {
+              "label": "Deploy the engine and both strategies",
+              "command": "{run:hardhat:deploy} --network hederaTestnet"
+            },
+            {
+              "label": "Start the app, arm a vault, then close the tab",
+              "command": "{run:next:dev}"
+            },
+            {
+              "text": "Come back later. The run counter will have moved, and no transaction in the vault's history will have come from you."
+            }
+          ]
+        },
+        {
+          "title": "Read this before changing the scheduling code",
+          "steps": [
+            {
+              "label": "Four ways HSS automation fails silently, each measured on testnet",
+              "url": "https://github.com/Madhav-Gupta-28/Nocturne/blob/main/docs/hedera-landmines.md"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
