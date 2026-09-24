@@ -73,7 +73,7 @@ export const TwoSources = () => {
           href={getBlockExplorerAddressLink(targetNetwork, HBAR_USD)}
         />
         <div>
-          <div className="label mb-2">Apart</div>
+          <div className="eyebrow mb-2">Apart</div>
           <div className="tabular font-display text-4xl leading-none text-brass">
             {r ? `${(Number(r.divergenceBps) / 100).toFixed(0)}%` : "—"}
           </div>
@@ -106,7 +106,7 @@ export const TwoSources = () => {
 
 const Source = ({ label, detail, value, href }: { label: string; detail: string; value: string; href: string }) => (
   <div>
-    <div className="label mb-2">
+    <div className="eyebrow mb-2">
       <a className="link" href={href} target="_blank" rel="noreferrer">
         {label}
       </a>

@@ -130,7 +130,12 @@
   A section label. Mono, spaced, quiet — the way a tempo mark sits above a
   stave rather than in it.
 */
-.label {
+/*
+  Deliberately not called `.label`: DaisyUI ships a `.label` component that sets
+  `display: flex`, and on a table header that removes the cell from table layout
+  and stacks the columns.
+*/
+.eyebrow {
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.18em;

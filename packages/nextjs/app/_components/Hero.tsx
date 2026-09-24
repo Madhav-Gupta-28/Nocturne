@@ -32,7 +32,7 @@ export const Hero = () => {
 
   return (
     <header className="pt-16 pb-14 sm:pt-24 sm:pb-20">
-      <p className="label rise m-0">Recurring on-chain jobs, without a keeper</p>
+      <p className="eyebrow rise m-0">Recurring on-chain jobs, without a keeper</p>
 
       <h1
         className="rise font-display m-0 mt-5 text-[2.75rem] sm:text-6xl lg:text-7xl leading-[0.98] tracking-[-0.02em] text-balance"
@@ -57,7 +57,7 @@ export const Hero = () => {
         style={{ animationDelay: "220ms" }}
       >
         <div>
-          <div className="label mb-3 flex items-center gap-2">
+          <div className="eyebrow mb-3 flex items-center gap-2">
             <span className="alive inline-block w-1.5 h-1.5 rounded-full bg-brass" aria-hidden />
             Executions nobody sent
           </div>
@@ -67,7 +67,7 @@ export const Hero = () => {
         </div>
 
         <div className="pb-2">
-          <div className="label mb-3">Since the last one</div>
+          <div className="eyebrow mb-3">Since the last one</div>
           <div className="tabular font-mono text-3xl leading-none">
             {silentFor !== undefined ? formatDuration(silentFor) : "—"}
           </div>

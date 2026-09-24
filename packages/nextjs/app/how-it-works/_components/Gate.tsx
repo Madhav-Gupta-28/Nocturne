@@ -63,7 +63,7 @@ export const Gate = () => {
 
       <div className="p-6 sm:p-8">
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
-          <span className="label">Divergence · tolerance 2%</span>
+          <span className="eyebrow">Divergence · tolerance 2%</span>
           <span className="tabular font-mono text-sm text-paper-dim">{s.label}</span>
         </div>
 
@@ -100,7 +100,7 @@ export const Gate = () => {
 
 const Reading = ({ label, value }: { label: string; value: number }) => (
   <div className="bg-ink-raised p-6 sm:p-8">
-    <div className="label mb-3">{label}</div>
+    <div className="eyebrow mb-3">{label}</div>
     <div className="tabular font-display text-4xl leading-none transition-all duration-700">${value.toFixed(4)}</div>
   </div>
 );

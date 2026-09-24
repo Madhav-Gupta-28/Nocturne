@@ -19,7 +19,7 @@ const HowItWorks: NextPage = () => (
   <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
     <div className="w-full max-w-5xl">
       <header className="pt-16 pb-14 sm:pt-24">
-        <p className="label m-0">How it works</p>
+        <p className="eyebrow m-0">How it works</p>
         <h1 className="font-display text-4xl sm:text-6xl leading-[1] tracking-[-0.02em] mt-5 mb-0 max-w-3xl text-balance">
           A contract cannot wake up. On Hedera, it no longer has to.
         </h1>
@@ -83,7 +83,7 @@ const HowItWorks: NextPage = () => (
             { k: "Dies holding", v: "2.76", u: "HBAR", note: "more than a run costs" },
           ].map(x => (
             <div key={x.k} className="bg-ink-raised p-6">
-              <div className="label mb-3">{x.k}</div>
+              <div className="eyebrow mb-3">{x.k}</div>
               <div className="tabular font-display text-4xl leading-none">
                 {x.v} <span className="text-base text-paper-faint">{x.u}</span>
               </div>
@@ -118,7 +118,7 @@ const HowItWorks: NextPage = () => (
 const Move = ({ n, title, lede, children }: { n: string; title: string; lede: string; children: React.ReactNode }) => (
   <section className="border-t border-line pt-9 mt-20 first-of-type:mt-0">
     <div className="grid lg:grid-cols-[4rem_1fr] gap-x-8">
-      <span className="label pt-2 self-start">{n}</span>
+      <span className="eyebrow pt-2 self-start">{n}</span>
       <div>
         <h2 className="font-display text-3xl sm:text-4xl leading-tight m-0 max-w-2xl text-balance">{title}</h2>
         <p className="mt-5 mb-10 max-w-2xl text-paper-dim leading-relaxed">{lede}</p>

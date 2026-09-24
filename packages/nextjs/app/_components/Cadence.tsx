@@ -213,7 +213,7 @@ export const Cadence = () => {
       <figcaption className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         {BANDS.map(b => (
           <span key={b.name} className="flex items-baseline gap-2">
-            <span className="label">{b.name}</span>
+            <span className="eyebrow">{b.name}</span>
             <span className="tabular text-paper-dim">every {b.label}</span>
           </span>
         ))}

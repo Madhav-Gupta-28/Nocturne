@@ -12,29 +12,41 @@ export const metadata = { title: "Docs" };
  * document even though the design document is six times the size.
  */
 const DocsIndex: NextPage = () => (
-  <div className="flex flex-col items-center grow w-full px-4 pt-10 pb-20">
-    <div className="w-full max-w-3xl flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <h1 className="text-4xl font-bold m-0">Docs</h1>
-        <p className="opacity-70 m-0 max-w-2xl">
-          Rendered from the markdown in the repository, so nothing here can drift from what the code actually does.
-          Every measured number carries the command that measured it.
+  <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
+    <div className="w-full max-w-4xl">
+      <header className="pt-16 pb-14 sm:pt-24">
+        <p className="eyebrow m-0">Docs</p>
+        <h1 className="font-display text-4xl sm:text-6xl leading-[1] tracking-[-0.02em] mt-5 mb-0 max-w-3xl text-balance">
+          Everything here was measured, and says how.
+        </h1>
+        <p className="mt-7 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
+          Rendered from the markdown in the repository, so nothing on these pages can drift from what the code actually
+          does. Every measured number carries the command that produced it.
         </p>
       </header>
 
-      <nav className="flex flex-col gap-4">
-        {DOCS.map(doc => (
-          <Link
-            key={doc.slug}
-            href={`/docs/${doc.slug}`}
-            className="bg-base-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow no-underline"
-          >
-            <h2 className="text-lg font-semibold mt-0 mb-2">{doc.title}</h2>
-            <p className="text-sm opacity-70 m-0">{doc.blurb}</p>
-            <p className="text-xs opacity-40 mt-3 mb-0 font-mono">{doc.file}</p>
-          </Link>
+      <ol className="m-0 p-0 list-none border-t border-line">
+        {DOCS.map((doc, i) => (
+          <li key={doc.slug}>
+            <Link
+              href={`/docs/${doc.slug}`}
+              className="group grid sm:grid-cols-[3rem_1fr_auto] gap-x-8 gap-y-3 border-b border-line py-8 hover:bg-ink-raised transition-colors px-2 -mx-2"
+            >
+              <span className="eyebrow pt-2 self-start">{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                <h2 className="font-display text-2xl sm:text-3xl m-0 mb-3 leading-tight group-hover:text-brass transition-colors">
+                  {doc.title}
+                </h2>
+                <p className="m-0 text-paper-dim leading-relaxed max-w-2xl">{doc.blurb}</p>
+                <p className="eyebrow mt-4 mb-0">{doc.file}</p>
+              </div>
+              <span className="text-paper-faint self-center hidden sm:block group-hover:text-brass transition-colors">
+                →
+              </span>
+            </Link>
+          </li>
         ))}
-      </nav>
+      </ol>
     </div>
   </div>
 );

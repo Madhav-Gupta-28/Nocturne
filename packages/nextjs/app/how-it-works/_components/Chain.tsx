@@ -57,7 +57,7 @@ export const Chain = () => {
             className="bg-ink-raised p-5 transition-opacity duration-500"
             style={{ opacity: on ? 1 : 0.2 }}
           >
-            <div className="label flex items-center justify-between">
+            <div className="eyebrow flex items-center justify-between">
               <span>Run {String(run.n).padStart(2, "0")}</span>
               {i === RUNS.length - 1 && on ? <span className="alive text-brass">●</span> : null}
             </div>
@@ -69,7 +69,7 @@ export const Chain = () => {
                 className="h-px flex-1 bg-brass origin-left transition-transform duration-500 ease-out"
                 style={{ transform: on ? "scaleX(1)" : "scaleX(0)" }}
               />
-              <span className="label text-brass whitespace-nowrap">books {String(run.n + 1).padStart(2, "0")}</span>
+              <span className="eyebrow text-brass whitespace-nowrap">books {String(run.n + 1).padStart(2, "0")}</span>
             </div>
 
             <div className="mt-5">

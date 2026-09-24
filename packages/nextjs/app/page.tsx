@@ -66,7 +66,7 @@ const ConnectPrompt = () => (
  */
 const Accelerando = () => (
   <section className="border-t border-line pt-9">
-    <p className="label m-0">The contribution</p>
+    <p className="eyebrow m-0">The contribution</p>
     <h2 className="font-display text-3xl sm:text-4xl mt-4 mb-4 leading-tight max-w-2xl">
       A position far from trouble is cheap to watch. One near its floor is not.
     </h2>
@@ -82,7 +82,7 @@ const Accelerando = () => (
 
 const HowItWorks = () => (
   <section className="border-t border-line pt-9">
-    <p className="label m-0">Why this is not a cron job</p>
+    <p className="eyebrow m-0">Why this is not a cron job</p>
     <ol className="mt-8 mb-0 p-0 list-none flex flex-col">
       {[
         {
@@ -102,7 +102,7 @@ const HowItWorks = () => (
         },
       ].map(item => (
         <li key={item.n} className="grid sm:grid-cols-[3rem_1fr] gap-x-6 gap-y-2 border-b border-line py-7 first:pt-0">
-          <span className="label pt-1">{item.n}</span>
+          <span className="eyebrow pt-1">{item.n}</span>
           <div>
             <h3 className="font-display text-2xl m-0 mb-3 leading-tight">{item.head}</h3>
             <p className="m-0 text-paper-dim leading-relaxed max-w-2xl">{item.body}</p>
