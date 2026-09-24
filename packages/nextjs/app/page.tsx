@@ -41,7 +41,13 @@ const Home: NextPage = () => {
         <Hero />
         <Accelerando />
         <TwoSources />
-        {!isConnected ? <ConnectPrompt /> : vault ? <VaultDashboard vault={vault} /> : <CreateVault />}
+        {/*
+          The hero's call to action lands here. `scroll-mt` clears the sticky
+          header, which would otherwise cover the panel's own heading.
+        */}
+        <div id="vault" className="scroll-mt-24">
+          {!isConnected ? <ConnectPrompt /> : vault ? <VaultDashboard vault={vault} /> : <CreateVault />}
+        </div>
         <HowItWorks />
       </div>
     </div>

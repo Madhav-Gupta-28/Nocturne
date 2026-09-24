@@ -9,7 +9,7 @@ import { DOCS } from "../_lib/documents";
  *
  * Numbered rather than bulleted because these three are meant to be read in
  * order: what will bite you, then why the design answers it, then what was
- * tried and abandoned. The current page carries a brass rule so its position in
+ * tried and abandoned. The current page carries a lit rule so its position in
  * that sequence is visible without reading the labels.
  */
 export const Sidebar = () => {
@@ -28,10 +28,10 @@ export const Sidebar = () => {
                 href={href}
                 aria-current={here ? "page" : undefined}
                 className={`flex gap-3 py-2.5 border-l-2 pl-4 -ml-px transition-colors ${
-                  here ? "border-brass text-paper" : "border-transparent text-paper-dim hover:text-paper"
+                  here ? "border-signal text-paper" : "border-transparent text-paper-dim hover:text-paper"
                 }`}
               >
-                <span className={`font-mono text-xs pt-1 ${here ? "text-brass" : "text-paper-faint"}`}>
+                <span className={`font-mono text-xs pt-1 ${here ? "text-signal" : "text-paper-faint"}`}>
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="text-sm leading-snug">{doc.title}</span>

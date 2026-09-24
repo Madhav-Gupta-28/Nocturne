@@ -148,12 +148,12 @@ export const Cadence = () => {
           x2={W - PAD.right}
           y1={floorY}
           y2={floorY}
-          stroke="var(--color-brass)"
+          stroke="var(--color-signal)"
           strokeWidth="1.5"
           strokeDasharray="2 5"
           opacity="0.75"
         />
-        <text x={PAD.left} y={floorY + 20} className="fill-brass" fontSize="11" fontFamily="var(--font-mono)">
+        <text x={PAD.left} y={floorY + 20} className="fill-signal" fontSize="11" fontFamily="var(--font-mono)">
           FLOOR
         </text>
 
@@ -184,7 +184,7 @@ export const Cadence = () => {
                 x2={mx}
                 y1={my}
                 y2={floorY}
-                stroke={urgent ? "var(--color-brass)" : "var(--color-line-bright)"}
+                stroke={urgent ? "var(--color-signal)" : "var(--color-line-bright)"}
                 strokeWidth="1"
                 opacity={animate ? (urgent ? 0.9 : 0.75) : 0}
                 style={{ transition: `opacity 0.5s ease ${0.3 + m.t * 2.1}s` }}

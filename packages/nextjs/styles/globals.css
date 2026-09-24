@@ -6,31 +6,42 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /*
-  Night Score.
+  Nocturne.
 
-  Three pigments and nothing else: ink for the ground, paper for everything
-  written on it, brass for the one thing that is alive. State is carried by
-  weight and fill rather than by hue, so a panel, a rule and a caption are the
-  same colour at different strengths. The single exception is `signal-dead`,
-  spent once, on the only condition a reader must not miss: a chain that has
-  stopped.
+  One temperature: everything on this site is lit by the same cold source. The
+  ground is a blue-black rather than a neutral one, because a true black behind
+  a star field reads as a switched-off screen, and the paper is a cool white
+  rather than cream, because warm text under a moon looks like lamplight.
+
+  State is carried by weight and fill rather than by hue, so a panel, a rule and
+  a caption are the same colour at different strengths. There are exactly two
+  exceptions, and both are earned: moonlight for the one thing that is alive,
+  and `signal-dead` for the only condition a reader must not miss.
 */
 @theme {
-  --color-ink: #0a0a0b;
-  --color-ink-raised: #111113;
-  --color-ink-sunken: #070708;
+  --color-ink: #05060b;
+  --color-ink-raised: #0c0e16;
+  --color-ink-sunken: #020308;
 
-  --color-paper: #edeae3;
-  --color-paper-dim: #a8a59f;
-  --color-paper-faint: #6f6d69;
+  --color-paper: #e9ecf6;
+  --color-paper-dim: #9ba3ba;
+  --color-paper-faint: #656d85;
 
-  --color-brass: #e3a33c;
-  --color-brass-dim: #8a6626;
+  /*
+    Moonlight. A cold periwinkle, because the subject is night and a warm
+    accent reads either as daytime or as a warning. It is spent as light — the
+    stars, one word of the headline, a rule, the dot on a running chain — and
+    never as a button fill, which is what keeps it from looking like a brand
+    colour applied to a dashboard.
+  */
+  --color-signal: #7c8cff;
+  --color-signal-dim: #39408c;
 
-  --color-signal-dead: #d4553f;
+  /* Spent only on a chain that has stopped. Warm, because nothing else is. */
+  --color-signal-dead: #ff6b4a;
 
-  --color-line: #1c1c1f;
-  --color-line-bright: #2a2a2f;
+  --color-line: #171a26;
+  --color-line-bright: #262b3b;
 
   --font-display: var(--font-display), ui-serif, Georgia, serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -54,24 +65,24 @@
 @plugin "daisyui/theme" {
   name: "dark";
 
-  --color-primary: #e3a33c;
-  --color-primary-content: #0a0c10;
-  --color-secondary: #12151c;
-  --color-secondary-content: #edeae3;
-  --color-accent: #e3a33c;
-  --color-accent-content: #0a0c10;
-  --color-neutral: #12151c;
-  --color-neutral-content: #edeae3;
+  --color-primary: #7c8cff;
+  --color-primary-content: #05060b;
+  --color-secondary: #0c0e16;
+  --color-secondary-content: #e9ecf6;
+  --color-accent: #7c8cff;
+  --color-accent-content: #05060b;
+  --color-neutral: #0c0e16;
+  --color-neutral-content: #e9ecf6;
 
-  --color-base-100: #12151c;
-  --color-base-200: #0a0c10;
-  --color-base-300: #1e222b;
-  --color-base-content: #edeae3;
+  --color-base-100: #0c0e16;
+  --color-base-200: #05060b;
+  --color-base-300: #171a26;
+  --color-base-content: #e9ecf6;
 
-  --color-info: #e3a33c;
-  --color-success: #e3a33c;
-  --color-warning: #e3a33c;
-  --color-error: #d4553f;
+  --color-info: #7c8cff;
+  --color-success: #7c8cff;
+  --color-warning: #7c8cff;
+  --color-error: #ff6b4a;
 
   --radius-field: 2px;
   --radius-box: 3px;
@@ -96,9 +107,15 @@
     margin: 1rem 0;
   }
 
+  /*
+    No background here, deliberately. The star canvas sits at `-z-10`, and in
+    the root stacking context every block-level background — `body` included —
+    paints *after* negative z-index descendants. An opaque body would cover the
+    sky. The ground is carried by the root element below, which propagates to
+    the viewport and paints before anything else.
+  */
   body {
     min-height: 100vh;
-    background: var(--color-ink);
     color: var(--color-paper);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -113,7 +130,7 @@
   }
 
   ::selection {
-    background: var(--color-brass);
+    background: var(--color-signal);
     color: var(--color-ink);
   }
 }
@@ -164,46 +181,31 @@
   display: block;
   width: 56px;
   height: 2px;
-  background: var(--color-brass);
+  background: var(--color-signal);
   margin-bottom: 26px;
 }
 
 /*
   The ground.
 
-  Two layers over flat ink: a faint star field, and one warm bloom behind the
-  opening. Both are painted with gradients rather than an image so they cost
-  nothing to ship and stay sharp at any density.
+  Stars are drawn on a canvas — see `Starfield` — because a field needs
+  hundreds of them and radial gradients do not scale to that. This leaves the
+  bloom, which is one warm-cold wash behind the opening.
 */
 .night {
   position: relative;
   isolation: isolate;
 }
 
-.night::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    radial-gradient(1px 1px at 12% 18%, rgba(237, 234, 227, 0.22), transparent 100%),
-    radial-gradient(1px 1px at 28% 62%, rgba(237, 234, 227, 0.16), transparent 100%),
-    radial-gradient(1px 1px at 44% 26%, rgba(237, 234, 227, 0.2), transparent 100%),
-    radial-gradient(1px 1px at 61% 74%, rgba(237, 234, 227, 0.14), transparent 100%),
-    radial-gradient(1px 1px at 76% 34%, rgba(237, 234, 227, 0.2), transparent 100%),
-    radial-gradient(1px 1px at 88% 58%, rgba(237, 234, 227, 0.15), transparent 100%),
-    radial-gradient(1px 1px at 34% 88%, rgba(237, 234, 227, 0.13), transparent 100%),
-    radial-gradient(1px 1px at 68% 12%, rgba(237, 234, 227, 0.18), transparent 100%);
-}
-
 .night::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -20% 0 0 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(60% 55% at 50% 0%, rgba(227, 163, 60, 0.09), transparent 70%);
+  background:
+    radial-gradient(60% 45% at 50% 0%, rgba(124, 140, 255, 0.14), transparent 70%),
+    radial-gradient(45% 40% at 85% 70%, rgba(124, 140, 255, 0.07), transparent 72%);
 }
 
 /* Figures that must line up in a column, and never reflow as they tick. */
@@ -220,7 +222,7 @@
 }
 
 .link:hover {
-  color: var(--color-brass);
+  color: var(--color-signal);
 }
 
 /* ── motion ────────────────────────────────────────────────────────── */
@@ -255,7 +257,7 @@
   }
 }
 
-/* A brass dot that breathes, for a chain that is currently alive. */
+/* A lit dot that breathes, for a chain that is currently alive. */
 @keyframes alive {
   0%,
   100% {
@@ -283,8 +285,8 @@
 
 /*
   Kept because the scaffold's own burner-key modals paint with it. Re-pointed at
-  brass so those inherited surfaces match the rest of the site.
+  moonlight so those inherited surfaces match the rest of the site.
 */
 .hedera-gradient {
-  background: linear-gradient(135deg, #e3a33c 0%, #8a6626 100%);
+  background: linear-gradient(135deg, #7c8cff 0%, #39408c 100%);
 }

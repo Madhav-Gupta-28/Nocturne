@@ -17,7 +17,7 @@ const DocsIndex: NextPage = () => (
       <header className="night pt-20 pb-16 sm:pt-28">
         <p className="eyebrow m-0">Docs</p>
         <h1 className="display text-[3rem] sm:text-[5rem] mt-7 mb-0 max-w-4xl">
-          Everything here was <span className="text-brass">measured.</span>
+          Everything here was <span className="text-signal">measured.</span>
         </h1>
         <p className="mt-7 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
           Rendered from the markdown in the repository, so nothing on these pages can drift from what the code actually
@@ -34,13 +34,13 @@ const DocsIndex: NextPage = () => (
             >
               <span className="eyebrow pt-2 self-start">{String(i + 1).padStart(2, "0")}</span>
               <div>
-                <h2 className="display text-2xl sm:text-3xl m-0 mb-4 group-hover:text-brass transition-colors">
+                <h2 className="display text-2xl sm:text-3xl m-0 mb-4 group-hover:text-signal transition-colors">
                   {doc.title}
                 </h2>
                 <p className="m-0 text-paper-dim leading-relaxed max-w-2xl">{doc.blurb}</p>
                 <p className="eyebrow mt-4 mb-0">{doc.file}</p>
               </div>
-              <span className="text-paper-faint self-center hidden sm:block group-hover:text-brass transition-colors">
+              <span className="text-paper-faint self-center hidden sm:block group-hover:text-signal transition-colors">
                 →
               </span>
             </Link>

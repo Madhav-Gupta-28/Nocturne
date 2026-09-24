@@ -73,7 +73,7 @@ export const Gate = () => {
             className="absolute inset-y-0 left-0 transition-[width] duration-700 ease-out"
             style={{
               width: `${Math.min(100, (bps / 4000) * 100)}%`,
-              background: open ? "var(--color-line-bright)" : "var(--color-brass)",
+              background: open ? "var(--color-line-bright)" : "var(--color-signal)",
             }}
           />
           <div
@@ -87,7 +87,7 @@ export const Gate = () => {
           <span className="tabular font-mono text-3xl leading-none">
             {bps >= 1000 ? `${(bps / 100).toFixed(0)}%` : `${(bps / 100).toFixed(2)}%`}
           </span>
-          <span className={open ? "text-paper-dim" : "text-brass"}>
+          <span className={open ? "text-paper-dim" : "text-signal"}>
             {open
               ? "Sources corroborate — the vault may act."
               : "Refused — nothing is sold, and the reason is recorded."}

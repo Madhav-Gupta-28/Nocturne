@@ -23,7 +23,7 @@ const HowItWorks: NextPage = () => (
         <h1 className="display text-[3rem] sm:text-[5rem] mt-7 mb-0 max-w-4xl">
           A contract cannot wake up.
           <br />
-          <span className="text-brass">On Hedera it no longer has to.</span>
+          <span className="text-signal">On Hedera it no longer has to.</span>
         </h1>
         <p className="mt-7 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
           Every piece of on-chain automation in production is a contract plus an off-chain process that pokes it — a

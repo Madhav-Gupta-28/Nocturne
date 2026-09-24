@@ -74,7 +74,7 @@ export const TwoSources = () => {
         />
         <div>
           <div className="eyebrow mb-2">Apart</div>
-          <div className="tabular font-mono text-3xl leading-none text-brass">
+          <div className="tabular font-mono text-3xl leading-none text-signal">
             {r ? `${(Number(r.divergenceBps) / 100).toFixed(0)}%` : "—"}
           </div>
           <div className="text-xs text-paper-faint mt-2">tolerance 2%</div>
@@ -82,7 +82,7 @@ export const TwoSources = () => {
       </div>
 
       {r ? (
-        <div className="mt-8 border-l-2 border-brass pl-5 py-1">
+        <div className="mt-8 border-l-2 border-signal pl-5 py-1">
           <span className="text-sm text-paper-dim block">
             {r.agreed ? (
               <>The sources corroborate each other, so a vault would act on this price.</>

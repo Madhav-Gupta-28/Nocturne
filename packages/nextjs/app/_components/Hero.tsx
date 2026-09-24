@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { formatDuration, useNow } from "./ui";
 import { useDeployedContractInfo, useScaffoldReadContract, useTargetNetwork } from "~~/hooks/scaffold-hbar";
 import { getBlockExplorerAddressLink } from "~~/utils/scaffold-hbar";
@@ -16,6 +17,10 @@ import { getBlockExplorerAddressLink } from "~~/utils/scaffold-hbar";
  * count on it was placed by a vault executing a schedule the network fired. It
  * is shown before any wallet is connected, because the claim is about the chain
  * rather than about the visitor.
+ *
+ * It is set centred and against the sky, which is the one place on this site
+ * where the layout is symmetrical. Everything after it returns to the left
+ * margin — the opening is a title card, not the first section.
  */
 export const Hero = () => {
   const now = useNow();
@@ -31,66 +36,91 @@ export const Hero = () => {
   const silentFor = lastBeatAt && everBeaten ? now - Number(lastBeatAt) : undefined;
 
   return (
-    <header className="night pt-20 pb-12 sm:pt-28 sm:pb-16">
-      <p className="eyebrow rise m-0">Recurring on-chain jobs, without a keeper</p>
+    <header className="night flex flex-col items-center pt-16 pb-10 text-center sm:pt-24 sm:pb-16">
+      <p className="eyebrow rise m-0 flex items-center gap-2.5 border border-line bg-ink-raised/60 px-3.5 py-1.5">
+        <span className="alive inline-block h-1.5 w-1.5 rounded-full bg-signal" aria-hidden />
+        Live on Hedera testnet
+      </p>
 
       <h1
-        className="display rise m-0 mt-7 text-[3.25rem] sm:text-[5.5rem] lg:text-[6.75rem]"
+        className="display rise m-0 mt-8 text-[2.75rem] text-balance sm:text-[4.5rem] lg:text-[5.25rem]"
         style={{ animationDelay: "60ms" }}
       >
         Close the tab.
         <br />
-        <span className="text-brass">It already happened.</span>
+        <span className="text-signal">It already happened.</span>
       </h1>
 
-      <div className="rise mt-12 grid lg:grid-cols-2 gap-x-16 gap-y-10 items-start" style={{ animationDelay: "160ms" }}>
-        <p className="m-0 max-w-xl text-lg leading-relaxed text-paper-dim">
-          A vault that books its own next execution with the Hedera Schedule Service. No keeper, no bot, no cron job on
-          somebody&apos;s laptop — the thing that fires at 4am is the network itself.
-        </p>
+      <p
+        className="rise m-0 mt-8 max-w-2xl text-balance text-base leading-relaxed text-paper-dim sm:text-lg"
+        style={{ animationDelay: "140ms" }}
+      >
+        A vault that books its own next execution with the Hedera Schedule Service. No keeper, no bot, no cron job on
+        somebody&apos;s laptop — the thing that fires at 4am is the network itself.
+      </p>
 
+      <div className="rise mt-10 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "220ms" }}>
         {/*
-          The evidence, set as an instrument panel rather than prose. A reader
-          who doubts the claim can watch the second figure move.
+          Outlines rather than a filled accent button. Moonlight is spent as
+          light on this site, and a solid block of it here would turn the one
+          colour the page has into a brand button.
         */}
-        <div className="border border-line bg-ink-raised/60">
-          <div className="flex items-center justify-between border-b border-line px-5 py-3">
-            <span className="eyebrow flex items-center gap-2">
-              <span className="alive inline-block w-1.5 h-1.5 rounded-full bg-brass" aria-hidden />
-              Live · Hedera testnet
-            </span>
-            {heartbeat?.address ? (
-              <a
-                className="eyebrow hover:text-paper transition-colors"
-                href={getBlockExplorerAddressLink(targetNetwork, heartbeat.address)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Verify ↗
-              </a>
-            ) : null}
-          </div>
+        <a
+          href="#vault"
+          className="border border-paper px-6 py-3 text-sm font-medium text-paper transition-colors hover:bg-paper hover:text-ink"
+        >
+          Arm a vault
+        </a>
+        <Link
+          href="/how-it-works"
+          className="border border-line px-6 py-3 text-sm font-medium text-paper-dim transition-colors hover:border-line-bright hover:text-paper"
+        >
+          See what it does at 4am →
+        </Link>
+      </div>
 
-          <dl className="m-0 divide-y divide-line">
-            <Row label="Executions nobody sent" value={beats?.toString() ?? "—"} big />
-            <Row label="Since the last one" value={silentFor !== undefined ? formatDuration(silentFor) : "—"} />
-            <Row label="Sent by the owner" value="0" />
-          </dl>
+      {/*
+        The evidence, set as an instrument panel rather than prose. A reader who
+        doubts the claim can watch the second figure move, then follow the link
+        and read the same number off the chain.
+      */}
+      <div
+        className="rise mt-16 w-full border border-line bg-ink-raised/50 text-left backdrop-blur-sm"
+        style={{ animationDelay: "300ms" }}
+      >
+        <dl className="m-0 grid divide-line sm:grid-cols-3 sm:divide-x max-sm:divide-y">
+          <Figure label="Executions nobody sent" value={beats?.toString() ?? "—"} lit />
+          <Figure label="Since the last one" value={silentFor !== undefined ? formatDuration(silentFor) : "—"} />
+          <Figure label="Sent by the owner" value="0" />
+        </dl>
 
-          <p className="m-0 border-t border-line px-5 py-4 text-xs leading-relaxed text-paper-faint">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
+          <p className="m-0 max-w-xl text-xs leading-relaxed text-paper-faint">
             Each one was placed by a vault paying its own fee. The owner&apos;s account appears once, for the
             transaction that armed it, and never again.
           </p>
+          {heartbeat?.address ? (
+            <a
+              className="eyebrow shrink-0 transition-colors hover:text-paper"
+              href={getBlockExplorerAddressLink(targetNetwork, heartbeat.address)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Read it off the chain ↗
+            </a>
+          ) : null}
         </div>
       </div>
     </header>
   );
 };
 
-/** One figure in the panel. Mono, tabular, right-aligned so the column holds. */
-const Row = ({ label, value, big = false }: { label: string; value: string; big?: boolean }) => (
-  <div className="flex items-baseline justify-between gap-6 px-5 py-4">
-    <dt className="eyebrow">{label}</dt>
-    <dd className={`tabular m-0 font-mono ${big ? "text-4xl text-brass" : "text-xl"}`}>{value}</dd>
+/** One figure in the panel. Mono, tabular, so it never reflows as it ticks. */
+const Figure = ({ label, value, lit = false }: { label: string; value: string; lit?: boolean }) => (
+  <div className="px-5 py-6">
+    <dd className={`tabular m-0 font-mono text-3xl leading-none sm:text-4xl ${lit ? "text-signal" : "text-paper"}`}>
+      {value}
+    </dd>
+    <dt className="eyebrow mt-3">{label}</dt>
   </div>
 );

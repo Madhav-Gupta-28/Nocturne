@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
  * success.
  *
  * So the drawing puts the two in order and lets you watch. The successor link
- * is struck first, in brass, while the work beneath it is still being decided.
+ * is struck first, in moonlight, while the work beneath is still being decided.
  * The third run refuses — and the chain continues anyway, which is the point.
  */
 
@@ -59,17 +59,17 @@ export const Chain = () => {
           >
             <div className="eyebrow flex items-center justify-between">
               <span>Run {String(run.n).padStart(2, "0")}</span>
-              {i === RUNS.length - 1 && on ? <span className="alive text-brass">●</span> : null}
+              {i === RUNS.length - 1 && on ? <span className="alive text-signal">●</span> : null}
             </div>
 
-            {/* Booked first. Struck in brass because it is the only thing on
+            {/* Booked first. Struck in moonlight because it is the only thing on
                 this panel that must never be skipped. */}
             <div className="mt-4 flex items-center gap-2">
               <span
-                className="h-px flex-1 bg-brass origin-left transition-transform duration-500 ease-out"
+                className="h-px flex-1 bg-signal origin-left transition-transform duration-500 ease-out"
                 style={{ transform: on ? "scaleX(1)" : "scaleX(0)" }}
               />
-              <span className="eyebrow text-brass whitespace-nowrap">books {String(run.n + 1).padStart(2, "0")}</span>
+              <span className="eyebrow text-signal whitespace-nowrap">books {String(run.n + 1).padStart(2, "0")}</span>
             </div>
 
             <div className="mt-5">

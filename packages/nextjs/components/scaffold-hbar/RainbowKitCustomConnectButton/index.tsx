@@ -8,7 +8,6 @@ import { WrongNetworkDropdown } from "./WrongNetworkDropdown";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Balance } from "@scaffold-hbar-ui/components";
 import { Address } from "viem";
-import { useNetworkColor } from "~~/hooks/scaffold-hbar";
 import { useTargetNetwork } from "~~/hooks/scaffold-hbar/useTargetNetwork";
 import { getBlockExplorerAddressLink } from "~~/utils/scaffold-hbar";
 
@@ -16,7 +15,6 @@ import { getBlockExplorerAddressLink } from "~~/utils/scaffold-hbar";
  * Custom Wagmi Connect Button (watch balance + custom design)
  */
 export const RainbowKitCustomConnectButton = () => {
-  const networkColor = useNetworkColor();
   const { targetNetwork } = useTargetNetwork();
 
   return (
@@ -44,18 +42,17 @@ export const RainbowKitCustomConnectButton = () => {
 
               return (
                 <>
-                  <div className="hidden sm:flex flex-col items-center mr-2">
+                  {/*
+                    One line, not two. The network name used to sit under the
+                    balance in the network's own colour, which put a second
+                    accent in the header for information the page already gives
+                    and the wrong-network dropdown already guards.
+                  */}
+                  <div className="mr-1 hidden sm:flex items-center">
                     <Balance
                       address={account.address as Address}
-                      style={{
-                        minHeight: "0",
-                        height: "auto",
-                        fontSize: "0.8em",
-                      }}
+                      style={{ minHeight: "0", height: "auto", fontSize: "0.8em" }}
                     />
-                    <span className="text-xs" style={{ color: networkColor }}>
-                      {chain.name}
-                    </span>
                   </div>
                   <AddressInfoDropdown
                     address={account.address as Address}
