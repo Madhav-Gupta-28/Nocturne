@@ -1,4 +1,5 @@
 import { ethers, deployments, network } from "hardhat";
+import type { NocturneVault, ProtectiveExitStrategy } from "../typechain-types";
 
 /**
  * Puts a real protective exit on testnet, end to end.
@@ -72,8 +73,6 @@ const EXISTING = process.env.VAULT;
 const TOP_UP = process.env.TOP_UP;
 
 const hbar = (tinybar: bigint) => (Number(tinybar) / 1e8).toFixed(4);
-
-type Vault = Awaited<ReturnType<typeof ethers.getContractAt>>;
 
 async function main() {
   const [owner] = await ethers.getSigners();
@@ -174,7 +173,7 @@ async function retune(): Promise<string> {
 }
 
 /** Store the configuration, which validates it. A bad one fails here, not at 3am. */
-async function configure(vault: Vault, vaultAddr: string, strategy: Vault) {
+async function configure(vault: NocturneVault, vaultAddr: string, strategy: ProtectiveExitStrategy) {
   const config = await strategy.encodeConfig({
     vault: vaultAddr,
     asset: WHBAR_TOKEN,
@@ -210,7 +209,7 @@ async function configure(vault: Vault, vaultAddr: string, strategy: Vault) {
  * 2.5M gas rather than 4M: the sender has to hold the whole limit times the gas
  * price before the relay will submit, and arming only burns about 1.5M.
  */
-async function arm(vault: Vault, vaultAddr: string) {
+async function arm(vault: NocturneVault, vaultAddr: string) {
   console.log(`arming...`);
   await (await vault.arm({ gasLimit: 2_500_000 })).wait();
 

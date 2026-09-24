@@ -157,7 +157,7 @@ describe("NocturneFactory", () => {
       expect(await factory.vaultCount(other.address)).to.equal(1n);
       expect(await factory.totalVaults()).to.equal(3n);
 
-      const mine = await factory.vaultsOf(owner.address);
+      const mine = await factory["vaultsOf(address)"](owner.address);
       expect(mine.length).to.equal(2);
       expect(mine[1]).to.equal(await factory.latestVaultOf(owner.address));
     });
