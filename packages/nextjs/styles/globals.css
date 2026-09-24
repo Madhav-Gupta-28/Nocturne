@@ -275,9 +275,18 @@
   }
 }
 
+/*
+  Behind the page, in front of the sky.
+
+  A vignette painted *over* the content dims the content: the call to action
+  sits near the bottom-left corner, which is exactly where the gradient is
+  darkest, and a filled accent button under 55% black stops being a filled
+  accent button. At a negative z-index it still shapes the ground and still
+  darkens the stars in the corners, which is the whole job.
+*/
 .vignette {
-  z-index: 55;
-  background: radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(4, 5, 10, 0.55) 100%);
+  z-index: -5;
+  background: radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(4, 5, 10, 0.6) 100%);
 }
 
 /*
