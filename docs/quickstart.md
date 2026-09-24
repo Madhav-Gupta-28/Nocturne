@@ -1,10 +1,5 @@
-# Quickstart
-
-From nothing to a contract that calls itself on Hedera testnet. About ten
-minutes, most of which is waiting for a faucet.
-
-Everything below was run end to end before it was written down. Where a command
-prints something worth checking, the expected output is shown underneath it.
+Ten minutes from nothing to a contract that calls itself, most of it waiting
+for a faucet. Everything below was run end to end before it was written down.
 
 ---
 

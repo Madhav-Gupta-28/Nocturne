@@ -418,6 +418,79 @@
     0 0 140px rgba(129, 108, 213, 0.16);
 }
 
+/* ── the documentation surface ─────────────────────────────────────── */
+
+/*
+  Docs pages need more surface than the rest of the site, not less.
+  
+  A landing page can be mostly empty ground because a headline carries it. A
+  reference page is a long column of similar-looking text, and without
+  something behind it every section reads the same as every other — the eye has
+  nothing to hold and the page feels like a wall.
+
+  So the documents sit on a faint grid, the way graph paper sits under a
+  drawing, with a wash of the accent at the top of the page. Both are far below
+  the threshold where they compete with type; remove them and the page looks
+  unfinished rather than cleaner.
+*/
+.doc-ground {
+  position: relative;
+  isolation: isolate;
+}
+
+.doc-ground::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(124, 108, 213, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(124, 108, 213, 0.055) 1px, transparent 1px);
+  background-size: 56px 56px;
+  /* Faded out down the page: the grid is scene-setting at the top and noise
+     by the time somebody is reading a table of gas figures. */
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 62%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 62%);
+}
+
+.doc-ground::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 60vh;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(70% 100% at 25% 0%, var(--color-signal-glow), transparent 70%);
+}
+
+/*
+  A code block, raised off the page.
+
+  These are the thing a reader is looking for when they scan, so they get the
+  strongest surface treatment on the page: a sunken well, a hairline, and a
+  shadow underneath that separates them from the prose rather than letting them
+  sit flush in it.
+*/
+.code-well {
+  box-shadow:
+    0 1px 0 0 rgba(233, 232, 242, 0.03) inset,
+    0 18px 40px -28px rgba(0, 0, 0, 0.95);
+}
+
+/*
+  The first block on a page is the one somebody came to copy — the install
+  line, the scaffold command. It is lit from the edge so the eye finds it
+  before it finds anything else.
+*/
+.code-well-primary {
+  border-color: color-mix(in oklab, var(--color-signal) 45%, transparent);
+  box-shadow:
+    0 1px 0 0 rgba(124, 108, 213, 0.12) inset,
+    0 18px 50px -30px rgba(0, 0, 0, 0.95),
+    0 0 44px -18px var(--color-signal-glow);
+}
+
 /* ── controls ──────────────────────────────────────────────────────── */
 
 /*

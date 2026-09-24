@@ -100,9 +100,20 @@ const Sub = ({ children }: { children?: React.ReactNode }) => {
   );
 };
 
-export const Markdown = ({ children }: { children: string }) => (
-  <article
-    /*
+export const Markdown = ({ children }: { children: string }) => {
+  /*
+    Which fence is the first one on this page.
+
+    Scoped to the render rather than kept at module level: ReactMarkdown walks
+    the tree in document order during a single pass, so a closure counter is
+    correct and a module-level one would leak across pages and mark the wrong
+    block on the second document rendered.
+  */
+  let fences = 0;
+
+  return (
+    <article
+      /*
       A measure, not a column width. These documents are read start to finish,
       and a line of 110 characters loses the reader on the return sweep — the
       eye has to find which of two near-identical lines it just left. Tables and
@@ -114,7 +125,7 @@ export const Markdown = ({ children }: { children: string }) => (
       would otherwise paint every section title in the accent. A descendant
       selector outranks `:where`, which contributes no specificity.
     */
-    className="prose prose-invert max-w-[72ch]
+      className="prose prose-invert max-w-[72ch]
       prose-pre:max-w-none [&_.overflow-x-auto]:max-w-none [&_figure]:max-w-none
       prose-headings:font-display prose-headings:font-normal prose-headings:uppercase prose-headings:leading-[0.95]
       [&_h2>a]:no-underline [&_h3>a]:no-underline
@@ -127,14 +138,14 @@ export const Markdown = ({ children }: { children: string }) => (
       prose-em:text-paper-dim
       prose-a:text-signal prose-a:underline prose-a:underline-offset-[3px] prose-a:decoration-signal-dim hover:prose-a:decoration-signal
       prose-hr:border-transparent prose-hr:my-4"
-  >
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        h2: Section,
-        h3: Sub,
+    >
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h2: Section,
+          h3: Sub,
 
-        /*
+          /*
           A callout, not an indent.
 
           Every blockquote in these documents is a warning about something that
@@ -142,57 +153,62 @@ export const Markdown = ({ children }: { children: string }) => (
           an aside and gets skipped; set as a panel with a marked edge it reads
           as the thing to slow down for.
         */
-        blockquote: ({ children }) => (
-          <div className="my-8 border border-signal-dim/60 bg-signal-glow/30 px-6 py-1 [&>p]:text-paper-dim [&_strong]:text-paper">
-            {children}
-          </div>
-        ),
+          blockquote: ({ children }) => (
+            <div className="my-8 border border-signal-dim/60 bg-signal-glow/30 px-6 py-1 [&>p]:text-paper-dim [&_strong]:text-paper">
+              {children}
+            </div>
+          ),
 
-        // Tables of measurements are the point of these documents and are often
-        // wider than a phone. Scroll the table, never the page.
-        table: ({ children }) => (
-          <div className="my-8 max-w-none overflow-x-auto border border-line bg-ink-raised/40">
-            <table className="m-0 w-full border-collapse text-sm">{children}</table>
-          </div>
-        ),
-        thead: ({ children }) => <thead className="bg-ink-sunken/60">{children}</thead>,
-        // Nowrap on the header, because a measurement table's columns are
-        // narrow and a wrapped heading reads as a row of its own.
-        th: ({ children }) => (
-          <th className="eyebrow whitespace-nowrap border-b border-line px-4 py-3.5 text-left font-normal">
-            {children}
-          </th>
-        ),
-        tr: ({ children }) => <tr className="border-b border-line last:border-b-0">{children}</tr>,
-        td: ({ children }) => <td className="px-4 py-3.5 align-top text-paper-dim">{children}</td>,
+          // Tables of measurements are the point of these documents and are often
+          // wider than a phone. Scroll the table, never the page.
+          table: ({ children }) => (
+            <div className="my-8 max-w-none overflow-x-auto border border-line bg-ink-raised/40">
+              <table className="m-0 w-full border-collapse text-sm">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-ink-sunken/60">{children}</thead>,
+          // Nowrap on the header, because a measurement table's columns are
+          // narrow and a wrapped heading reads as a row of its own.
+          th: ({ children }) => (
+            <th className="eyebrow whitespace-nowrap border-b border-line px-4 py-3.5 text-left font-normal">
+              {children}
+            </th>
+          ),
+          tr: ({ children }) => <tr className="border-b border-line last:border-b-0">{children}</tr>,
+          td: ({ children }) => <td className="px-4 py-3.5 align-top text-paper-dim">{children}</td>,
 
-        /*
+          /*
           The language tag lives on the inner <code>, not on <pre>, so it has to
           be dug out of the child element's className here — by the time the
           `code` renderer sees it, the wrapper has already been chosen.
         */
-        pre: ({ children }) => {
-          const child = Children.toArray(children)[0];
-          const className = isValidElement(child) ? ((child.props as { className?: string }).className ?? "") : "";
-          const language = /language-(\w+)/.exec(className)?.[1];
-          return <CodeBlock language={language}>{children}</CodeBlock>;
-        },
+          pre: ({ children }) => {
+            const child = Children.toArray(children)[0];
+            const className = isValidElement(child) ? ((child.props as { className?: string }).className ?? "") : "";
+            const language = /language-(\w+)/.exec(className)?.[1];
+            return (
+              <CodeBlock language={language} primary={fences++ === 0}>
+                {children}
+              </CodeBlock>
+            );
+          },
 
-        code: ({ className, children, ...props }) => {
-          const fenced = /language-/.test(className ?? "");
-          return fenced ? (
-            <code className={className} {...props}>
-              {children}
-            </code>
-          ) : (
-            <code className="border border-line bg-ink-raised px-1.5 py-0.5 text-[0.85em] font-normal text-paper before:content-none after:content-none">
-              {children}
-            </code>
-          );
-        },
-      }}
-    >
-      {children}
-    </ReactMarkdown>
-  </article>
-);
+          code: ({ className, children, ...props }) => {
+            const fenced = /language-/.test(className ?? "");
+            return fenced ? (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            ) : (
+              <code className="border border-line bg-ink-raised px-1.5 py-0.5 text-[0.85em] font-normal text-paper before:content-none after:content-none">
+                {children}
+              </code>
+            );
+          },
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    </article>
+  );
+};

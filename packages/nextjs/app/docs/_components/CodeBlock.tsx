@@ -10,10 +10,15 @@ import { useRef, useState } from "react";
  * rather than one click puts friction on exactly the act the project is asking
  * for.
  *
- * The text is read off the rendered DOM through a ref rather than reconstructed
- * from React children, because a highlighted block is a tree of spans and
- * walking it to rebuild the source is a bug waiting to happen. What is on the
- * screen is what goes on the clipboard.
+ * The first block on a page is treated differently. It is always the one
+ * somebody came for — the scaffold line, the install command — so it is lit
+ * from the edge and the rest are not. Two of them would be a pattern; one is
+ * the thing the eye lands on.
+ *
+ * The text is read off the rendered DOM through a ref rather than
+ * reconstructed from React children, because a highlighted block is a tree of
+ * spans and walking it to rebuild the source is a bug waiting to happen. What
+ * is on the screen is what goes on the clipboard.
  */
 
 /** What to call each fence in its header. Unknown languages fall back to the tag. */
@@ -30,7 +35,15 @@ const LANGUAGES: Record<string, string> = {
   text: "Output",
 };
 
-export const CodeBlock = ({ children, language }: { children: React.ReactNode; language?: string }) => {
+export const CodeBlock = ({
+  children,
+  language,
+  primary = false,
+}: {
+  children: React.ReactNode;
+  language?: string;
+  primary?: boolean;
+}) => {
   const [copied, setCopied] = useState(false);
   const pre = useRef<HTMLPreElement>(null);
 
@@ -50,9 +63,13 @@ export const CodeBlock = ({ children, language }: { children: React.ReactNode; l
   const label = language ? (LANGUAGES[language] ?? language) : "Output";
 
   return (
-    <figure className="my-7 border border-line bg-ink-sunken">
-      <figcaption className="flex items-center justify-between border-b border-line px-4 py-2.5">
-        <span className="eyebrow">{label}</span>
+    <figure className={`my-7 border bg-ink-sunken ${primary ? "code-well-primary" : "code-well border-line"}`}>
+      <figcaption
+        className={`flex items-center justify-between border-b px-4 py-2.5 ${
+          primary ? "border-signal/25" : "border-line"
+        }`}
+      >
+        <span className={`eyebrow ${primary ? "text-signal" : ""}`}>{label}</span>
         <button
           type="button"
           onClick={copy}
@@ -67,11 +84,12 @@ export const CodeBlock = ({ children, language }: { children: React.ReactNode; l
         The descendant reset is doing real work. A fence written without a
         language tag reaches the renderer with no className, so it is
         indistinguishable from inline code by its props alone — and the inline
-        treatment paints a box behind every run of text inside the block.
+        treatment paints a bordered box behind every run of text inside the
+        block.
       */}
       <pre
         ref={pre}
-        className="m-0 overflow-x-auto bg-transparent p-4 text-[13px] leading-relaxed [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-paper-dim"
+        className="m-0 overflow-x-auto bg-transparent p-5 text-[13px] leading-relaxed [&_code]:border-0 [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-paper-dim"
       >
         {children}
       </pre>
