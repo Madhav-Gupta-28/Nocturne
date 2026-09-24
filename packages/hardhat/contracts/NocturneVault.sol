@@ -400,9 +400,9 @@ contract NocturneVault is Ownable, ReentrancyGuard {
                 (string memory why, uint256 a, uint256 b) = _explain();
                 emit Refused(run, why, a, b);
             } else if (!_callsAllowed(actions, run)) {
-                // Rejected whole. A partly executed plan is worse than none:
-                // an approve that lands without its swap leaves an allowance
-                // sitting open.
+                // Rejected whole, before anything runs. Checking the plan up
+                // front is the only point at which "all or nothing" is
+                // achievable — see `_execute`, which cannot offer it.
                 refusalCount++;
             } else {
                 _execute(actions, run, gap);
@@ -429,6 +429,27 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         if (left <= FUEL_WARN_RUNS) emit FuelLow(address(this).balance, left);
     }
 
+    /**
+     * @dev Runs a plan, stopping at the first action that fails.
+     *
+     *      **A stopped plan is a partly executed plan, and that is not free.**
+     *      The two shipped strategies plan `[approve, swap]`; if the swap
+     *      reverts — slippage, a moved deadline, thin liquidity — the approve
+     *      has already landed and the vault is left holding an allowance to the
+     *      router for the size of the position.
+     *
+     *      It is accepted rather than fixed, for two reasons. The allowance can
+     *      only ever point at the *configured* router, because `_callsAllowed`
+     *      vetted the whole plan first; and the next run's approve overwrites
+     *      it. Undoing it here would mean the vault decoding and reversing
+     *      arbitrary calldata, which is exactly the interpretation this design
+     *      keeps out of the vault.
+     *
+     *      A strategy that cannot tolerate a standing allowance should plan a
+     *      single call to a contract that does the approve and the swap
+     *      atomically. `test/ProtectiveExitStrategy.test.ts` pins the behaviour
+     *      so it stays a known property rather than a surprise.
+     */
     function _execute(INocturneStrategy.Action[] memory actions, uint64 run, uint256 gap) private {
         for (uint256 i; i < actions.length; ++i) {
             // solhint-disable-next-line avoid-low-level-calls

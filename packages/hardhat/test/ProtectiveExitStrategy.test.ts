@@ -397,6 +397,14 @@ describe("ProtectiveExitStrategy", () => {
 
     expect(await router.swaps()).to.equal(0n);
     expect(await asset.balanceOf(await vault.getAddress())).to.equal(HELD);
+
+    // A stopped plan is a partly executed plan. The approve landed before the
+    // swap reverted, so the vault is left holding an allowance the size of the
+    // position. Pinned because it is a real property of the design rather than
+    // an accident: the allowance can only ever point at the configured router,
+    // and the next run's approve overwrites it. See `_execute`.
+    expect(await asset.allowance(await vault.getAddress(), await router.getAddress())).to.equal(HELD);
+
     // Chain intact: it will try again.
     expect(await hss.pendingCount()).to.equal(1n);
   });
