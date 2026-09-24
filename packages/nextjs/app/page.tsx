@@ -1,7 +1,7 @@
 "use client";
 
-import { Beats } from "./_components/Beats";
 import { CreateVault } from "./_components/CreateVault";
+import { Hero } from "./_components/Hero";
 import { TwoSources } from "./_components/TwoSources";
 import { VaultDashboard } from "./_components/VaultDashboard";
 import { Panel } from "./_components/ui";
@@ -38,7 +38,6 @@ const Home: NextPage = () => {
     <div className="flex flex-col items-center grow w-full px-4 pt-10 pb-20">
       <div className="w-full max-w-4xl flex flex-col gap-6">
         <Hero />
-        <Beats />
         <TwoSources />
         {!isConnected ? <ConnectPrompt /> : vault ? <VaultDashboard vault={vault} /> : <CreateVault />}
         <HowItWorks />
@@ -46,21 +45,6 @@ const Home: NextPage = () => {
     </div>
   );
 };
-
-const Hero = () => (
-  <header className="flex flex-col gap-4 mb-2">
-    <h1 className="text-5xl font-bold m-0 leading-tight">
-      Close the tab.
-      <br />
-      <span className="opacity-50">Come back. It already happened.</span>
-    </h1>
-    <p className="opacity-70 max-w-2xl m-0">
-      A vault that books its own next execution with the Hedera Schedule Service. No keeper, no bot, no cron job on
-      somebody&apos;s laptop — the thing that fires at 4am is the network itself. It decides how long to wait from what
-      it can see, and it refuses to trade when its two price sources disagree.
-    </p>
-  </header>
-);
 
 const ConnectPrompt = () => (
   <Panel title="Connect a wallet">
@@ -72,7 +56,7 @@ const ConnectPrompt = () => (
 );
 
 const HowItWorks = () => (
-  <Panel title="Why this is not a cron job">
+  <Panel title="Why this is not a cron job" quiet>
     <ul className="list-disc list-outside pl-5 opacity-80 flex flex-col gap-3 m-0 text-sm">
       <li>
         The vault books its own next run through HIP-1215, and it books it <em>before</em> it does any work. A strategy

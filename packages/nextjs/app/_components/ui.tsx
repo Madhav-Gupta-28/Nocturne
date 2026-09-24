@@ -9,16 +9,27 @@ import type { Address } from "viem";
  * formatting the chain's units need before a person should see them.
  */
 
+/**
+ * A section of the page.
+ *
+ * Two treatments, because a card means "this is a discrete object" and not
+ * everything on this page is one. Live state a reader might act on gets the
+ * raised surface; prose explaining the design gets a rule and open space, so
+ * the eye can tell the two apart without reading either.
+ */
 export const Panel = ({
   title,
   subtitle,
   children,
+  quiet = false,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  /** Prose rather than state: no card, just a rule above it. */
+  quiet?: boolean;
 }) => (
-  <section className="bg-base-100 rounded-2xl p-6 shadow-sm">
+  <section className={quiet ? "border-t border-base-300 pt-8 mt-2" : "bg-base-100 rounded-2xl p-6 shadow-sm"}>
     <h2 className="text-sm font-semibold uppercase tracking-wider opacity-50 mt-0 mb-1">{title}</h2>
     {subtitle ? <p className="text-sm opacity-60 mt-0 mb-4">{subtitle}</p> : <div className="mb-4" />}
     {children}

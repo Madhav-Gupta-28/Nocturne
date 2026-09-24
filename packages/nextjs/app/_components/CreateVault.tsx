@@ -110,19 +110,19 @@ export const CreateVault = () => {
         >
           {isMining ? "Creating…" : "Create vault"}
         </button>
-
-        <p className="text-sm opacity-60 m-0 pb-3 max-w-xs">
-          {runs === undefined || hbarPerRun === undefined ? (
-            "reading the current gas price…"
-          ) : (
-            <>
-              about <span className="font-semibold tabular-nums">{runs}</span> executions. Each one has to reserve{" "}
-              <span className="tabular-nums">{hbarPerRun.toFixed(2)}</span> HBAR at today&apos;s gas price, though it is
-              charged about half that. Withdraw the remainder any time.
-            </>
-          )}
-        </p>
       </div>
+
+      <p className="text-sm opacity-60 mt-4 mb-0 max-w-2xl">
+        {runs === undefined || hbarPerRun === undefined ? (
+          "reading the current gas price…"
+        ) : (
+          <>
+            about <span className="font-semibold tabular-nums">{runs}</span> executions. Each one has to reserve{" "}
+            <span className="tabular-nums">{hbarPerRun.toFixed(2)}</span> HBAR at today&apos;s gas price, though it is
+            charged about half that. Withdraw the remainder any time.
+          </>
+        )}
+      </p>
     </Panel>
   );
 };
