@@ -22,6 +22,14 @@ import { ethers, deployments, network } from "hardhat";
  * execute an actual swap. It is not a realistic configuration and the script
  * says so on the way past; it exists so the approve-and-swap path is proven on
  * chain rather than only against mocks.
+ *
+ * Pass `VAULT=0x...` to retune a vault that already exists instead of building
+ * another one. Everything a vault only needs once — HTS association, the
+ * position, the allow-list — is then skipped, and the script just reconfigures,
+ * tops the fuel up and re-arms. Note that `configure` disarms by design and
+ * releases the pending schedule, so re-arming is not optional.
+ *
+ *   VAULT=0x... TOLERATE_DIVERGENCE=1 TOP_UP=4 npx hardhat run ...
  */
 
 // Verified on testnet — see ARCHITECTURE.md §3.5.
@@ -57,7 +65,15 @@ const FLOOR_1E18 = ethers.parseEther(process.env.FLOOR ?? "5");
 const TOLERATE = process.env.TOLERATE_DIVERGENCE === "1";
 const MAX_DIVERGENCE_BPS = TOLERATE ? 10_000_000n : 200n;
 
+/** An existing vault to retune, instead of creating one. */
+const EXISTING = process.env.VAULT;
+
+/** HBAR to add to an existing vault's fuel before re-arming. */
+const TOP_UP = process.env.TOP_UP;
+
 const hbar = (tinybar: bigint) => (Number(tinybar) / 1e8).toFixed(4);
+
+type Vault = Awaited<ReturnType<typeof ethers.getContractAt>>;
 
 async function main() {
   const [owner] = await ethers.getSigners();
@@ -68,18 +84,34 @@ async function main() {
     console.log(`!! This proves the swap path executes. It is not a sane configuration.\n`);
   }
 
-  const strategyAddr = (await deployments.get("ProtectiveExitStrategy")).address;
-  const factoryAddr = (await deployments.get("NocturneFactory")).address;
-  const factory = await ethers.getContractAt("NocturneFactory", factoryAddr);
-  const strategy = await ethers.getContractAt("ProtectiveExitStrategy", strategyAddr);
+  const strategy = await ethers.getContractAt(
+    "ProtectiveExitStrategy",
+    (await deployments.get("ProtectiveExitStrategy")).address,
+  );
 
-  // 1. The owner must be able to hold WHBAR before it can hand any to a vault.
-  //    An account created from an EVM key has no automatic association slots.
+  const vaultAddr = EXISTING ? await retune() : await build();
+  const vault = await ethers.getContractAt("NocturneVault", vaultAddr);
+
+  await configure(vault, vaultAddr, strategy);
+  await arm(vault, vaultAddr);
+}
+
+/**
+ * Everything a vault needs exactly once: tokens it may hold, a position, and
+ * the addresses its strategy is allowed to reach.
+ */
+async function build(): Promise<string> {
+  const [owner] = await ethers.getSigners();
+  const factory = await ethers.getContractAt("NocturneFactory", (await deployments.get("NocturneFactory")).address);
+  const strategyAddr = (await deployments.get("ProtectiveExitStrategy")).address;
+
+  // The owner must be able to hold WHBAR before handing any to a vault. An
+  // account created from an EVM key has no automatic association slots.
   const hts = await ethers.getContractAt("IHederaTokenService", HTS);
   console.log(`associating WHBAR with the owner...`);
-  await send(hts.associateToken(owner.address, WHBAR_TOKEN, { gasLimit: 800_000 }), "already associated");
+  await tolerate(hts.associateToken(owner.address, WHBAR_TOKEN, { gasLimit: 800_000 }), "already associated");
 
-  // 2. Wrap HBAR into WHBAR. `deposit()` credits msg.sender.
+  // Wrap HBAR into WHBAR. `deposit()` credits msg.sender.
   const position = ethers.parseUnits(POSITION_WHBAR, WHBAR_DECIMALS);
   const whbar = await ethers.getContractAt("IERC20", WHBAR_TOKEN);
   if ((await whbar.balanceOf(owner.address)) < position) {
@@ -90,38 +122,30 @@ async function main() {
   }
   console.log(`owner holds ${ethers.formatUnits(await whbar.balanceOf(owner.address), WHBAR_DECIMALS)} WHBAR`);
 
-  // 3. Create the vault, funded in the same transaction.
   console.log(`\ncreating a vault with ${FUEL_HBAR} HBAR of fuel...`);
-  const createTx = await factory.createVault(strategyAddr, {
-    value: ethers.parseEther(FUEL_HBAR),
-    gasLimit: 4_000_000,
-  });
-  await createTx.wait();
+  await (await factory.createVault(strategyAddr, { value: ethers.parseEther(FUEL_HBAR), gasLimit: 4_000_000 })).wait();
   const vaultAddr = await factory.latestVaultOf(owner.address);
   const vault = await ethers.getContractAt("NocturneVault", vaultAddr);
   console.log(`vault    ${vaultAddr}`);
 
-  // 4. The vault must associate both sides: WHBAR to hold the position, USDC to
-  //    receive the proceeds. A swap into an unassociated token fails at
-  //    delivery, after the approve has already landed.
+  // Both sides must be associated: WHBAR to hold the position, USDC to receive
+  // the proceeds. A swap into an unassociated token fails at delivery, after
+  // the approve has already landed.
   for (const [name, token] of [
     ["WHBAR", WHBAR_TOKEN],
     ["USDC", USDC],
   ] as const) {
-    console.log(`associating ${name} with the vault...`);
     const rc = await vault.associate.staticCall(token);
     await (await vault.associate(token, { gasLimit: 800_000 })).wait();
-    console.log(`  response code ${rc}`);
+    console.log(`associated ${name} with the vault — response code ${rc}`);
   }
 
-  // 5. Move the position in.
   console.log(`\ndepositing ${POSITION_WHBAR} WHBAR into the vault...`);
   await (await whbar.approve(vaultAddr, position, { gasLimit: 800_000 })).wait();
   await (await vault.depositToken(WHBAR_TOKEN, position, { gasLimit: 900_000 })).wait();
 
-  // 6. Say where the strategy may reach. Both are needed: the token for the
-  //    approve, the router for the swap. A plan touching anything else is
-  //    rejected whole.
+  // The token for the approve, the router for the swap. A plan touching
+  // anything else is rejected whole.
   for (const [name, target] of [
     ["WHBAR token", WHBAR_TOKEN],
     ["router", ROUTER],
@@ -130,7 +154,25 @@ async function main() {
     await (await vault.setAllowedTarget(target, true, { gasLimit: 500_000 })).wait();
   }
 
-  // 7. Configure, which validates. A bad config fails here rather than at 3am.
+  return vaultAddr;
+}
+
+/** Picks up a vault that already has its tokens, position and allow-list. */
+async function retune(): Promise<string> {
+  const vaultAddr = EXISTING as string;
+  const vault = await ethers.getContractAt("NocturneVault", vaultAddr);
+  console.log(`\nretuning existing vault ${vaultAddr}`);
+
+  if (TOP_UP) {
+    console.log(`topping up ${TOP_UP} HBAR of fuel...`);
+    await (await vault.depositHbar({ value: ethers.parseEther(TOP_UP), gasLimit: 500_000 })).wait();
+  }
+  console.log(`balance  ${hbar(await vault.fuel())} HBAR`);
+  return vaultAddr;
+}
+
+/** Store the configuration, which validates it. A bad one fails here, not at 3am. */
+async function configure(vault: Vault, vaultAddr: string, strategy: Vault) {
   const config = await strategy.encodeConfig({
     vault: vaultAddr,
     asset: WHBAR_TOKEN,
@@ -152,15 +194,21 @@ async function main() {
       quoteDecimals: USDC_DECIMALS,
     },
   });
-  console.log(`configuring (floor ${ethers.formatEther(FLOOR_1E18)} USDC, tolerance ${MAX_DIVERGENCE_BPS} bps)...`);
+  console.log(`\nconfiguring (floor ${ethers.formatEther(FLOOR_1E18)} USDC, tolerance ${MAX_DIVERGENCE_BPS} bps)...`);
+  // Note: configure() disarms and releases any pending schedule, by design.
   await (await vault.configure(config, { gasLimit: 1_000_000 })).wait();
 
-  // What it would do right now, before anything is scheduled.
   const [state, a, b] = await vault.preview();
-  console.log(`\nthe strategy says: "${state}"  (${a}, ${b})`);
+  console.log(`the strategy says: "${state}"  (${a}, ${b})`);
+}
 
-  // 8. Arm. 2.5M rather than 4M: the owner has to hold the whole limit times
-  //    the gas price, and arming only burns about 1.5M.
+/**
+ * Arm, and report what the vault now believes about itself.
+ *
+ * 2.5M gas rather than 4M: the sender has to hold the whole limit times the gas
+ * price before the relay will submit, and arming only burns about 1.5M.
+ */
+async function arm(vault: Vault, vaultAddr: string) {
   console.log(`arming...`);
   await (await vault.arm({ gasLimit: 2_500_000 })).wait();
 
@@ -180,12 +228,11 @@ async function main() {
 }
 
 /** Runs a transaction, tolerating one specific already-done failure. */
-async function send(pending: Promise<{ wait: () => Promise<unknown> }>, benign: string) {
+async function tolerate(pending: Promise<{ wait: () => Promise<unknown> }>, benign: string) {
   try {
     await (await pending).wait();
   } catch (e) {
-    const message = (e as Error).message ?? "";
-    console.log(`  (${benign}? continuing — ${message.slice(0, 80)})`);
+    console.log(`  (${benign}? continuing — ${((e as Error).message ?? "").slice(0, 80)})`);
   }
 }
 
