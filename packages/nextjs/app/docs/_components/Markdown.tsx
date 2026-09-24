@@ -20,7 +20,7 @@ export const Markdown = ({ children }: { children: string }) => (
       prose-p:text-paper-dim prose-li:text-paper-dim
       prose-strong:text-paper prose-strong:font-medium
       prose-a:text-paper prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-signal
-      prose-hr:border-line prose-blockquote:border-signal prose-blockquote:text-paper-dim"
+      prose-hr:border-transparent prose-blockquote:border-signal prose-blockquote:text-paper-dim"
   >
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}

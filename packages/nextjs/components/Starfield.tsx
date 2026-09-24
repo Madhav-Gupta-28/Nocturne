@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 /**
  * The sky the whole site sits under.
@@ -64,6 +65,12 @@ const between = (lo: number, hi: number) => lo + Math.random() * (hi - lo);
 
 export const Starfield = () => {
   const ref = useRef<HTMLCanvasElement>(null);
+
+  // The sky is at full strength behind the opening and steps back everywhere
+  // else. The documents are the part of this site somebody reads a paragraph at
+  // a time, and a field of moving points behind running text is a cost the
+  // reader pays for atmosphere they have already been sold.
+  const atmospheric = usePathname() === "/";
 
   useEffect(() => {
     const canvas = ref.current;
@@ -245,7 +252,9 @@ export const Starfield = () => {
       // Fixed and behind everything: `main` is positioned, so page content
       // paints above a negative z-index without needing a stacking context of
       // its own. The body's own ink still paints beneath the canvas.
-      className="pointer-events-none fixed inset-0 -z-10 h-full w-full"
+      className={`pointer-events-none fixed inset-0 -z-10 h-full w-full transition-opacity duration-700 ${
+        atmospheric ? "opacity-100" : "opacity-40"
+      }`}
     />
   );
 };
