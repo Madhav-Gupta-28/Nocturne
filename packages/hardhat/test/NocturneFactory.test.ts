@@ -207,3 +207,21 @@ describe("NocturneFactory", () => {
     expect(await sink.pings()).to.equal(3n);
   });
 });
+
+describe("NocturneFactory pagination", () => {
+  it("pages an owner's vaults and clamps past the end", async () => {
+    const [owner] = await ethers.getSigners();
+    const strategy = await (await ethers.getContractFactory("MockStrategy")).deploy();
+    const factory = await (await ethers.getContractFactory("NocturneFactory")).deploy();
+    const s = await strategy.getAddress();
+
+    for (let i = 0; i < 3; i++) await (await factory.createVault(s)).wait();
+
+    const all = await factory["vaultsOf(address)"](owner.address);
+    expect(all.length).to.equal(3);
+
+    expect((await factory["vaultsOf(address,uint256,uint256)"](owner.address, 0, 2)).length).to.equal(2);
+    expect((await factory["vaultsOf(address,uint256,uint256)"](owner.address, 2, 99)).length).to.equal(1);
+    expect((await factory["vaultsOf(address,uint256,uint256)"](owner.address, 99, 10)).length).to.equal(0);
+  });
+});

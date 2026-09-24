@@ -98,6 +98,30 @@ contract NocturneFactory {
         return _vaultsOf[owner];
     }
 
+    /**
+     * @notice One page of an owner's vaults.
+     * @dev The unpaginated `vaultsOf` above returns the whole array, which grows
+     *      without bound — one entry per vault that owner has ever created. It
+     *      stays because it is the convenient call for the normal case of a
+     *      handful of vaults, and because `eth_call` has no gas limit worth
+     *      worrying about. But a contract reading it on chain, or an owner with
+     *      thousands, wants a bound, and only the caller knows which case it is
+     *      in.
+     */
+    function vaultsOf(address owner, uint256 offset, uint256 limit) external view returns (address[] memory page) {
+        address[] storage all = _vaultsOf[owner];
+        uint256 total = all.length;
+        if (offset >= total) return new address[](0);
+
+        uint256 end = offset + limit;
+        if (end > total) end = total;
+
+        page = new address[](end - offset);
+        for (uint256 i = offset; i < end; ++i) {
+            page[i - offset] = all[i];
+        }
+    }
+
     /// @notice The owner's most recent vault, or the zero address if they have none.
     function latestVaultOf(address owner) external view returns (address) {
         uint256 n = _vaultsOf[owner].length;
