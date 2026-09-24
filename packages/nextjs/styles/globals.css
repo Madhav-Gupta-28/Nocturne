@@ -8,46 +8,48 @@
 /*
   Nocturne.
 
-  One temperature: everything on this site is lit by the same cold source. The
-  ground is a blue-black rather than a neutral one, because a true black behind
-  a star field reads as a switched-off screen, and the paper is a cool white
-  rather than cream, because warm text under a moon looks like lamplight.
+  One light source, and it is cold. The ground is a blue-black rather than a
+  neutral one, because a true black behind a star field reads as a switched-off
+  screen. The paper is a cool white rather than cream, because warm text under a
+  moon looks like lamplight.
 
   State is carried by weight and fill rather than by hue, so a panel, a rule and
   a caption are the same colour at different strengths. There are exactly two
-  exceptions, and both are earned: moonlight for the one thing that is alive,
-  and `signal-dead` for the only condition a reader must not miss.
+  exceptions and both are earned: `signal` for what is alive — a running chain,
+  a live figure, the thing you can click — and `signal-dead` for the only
+  condition a reader must not miss, a chain that has stopped.
 */
 @theme {
-  --color-ink: #05060b;
-  --color-ink-raised: #0c0e16;
-  --color-ink-sunken: #020308;
+  --color-ink: #07080c;
+  --color-ink-raised: #0e1016;
+  --color-ink-sunken: #04050a;
 
-  --color-paper: #e9ecf6;
-  --color-paper-dim: #9ba3ba;
-  --color-paper-faint: #656d85;
+  --color-paper: #e9ecf4;
+  --color-paper-dim: #98a0b3;
+  --color-paper-faint: #5e6577;
 
   /*
-    Moonlight. A cold periwinkle, because the subject is night and a warm
-    accent reads either as daytime or as a warning. It is spent as light — the
-    stars, one word of the headline, a rule, the dot on a running chain — and
-    never as a button fill, which is what keeps it from looking like a brand
-    colour applied to a dashboard.
+    An instrument light. This site is a monitor — a vault watching a price at
+    4am and a panel counting executions nobody sent — and the colour of a thing
+    that is awake in the dark is not a brand purple. It is cold, it is slightly
+    clinical, and it is the only saturated thing on the page.
   */
-  --color-signal: #7c8cff;
-  --color-signal-dim: #39408c;
+  --color-signal: #27c3d4;
+  --color-signal-dim: #1d6a74;
+  --color-signal-glow: rgba(39, 195, 212, 0.16);
 
   /* Spent only on a chain that has stopped. Warm, because nothing else is. */
-  --color-signal-dead: #ff6b4a;
+  --color-signal-dead: #ff5a45;
 
-  --color-line: #171a26;
-  --color-line-bright: #262b3b;
+  --color-line: #191c26;
+  --color-line-bright: #2a2f3d;
 
-  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
-  --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* One easing curve for the whole site, so separate motion reads as one system. */
+  --ease-score: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /*
@@ -56,7 +58,7 @@
   The scaffold's own surfaces — the wallet modal, the debug page, the block
   explorer — are built from its components, and ripping the plugin out would
   break all three. Pointing its tokens at the palette above means those pages
-  inherit Night Score without being touched.
+  inherit the theme without being touched.
 */
 @plugin "daisyui" {
   themes: dark --default;
@@ -65,27 +67,27 @@
 @plugin "daisyui/theme" {
   name: "dark";
 
-  --color-primary: #7c8cff;
-  --color-primary-content: #05060b;
-  --color-secondary: #0c0e16;
-  --color-secondary-content: #e9ecf6;
-  --color-accent: #7c8cff;
-  --color-accent-content: #05060b;
-  --color-neutral: #0c0e16;
-  --color-neutral-content: #e9ecf6;
+  --color-primary: #27c3d4;
+  --color-primary-content: #04050a;
+  --color-secondary: #0e1016;
+  --color-secondary-content: #e9ecf4;
+  --color-accent: #27c3d4;
+  --color-accent-content: #04050a;
+  --color-neutral: #0e1016;
+  --color-neutral-content: #e9ecf4;
 
-  --color-base-100: #0c0e16;
-  --color-base-200: #05060b;
-  --color-base-300: #171a26;
-  --color-base-content: #e9ecf6;
+  --color-base-100: #0e1016;
+  --color-base-200: #07080c;
+  --color-base-300: #191c26;
+  --color-base-content: #e9ecf4;
 
-  --color-info: #7c8cff;
-  --color-success: #7c8cff;
-  --color-warning: #7c8cff;
-  --color-error: #ff6b4a;
+  --color-info: #27c3d4;
+  --color-success: #27c3d4;
+  --color-warning: #27c3d4;
+  --color-error: #ff5a45;
 
-  --radius-field: 2px;
-  --radius-box: 3px;
+  --radius-field: 0px;
+  --radius-box: 0px;
   --tt-tailw: 6px;
 }
 
@@ -133,6 +135,12 @@
     background: var(--color-signal);
     color: var(--color-ink);
   }
+
+  /* Nothing on this site is ever wider than the window. */
+  html,
+  body {
+    overflow-x: clip;
+  }
 }
 
 :root,
@@ -141,13 +149,28 @@
   color-scheme: dark;
 }
 
-/* ── the marks a score is built from ───────────────────────────────── */
+/* ── the shell ─────────────────────────────────────────────────────── */
 
 /*
-  A section label. Mono, spaced, quiet — the way a tempo mark sits above a
-  stave rather than in it.
+  One measure for the whole site, and it is wide.
+
+  A poster headline needs the window, not a column. The side padding scales with
+  the viewport so the margin looks like a margin at 1920 and still leaves a
+  thumb's width of gutter on a phone.
 */
+.shell {
+  width: 100%;
+  max-width: 1560px;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 4vw, 4rem);
+}
+
+/* ── the marks ─────────────────────────────────────────────────────── */
+
 /*
+  A section label. Mono, spaced, quiet — the way a tempo mark sits above a stave
+  rather than in it.
+
   Deliberately not called `.label`: DaisyUI ships a `.label` component that sets
   `display: flex`, and on a table header that removes the cell from table layout
   and stacks the columns.
@@ -155,33 +178,39 @@
 .eyebrow {
   font-family: var(--font-mono);
   font-size: 10.5px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-paper-faint);
 }
 
 /*
-  Display type is set like signage: caps, tight, and tracked in slightly,
-  because a condensed face at 90px opens up at the default spacing.
+  Display type is set like signage: caps, tight, tracked in slightly, because a
+  condensed face at poster size opens up at the default spacing.
 */
 .display {
   font-family: var(--font-display);
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.005em;
+  letter-spacing: -0.012em;
   /*
     Tight, but not as tight as a single line wants. At 0.88 a heading that wraps
     puts the descender of one line into the cap of the next, and every heading
     on this site is caps, so there is nothing to hide it.
   */
-  line-height: 0.94;
+  line-height: 0.9;
   text-wrap: balance;
 }
 
-/*
-  A short accent rule above a section heading. Erebus uses one; it does the
-  work a numbered label would, without spending a line of text on it.
-*/
+/* The poster sizes, cut from the viewport so they bleed at every width. */
+.display-hero {
+  font-size: clamp(2.6rem, 10.6vw, 12rem);
+}
+
+.display-section {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+/* A short accent rule above a section heading. Does the work of a number. */
 .rule::before {
   content: "";
   display: block;
@@ -191,32 +220,173 @@
   margin-bottom: 26px;
 }
 
-/*
-  The ground.
+/* Figures that must line up in a column, and never reflow as they tick. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
 
-  Stars are drawn on a canvas — see `Starfield` — because a field needs
-  hundreds of them and radial gradients do not scale to that. This leaves the
-  bloom, which is one warm-cold wash behind the opening.
+/* ── texture ───────────────────────────────────────────────────────── */
+
+/*
+  Grain and vignette, over everything.
+
+  This is the difference between a dark page and a designed one. A flat black
+  field has no surface — every edge on it is equally sharp and the eye has
+  nothing to hold. A little noise gives the ground a material, and a vignette
+  gives it a shape, so the centre of the window reads as lit and the corners as
+  falling away.
+
+  Both sit above the content at a low enough opacity to be felt rather than
+  seen, and neither takes a pointer event.
 */
-.night {
+.grain,
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.grain {
+  z-index: 60;
+  opacity: 0.042;
+  /* feTurbulence at a high frequency is the cheapest film grain there is: one
+     data URI, tiled, no image request, and it scales to any viewport. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  animation: grain 900ms steps(1) infinite;
+}
+
+/* Jittering the tile is what separates film grain from a dusty screen. */
+@keyframes grain {
+  0% {
+    background-position: 0 0;
+  }
+  25% {
+    background-position: -40px 20px;
+  }
+  50% {
+    background-position: 30px -30px;
+  }
+  75% {
+    background-position: -20px -40px;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+.vignette {
+  z-index: 55;
+  background: radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(4, 5, 10, 0.55) 100%);
+}
+
+/*
+  The graph paper an instrument is read on. Used on panels that hold data, never
+  on prose, and faint enough that it never competes with a figure sitting on it.
+*/
+.graph {
+  background-image:
+    linear-gradient(to right, var(--color-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* The wash behind the opening, so the headline sits in light rather than on black. */
+.glowfield {
   position: relative;
   isolation: isolate;
 }
 
-.night::after {
+.glowfield::after {
   content: "";
   position: absolute;
-  inset: -20% 0 0 0;
+  inset: -30% -10% 0 -10%;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60% 45% at 50% 0%, rgba(124, 140, 255, 0.14), transparent 70%),
-    radial-gradient(45% 40% at 85% 70%, rgba(124, 140, 255, 0.07), transparent 72%);
+    radial-gradient(50% 45% at 50% 0%, var(--color-signal-glow), transparent 72%),
+    radial-gradient(40% 40% at 88% 60%, rgba(39, 195, 212, 0.06), transparent 70%);
 }
 
-/* Figures that must line up in a column, and never reflow as they tick. */
-.tabular {
-  font-variant-numeric: tabular-nums;
+/* ── controls ──────────────────────────────────────────────────────── */
+
+/*
+  Two buttons and no more. The filled one is the single place the accent is
+  allowed to be a surface rather than a light, and there is one of it per
+  screen; everything else is a hairline that fills on hover.
+*/
+.btn-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-signal);
+  color: var(--color-ink-sunken);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 1rem 1.75rem;
+  transition:
+    box-shadow 0.35s var(--ease-score),
+    transform 0.35s var(--ease-score);
+}
+
+.btn-signal:hover {
+  box-shadow:
+    0 0 0 1px var(--color-signal),
+    0 0 34px var(--color-signal-glow);
+  transform: translateY(-1px);
+}
+
+.btn-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--color-line-bright);
+  color: var(--color-paper-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 1rem 1.75rem;
+  transition:
+    color 0.3s var(--ease-score),
+    border-color 0.3s var(--ease-score),
+    background-color 0.3s var(--ease-score);
+}
+
+.btn-line:hover {
+  color: var(--color-paper);
+  border-color: var(--color-paper);
+  background: rgba(233, 236, 244, 0.04);
+}
+
+/*
+  A link that wipes rather than underlines. The rule is drawn from the left on
+  hover and retracts to the right on leave, which is a small thing that makes a
+  page of mono links feel built rather than styled.
+*/
+.wipe {
+  position: relative;
+}
+
+.wipe::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s var(--ease-score);
+}
+
+.wipe:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
 .btn {
@@ -225,6 +395,10 @@
 
 .link {
   text-underline-offset: 2px;
+}
+
+.link:hover {
+  color: var(--color-signal);
 }
 
 /*
@@ -247,19 +421,7 @@ footer .btn-primary:hover {
   color: var(--color-paper);
 }
 
-.link:hover {
-  color: var(--color-signal);
-}
-
 /* ── motion ────────────────────────────────────────────────────────── */
-
-/*
-  One easing curve for the whole site. Everything decelerates the same way,
-  which is what makes separate animations read as one system.
-*/
-@theme {
-  --ease-score: cubic-bezier(0.16, 1, 0.3, 1);
-}
 
 @keyframes rise {
   from {
@@ -272,15 +434,9 @@ footer .btn-primary:hover {
   }
 }
 
-/* Staggered entrance for the hero. Rests at visible, never parked hidden. */
+/* Staggered entrance. Rests at visible, never parked hidden. */
 .rise {
-  animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
+  animation: rise 0.7s var(--ease-score) both;
 }
 
 /* A lit dot that breathes, for a chain that is currently alive. */
@@ -288,14 +444,32 @@ footer .btn-primary:hover {
   0%,
   100% {
     opacity: 1;
+    box-shadow: 0 0 0 0 var(--color-signal-glow);
   }
   50% {
-    opacity: 0.35;
+    opacity: 0.4;
+    box-shadow: 0 0 0 5px transparent;
   }
 }
 
 .alive {
   animation: alive 2.4s ease-in-out infinite;
+}
+
+/* A caret on a line of a transcript that is still being written. */
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret {
+  animation: blink 1s steps(1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -307,12 +481,19 @@ footer .btn-primary:hover {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* A grain that resamples every 900ms is the one thing here that would still
+     move after the blanket rule above, because it is the animation doing the
+     work rather than decorating it. */
+  .grain {
+    animation: none !important;
+  }
 }
 
 /*
   Kept because the scaffold's own burner-key modals paint with it. Re-pointed at
-  moonlight so those inherited surfaces match the rest of the site.
+  the signal so those inherited surfaces match the rest of the site.
 */
 .hedera-gradient {
-  background: linear-gradient(135deg, #7c8cff 0%, #39408c 100%);
+  background: linear-gradient(135deg, #27c3d4 0%, #1d6a74 100%);
 }

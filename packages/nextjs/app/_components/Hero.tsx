@@ -1,126 +1,155 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { formatDuration, useNow } from "./ui";
-import { useDeployedContractInfo, useScaffoldReadContract, useTargetNetwork } from "~~/hooks/scaffold-hbar";
-import { getBlockExplorerAddressLink } from "~~/utils/scaffold-hbar";
+import { EASE, fadeUp, lineVariants } from "./motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 /**
- * The opening, and the whole argument in one screen.
+ * The opening.
  *
- * What this system does is invisible: nothing happens, correctly, while nobody
- * is watching. A page about that cannot open with a paragraph claiming it — so
- * the claim *is* the live number, with a clock beside it that moves on its own.
- * A reader who doubts the page can watch the second hand.
+ * Two decisions carry it. The first is scale: the headline is cut from the
+ * viewport rather than from a column, so it runs margin to margin at every
+ * width and the page opens with a statement instead of a paragraph. The second
+ * is that the claim is immediately followed by the one command that lets you
+ * check it — this is a template, and the fastest possible path from *reading*
+ * about it to *running* it is the whole product.
  *
- * `Heartbeat` is a contract with one job: record that somebody called it. Every
- * count on it was placed by a vault executing a schedule the network fired. It
- * is shown before any wallet is connected, because the claim is about the chain
- * rather than about the visitor.
- *
- * It is set centred and against the sky, which is the one place on this site
- * where the layout is symmetrical. Everything after it returns to the left
- * margin — the opening is a title card, not the first section.
+ * The live evidence sits in its own band below, under `Proof`, because a
+ * counter that has to compete with 150px type loses.
  */
+
+const COMMAND = "npx create-scaffold-hbar@latest --template Madhav-Gupta-28/Nocturne";
+
 export const Hero = () => {
-  const now = useNow();
-  const { targetNetwork } = useTargetNetwork();
-  const { data: heartbeat } = useDeployedContractInfo({ contractName: "Heartbeat" });
-
-  const { data: beats } = useScaffoldReadContract({ contractName: "Heartbeat", functionName: "beats" });
-  const { data: lastBeatAt } = useScaffoldReadContract({ contractName: "Heartbeat", functionName: "lastBeatAt" });
-
-  // Ticked in the browser rather than polled, so the figure moves every second
-  // while the chain is only read every few.
-  const everBeaten = beats !== undefined && beats > 0n;
-  const silentFor = lastBeatAt && everBeaten ? now - Number(lastBeatAt) : undefined;
+  const still = useReducedMotion();
 
   return (
-    <header className="night flex flex-col items-center pt-16 pb-10 text-center sm:pt-24 sm:pb-16">
-      <p className="eyebrow rise m-0 flex items-center gap-2.5 border border-line bg-ink-raised/60 px-3.5 py-1.5">
-        <span className="alive inline-block h-1.5 w-1.5 rounded-full bg-signal" aria-hidden />
-        Live on Hedera testnet
-      </p>
-
-      <h1
-        className="display rise m-0 mt-8 text-[2.75rem] text-balance sm:text-[4.5rem] lg:text-[5.25rem]"
-        style={{ animationDelay: "60ms" }}
+    <header className="glowfield shell pt-14 pb-16 sm:pt-20 lg:pt-24">
+      <motion.div
+        className="flex flex-wrap items-center justify-between gap-4"
+        variants={fadeUp}
+        initial={still ? false : "rest"}
+        animate="play"
       >
-        Close the tab.
-        <br />
-        <span className="text-signal">It already happened.</span>
-      </h1>
-
-      <p
-        className="rise m-0 mt-8 max-w-2xl text-balance text-base leading-relaxed text-paper-dim sm:text-lg"
-        style={{ animationDelay: "140ms" }}
-      >
-        A vault that books its own next execution with the Hedera Schedule Service. No keeper, no bot, no cron job on
-        somebody&apos;s laptop — the thing that fires at 4am is the network itself.
-      </p>
-
-      <div className="rise mt-10 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "220ms" }}>
-        {/*
-          Outlines rather than a filled accent button. Moonlight is spent as
-          light on this site, and a solid block of it here would turn the one
-          colour the page has into a brand button.
-        */}
-        <a
-          href="#vault"
-          className="border border-paper px-6 py-3 text-sm font-medium text-paper transition-colors hover:bg-paper hover:text-ink"
-        >
-          Arm a vault
-        </a>
-        <Link
-          href="/how-it-works"
-          className="border border-line px-6 py-3 text-sm font-medium text-paper-dim transition-colors hover:border-line-bright hover:text-paper"
-        >
-          See what it does at 4am →
-        </Link>
-      </div>
+        <p className="eyebrow m-0 flex items-center gap-2.5">
+          <span className="alive inline-block h-1.5 w-1.5 rounded-full bg-signal" aria-hidden />
+          Recurring on-chain jobs · no keeper
+        </p>
+        <p className="eyebrow m-0">HIP-1215 · Hedera Schedule Service</p>
+      </motion.div>
 
       {/*
-        The evidence, set as an instrument panel rather than prose. A reader who
-        doubts the claim can watch the second figure move, then follow the link
-        and read the same number off the chain.
+        Each line is a clip window with the glyphs sliding up inside it, so the
+        type reads as being set rather than as a block flying in. The window
+        never moves, which is what keeps it from looking like a carousel.
       */}
-      <div
-        className="rise mt-16 w-full border border-line bg-ink-raised/50 text-left backdrop-blur-sm"
-        style={{ animationDelay: "300ms" }}
-      >
-        <dl className="m-0 grid divide-line sm:grid-cols-3 sm:divide-x max-sm:divide-y">
-          <Figure label="Executions nobody sent" value={beats?.toString() ?? "—"} lit />
-          <Figure label="Since the last one" value={silentFor !== undefined ? formatDuration(silentFor) : "—"} />
-          <Figure label="Sent by the owner" value="0" />
-        </dl>
+      <h1 className="display display-hero m-0 mt-8 text-left">
+        <Line index={0}>Close the tab.</Line>
+        <Line index={1} className="text-signal">
+          It already happened.
+        </Line>
+      </h1>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
-          <p className="m-0 max-w-xl text-xs leading-relaxed text-paper-faint">
-            Each one was placed by a vault paying its own fee. The owner&apos;s account appears once, for the
-            transaction that armed it, and never again.
+      <motion.div
+        className="mt-12 h-px origin-left bg-line"
+        initial={still ? false : { scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 1.1, delay: 0.45, ease: EASE }}
+      />
+
+      <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+        <motion.div variants={fadeUp} custom={5} initial={still ? false : "rest"} animate="play">
+          <p className="m-0 max-w-xl text-lg leading-relaxed text-paper-dim sm:text-xl">
+            A vault that books its own next execution with the Hedera Schedule Service. No keeper, no bot, no cron job
+            on somebody&apos;s laptop —{" "}
+            <span className="text-paper">the thing that fires at 4am is the network itself.</span>
           </p>
-          {heartbeat?.address ? (
-            <a
-              className="eyebrow shrink-0 transition-colors hover:text-paper"
-              href={getBlockExplorerAddressLink(targetNetwork, heartbeat.address)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Read it off the chain ↗
+
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <a href="#vault" className="btn-signal">
+              Arm a vault <span aria-hidden>→</span>
             </a>
-          ) : null}
-        </div>
+            <Link href="/how-it-works" className="btn-line">
+              How it works
+            </Link>
+          </div>
+        </motion.div>
+
+        <motion.div variants={fadeUp} custom={7} initial={still ? false : "rest"} animate="play">
+          <CommandCard />
+        </motion.div>
       </div>
     </header>
   );
 };
 
-/** One figure in the panel. Mono, tabular, so it never reflows as it ticks. */
-const Figure = ({ label, value, lit = false }: { label: string; value: string; lit?: boolean }) => (
-  <div className="px-5 py-6">
-    <dd className={`tabular m-0 font-mono text-3xl leading-none sm:text-4xl ${lit ? "text-signal" : "text-paper"}`}>
-      {value}
-    </dd>
-    <dt className="eyebrow mt-3">{label}</dt>
-  </div>
-);
+/** One line of the headline, in its own clip window. */
+const Line = ({ children, index, className }: { children: string; index: number; className?: string }) => {
+  const still = useReducedMotion();
+
+  return (
+    <span className="block overflow-hidden pb-[0.06em]">
+      <motion.span
+        className={`block ${className ?? ""}`}
+        variants={lineVariants}
+        custom={index}
+        initial={still ? false : "rest"}
+        animate="play"
+      >
+        {children}
+      </motion.span>
+    </span>
+  );
+};
+
+/**
+ * The command, framed like an instrument rather than a code block.
+ *
+ * It is bordered in the accent because it is the single most useful thing on
+ * the page: this is a template, and everything else here is an argument for
+ * running it. The frame glows faintly so it reads as the lit object in the
+ * composition without being a filled button competing with the call to action.
+ */
+const CommandCard = () => {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(COMMAND);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Clipboard is unavailable over plain http and in some embedded views.
+      // The text is still selectable, so say nothing and change nothing.
+    }
+  };
+
+  return (
+    <figure className="m-0 border border-signal/45 bg-ink-sunken/70 shadow-[0_0_50px_-20px_var(--color-signal-glow)] backdrop-blur-sm">
+      <figcaption className="flex items-center justify-between border-b border-signal/30 px-5 py-3">
+        <span className="eyebrow text-signal">Scaffold it</span>
+        <button
+          type="button"
+          onClick={copy}
+          className="eyebrow cursor-pointer transition-colors hover:text-paper"
+          aria-live="polite"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </figcaption>
+
+      <pre className="m-0 overflow-x-auto px-5 py-5 text-[13px] leading-relaxed text-paper-dim">
+        <code>
+          <span className="text-paper-faint select-none">$ </span>
+          npx create-scaffold-hbar@latest <span className="text-paper">--template Madhav-Gupta-28/Nocturne</span>
+        </code>
+      </pre>
+
+      <p className="m-0 border-t border-line px-5 py-4 text-xs leading-relaxed text-paper-faint">
+        Contracts, tests, deploy scripts and this frontend. Nothing here is a mock — the numbers below were measured on
+        testnet, and every one of them can be reproduced with a command in the docs.
+      </p>
+    </figure>
+  );
+};

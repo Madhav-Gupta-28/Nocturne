@@ -1,6 +1,5 @@
 "use client";
 
-import { Panel } from "./ui";
 import { useScaffoldReadContract, useTargetNetwork } from "~~/hooks/scaffold-hbar";
 import { getBlockExplorerAddressLink } from "~~/utils/scaffold-hbar";
 
@@ -55,11 +54,13 @@ export const TwoSources = () => {
   const r = data as Reading | undefined;
 
   return (
-    <Panel
-      title="Two sources, and what they say"
-      subtitle="Read live from SaucerSwap and Chainlink. A vault will not trade on these unless they agree."
-    >
-      <div className="flex flex-wrap gap-x-14 gap-y-8">
+    /*
+      No heading of its own: the section header above already names this and
+      says what it is for, and a panel that repeats its own section title is the
+      surest sign a page was assembled rather than composed.
+    */
+    <div className="border border-line bg-ink-raised/40 p-6 backdrop-blur-sm sm:p-9">
+      <div className="flex flex-wrap gap-x-16 gap-y-8">
         <Source
           label="SaucerSwap"
           detail="60-second TWAP"
@@ -74,7 +75,7 @@ export const TwoSources = () => {
         />
         <div>
           <div className="eyebrow mb-2">Apart</div>
-          <div className="tabular font-mono text-3xl leading-none text-signal">
+          <div className="tabular font-mono text-4xl leading-none text-signal">
             {r ? `${(Number(r.divergenceBps) / 100).toFixed(0)}%` : "—"}
           </div>
           <div className="text-xs text-paper-faint mt-2">tolerance 2%</div>
@@ -96,11 +97,11 @@ export const TwoSources = () => {
         </div>
       ) : null}
 
-      <p className="text-xs text-paper-faint mt-6 mb-0 max-w-2xl leading-relaxed">
+      <p className="text-xs text-paper-faint mt-8 mb-0 max-w-2xl leading-relaxed">
         The gap is a testnet artefact: nothing arbitrages a testnet, so the pool drifts and stays drifted. It is the
         wrong place to demonstrate a realistic sale and exactly the right place to demonstrate a refusal.
       </p>
-    </Panel>
+    </div>
   );
 };
 
@@ -111,7 +112,7 @@ const Source = ({ label, detail, value, href }: { label: string; detail: string;
         {label}
       </a>
     </div>
-    <div className="tabular font-mono text-3xl leading-none">{value}</div>
+    <div className="tabular font-mono text-4xl leading-none">{value}</div>
     <div className="text-xs text-paper-faint mt-2">{detail}</div>
   </div>
 );

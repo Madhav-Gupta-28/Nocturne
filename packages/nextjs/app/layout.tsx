@@ -1,4 +1,4 @@
-import { Anton, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Anton, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "@rainbow-me/rainbowkit/styles.css";
 import "@scaffold-hbar-ui/components/styles.css";
 import type { Viewport } from "next";
@@ -22,19 +22,24 @@ export const metadata = getMetadata({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#05060b",
+  themeColor: "#07080c",
 };
 
 /**
  * Three faces, one job each.
  *
  * The display face is a poster grotesque set in caps: narrow enough that a
- * declarative sentence can run at 90px without wrapping, and heavy enough to
- * hold a dark ground without its hairlines disappearing into it.
+ * declarative sentence can run the width of a laptop at 150px without wrapping,
+ * and heavy enough to hold a dark ground without its hairlines disappearing
+ * into it. It is the only thing on this site that is allowed to be loud.
  *
- * Plex Sans and Plex Mono carry everything else. They were designed together,
- * so a measured number sitting inside a sentence does not look pasted in — and
- * most of the numbers on this site are measurements.
+ * Instrument Sans carries the prose. It has a tall x-height and open counters,
+ * which is what a paragraph of explanation needs at 18px on black — the usual
+ * grotesques close up and turn grey. Its name is a coincidence and a good one.
+ *
+ * JetBrains Mono carries every label, every measurement and every address. Most
+ * of the numbers on this site were measured off a chain and a proportional face
+ * would let them drift as they tick.
  */
 const display = Anton({
   subsets: ["latin"],
@@ -43,14 +48,14 @@ const display = Anton({
   weight: "400",
 });
 
-const sans = IBM_Plex_Sans({
+const sans = Instrument_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const mono = IBM_Plex_Mono({
+const mono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-mono",
@@ -74,6 +79,14 @@ const ScaffoldHbarApp = ({ children }: { children: React.ReactNode }) => {
           navigation. Every page on this site is the same night.
         */}
         <Starfield />
+        {/*
+          Texture, over everything. A flat black field has no surface; grain
+          gives the ground a material and the vignette gives it a shape. Both
+          are inert to the pointer and both sit above the content, which is the
+          only way a grain reads as film rather than as a pattern behind glass.
+        */}
+        <div className="vignette" aria-hidden />
+        <div className="grain" aria-hidden />
         <ThemeProvider forcedTheme="dark" enableSystem={false}>
           <ScaffoldHbarAppWithProviders>{children}</ScaffoldHbarAppWithProviders>
         </ThemeProvider>
