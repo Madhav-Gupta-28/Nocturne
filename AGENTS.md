@@ -19,6 +19,11 @@ These are specific to this chain and this mechanism, and none of them fail in a
 way that looks like a failure. All five are documented with reproductions in
 [`docs/hedera-landmines.md`](docs/hedera-landmines.md).
 
+**Allow calls, not contracts.** `setAllowedCall(target, selector, allowed)` is
+keyed on the function. Permitting an address wholesale would let a strategy call
+anything on it — allowing a token for `approve` would equally allow `transfer`.
+Actions with fewer than four bytes of calldata are always refused.
+
 **Never lower `MIN_SCHEDULE_GAS`.** Booking a schedule costs ~1.4M gas on its
 own, and a self-rescheduling entry point measured 1,501,968. Give it less and it
 runs once, reports **SUCCESS**, and never runs again. The constant has no setter

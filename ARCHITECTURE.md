@@ -1082,7 +1082,9 @@ Mirrors Hedera's own `MockHederaScheduleService` approach, plus what it misses.
 ### 11.2 Adversarial
 
 - spam `executeScheduled` → rate limit holds, no fuel drain
-- hostile strategy proposing a transfer to an arbitrary address → rejected
+- hostile strategy proposing `transfer(attacker, balance)` on a token whose
+  `approve` is allowed → rejected, because consent is per selector
+- action with no selector at all (a bare value transfer) → rejected
 - TWAP window unmet → refuses rather than falling back to spot
 - one source stale, other fine → refuses (does not single-source)
 - divergence exactly at tolerance → refuses (boundary is closed)
@@ -1150,9 +1152,19 @@ Steps 1–4 are the template. 5–7 are most of the score.
 - **Bonzo is out of scope** — paused on mainnet, paused or allowlisted on
   testnet (§3.8). `BonzoHealthGuard` is a single strategy file the day the pool
   unpauses, and the interface already accommodates it.
-- **ASSUMPTION — action allowlist shape.** The vault bounding actions to
-  "router or configured token" is believed sufficient. The alternative is
-  encoding permitted selectors. To be settled in §11.2 before submission.
+- **SETTLED — action allowlist shape.** Bounding actions to "router or
+  configured token" was **not** sufficient, and the alternative was the right
+  one. Permitting a token so a strategy can call `approve(router, amount)` also
+  permitted `transfer(attacker, balance)` on it: the grant a legitimate swap
+  requires and the grant that empties the vault were the same grant, so the
+  owner could not consent to one without the other. §11.2 claimed this case was
+  rejected; it was not.
+
+  Consent is now recorded per `(target, selector)` via `setAllowedCall`, and an
+  action carrying fewer than four bytes of calldata is refused outright — there
+  is no function for the owner to have consented to, and it is also the plainest
+  way to move HBAR out of a vault. Three tests in `NocturneVault.test.ts` pin the
+  refusal, the permitted call, and the empty-calldata case.
 - **SETTLED — rate limit.** The belief that one run per `MIN_INTERVAL` made
   `executeScheduled` spam pointless was **wrong**, and measuring it found a real
   griefing vector. An uninvited caller inside the `CLOCK_SKEW` window advances
