@@ -80,6 +80,27 @@ export type VaultStatus = {
 };
 
 /**
+ * One `view` on a vault, by name.
+ *
+ * The dashboard needs a few reads that are not part of `status()` — which
+ * strategy a vault runs, whether a given call is allowed, what it holds. Each is
+ * cheap and independent, so they are fetched individually rather than bundled
+ * into another aggregate view that would then need changing every time the UI
+ * wants one more thing.
+ */
+export function useVaultRead(address: Address | undefined, functionName: string, args: readonly unknown[] = []) {
+  const chainId = useSelectedNetwork().id;
+  return useReadContract({
+    chainId,
+    address,
+    abi: VAULT_ABI,
+    functionName,
+    args,
+    query: { enabled: !!address, refetchInterval: 8_000, retry: false },
+  });
+}
+
+/**
  * Everything the dashboard needs, in two calls plus one that may revert.
  *
  * `preview` asks the strategy what it would do right now. It reverts when no

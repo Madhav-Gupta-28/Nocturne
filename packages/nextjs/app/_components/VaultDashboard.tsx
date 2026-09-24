@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { ExitSetup } from "./ExitSetup";
 import { Panel, Stat, encodeHeartbeatConfig, formatDuration, formatHbar, useNow } from "./ui";
 import type { Address } from "viem";
 import { toFunctionSelector } from "viem";
 import { useDeployedContractInfo, useHederaAccountId, useTargetNetwork } from "~~/hooks/scaffold-hbar";
-import { useVaultStatus, useVaultWrite } from "~~/hooks/useNocturneVault";
+import { useVaultRead, useVaultStatus, useVaultWrite } from "~~/hooks/useNocturneVault";
 import { chainIdToHederaNetwork, getBlockExplorerAddressLink, mirrorNodeUrl } from "~~/utils/scaffold-hbar";
 
 /** Warn while there is still time to do something about it. */
@@ -28,6 +29,11 @@ const OVERDUE_GRACE = 60;
 export const VaultDashboard = ({ vault }: { vault: Address }) => {
   const now = useNow();
   const { status, fuelTinybar, decision, refetch } = useVaultStatus(vault);
+
+  const { data: exitStrategy } = useDeployedContractInfo({ contractName: "ProtectiveExitStrategy" });
+  const { data: running } = useVaultRead(vault, "strategy");
+  const isExit =
+    !!running && !!exitStrategy?.address && String(running).toLowerCase() === exitStrategy.address.toLowerCase();
 
   const secondsToGo = status ? Number(status.nextRunAt) - now : 0;
   const overdue = !!status?.armed && secondsToGo < -OVERDUE_GRACE;
@@ -67,8 +73,12 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
 
         {overdue ? <Overdue vault={vault} onDone={refetch} /> : null}
 
-        <Controls vault={vault} armed={status?.armed ?? false} onDone={refetch} />
+        {/* Which controls to show depends on what the vault is actually running,
+            read from the vault rather than remembered from how it was made. */}
+        {isExit ? null : <Controls vault={vault} armed={status?.armed ?? false} onDone={refetch} />}
       </Panel>
+
+      {isExit && !status?.armed ? <ExitSetup vault={vault} onDone={refetch} /> : null}
 
       <Proof vault={vault} />
     </>

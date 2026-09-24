@@ -19,9 +19,28 @@ import { useReservePerRun } from "~~/hooks/useNocturneVault";
 /** The factory's constructor-deploy plus the transfer needs real headroom. */
 const CREATE_GAS = 4_000_000n;
 
+/** The strategies this template ships, in the order a newcomer should meet them. */
+const CHOICES = [
+  {
+    key: "HeartbeatStrategy",
+    name: "Heartbeat",
+    blurb: "Calls a counter on a fixed interval, forever. The simplest possible strategy, and the liveness proof.",
+  },
+  {
+    key: "ProtectiveExitStrategy",
+    name: "Protective exit",
+    blurb:
+      "Watches a SaucerSwap pool against a Chainlink feed and sells when a floor breaks — unless the two disagree.",
+  },
+] as const;
+
 export const CreateVault = () => {
   const [fuel, setFuel] = useState("24");
-  const { data: strategy } = useDeployedContractInfo({ contractName: "HeartbeatStrategy" });
+  const [choice, setChoice] = useState<(typeof CHOICES)[number]["key"]>("HeartbeatStrategy");
+
+  const heartbeat = useDeployedContractInfo({ contractName: "HeartbeatStrategy" });
+  const exit = useDeployedContractInfo({ contractName: "ProtectiveExitStrategy" });
+  const strategy = choice === "HeartbeatStrategy" ? heartbeat.data : exit.data;
   const reserve = useReservePerRun();
   const { writeContractAsync, isMining } = useScaffoldWriteContract({
     contractName: "NocturneFactory",
@@ -42,6 +61,24 @@ export const CreateVault = () => {
       title="Create a vault"
       subtitle="One vault per owner. It holds your funds, and it pays for its own executions out of the same balance."
     >
+      <div className="flex flex-col gap-2 mb-5">
+        {CHOICES.map(c => (
+          <label key={c.key} className="flex gap-3 items-start cursor-pointer">
+            <input
+              type="radio"
+              name="strategy"
+              className="radio radio-sm mt-1"
+              checked={choice === c.key}
+              onChange={() => setChoice(c.key)}
+            />
+            <span>
+              <span className="font-semibold text-sm">{c.name}</span>
+              <span className="block text-sm opacity-60">{c.blurb}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-end gap-4">
         <label className="form-control">
           <span className="label-text text-sm mb-1">Starting balance</span>
