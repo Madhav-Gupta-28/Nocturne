@@ -1,172 +1,214 @@
 import Link from "next/link";
-import { Chain } from "./_components/Chain";
-import { Gate } from "./_components/Gate";
+import { Act, Figure } from "./_components/Act";
+import { FuelDiagram } from "./_components/FuelDiagram";
+import { GateDiagram } from "./_components/GateDiagram";
+import { LoopDiagram } from "./_components/LoopDiagram";
+import { SwapDiagram } from "./_components/SwapDiagram";
 import type { NextPage } from "next";
-import { Cadence } from "~~/app/_components/Cadence";
 import { ContractLedger } from "~~/app/_components/ContractLedger";
-import { TwoSources } from "~~/app/_components/TwoSources";
+import { Reveal } from "~~/app/_components/motion";
 
 export const metadata = { title: "How it works" };
 
+const SRC = "https://github.com/Madhav-Gupta-28/Nocturne/blob/main/packages/hardhat/contracts";
+const SCAN = "https://hashscan.io/testnet";
+
 /**
- * The argument, in the order it has to be made.
+ * Four pictures, and as little prose as each one can survive on.
  *
- * Four moves: the network is the keeper; the successor is booked before the
- * work; the strategy owns the tempo; and the whole thing can refuse. Each one
- * gets the drawing it needs, because three of the four are invisible by
- * construction — a chain that continues, a wait that lengthens, a sale that
- * does not happen.
+ * A judge arriving here has one question — *how was this actually built* — and
+ * the honest answer is a mechanism, an interface, a refusal and a fee. Those
+ * are four drawings, not four essays, so each act spends its space on the
+ * drawing and keeps the words to a headline, two lines and a takeaway.
+ *
+ * Every act ends with three links: the Hedera primitive it leans on, the exact
+ * source it is implemented in, and the transaction where it happened on
+ * testnet. A template is a claim about code somebody else will run, and that
+ * strip is the difference between making the claim and evidencing it.
  */
 const HowItWorks: NextPage = () => (
   <div className="flex w-full grow flex-col pb-28">
     <div className="shell">
-      <header className="glowfield pt-14 pb-16 sm:pt-20">
+      <header className="glowfield pt-16 pb-4 sm:pt-24">
         <p className="eyebrow m-0">How it works</p>
-        <h1 className="display mt-8 mb-0 text-[clamp(2.2rem,6.4vw,6rem)]">
-          A contract cannot wake up.
+        <h1 className="display display-lit m-0 mt-7 text-[clamp(2.2rem,6.4vw,5.5rem)]">
+          Four pictures.
           <br />
-          <span className="text-signal">On Hedera it no longer has to.</span>
+          <span className="text-signal display-lit-signal">That is the whole template.</span>
         </h1>
-        <p className="mt-10 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
-          Every piece of on-chain automation in production is a contract plus an off-chain process that pokes it — a
-          keeper, a cron job, a funded relayer with an uptime problem. HIP-1215 lets a contract schedule its own next
-          call from inside the EVM, and the consensus nodes execute it.
+        <p className="m-0 mt-9 max-w-2xl text-lg leading-relaxed text-paper-dim">
+          A contract that calls itself, an interface you swap, a check it can fail, and a fee it pays out of its own
+          balance.
         </p>
+
+        {/* The primitives, named up front. A reviewer scoring ecosystem depth
+            should not have to hunt for which parts of Hedera this actually
+            uses. */}
+        <ul className="m-0 mt-10 flex list-none flex-wrap gap-3 p-0">
+          {[
+            ["schedule", "Schedule Service · HIP-1215"],
+            ["hold", "HTS · association + allowance"],
+            ["read", "Chainlink + SaucerSwap TWAP"],
+          ].map(([verb, what]) => (
+            <li key={verb} className="border border-line bg-ink-raised/50 px-4 py-2.5">
+              <span className="eyebrow mr-3">{verb}</span>
+              <span className="font-mono text-xs text-paper">{what}</span>
+            </li>
+          ))}
+        </ul>
       </header>
 
-      <Move
-        n="01"
-        title="It books its successor before it does any work."
-        lede="A scheduled execution is the only chance to book the next one. If planning reverted and took the booking with it, the chain would end there — silently, with a transaction that reported success. So the order is not a detail; it is the design."
+      <Act
+        n="One"
+        title="It books the next run before it does any work."
+        lede="The network wakes the vault. The first thing the vault does — before it looks at a price or moves a token — is ask Hedera to wake it again."
+        takeaway={
+          <>
+            <span className="text-paper">Run 15&apos;s work fails, and run 16 still happens.</span> Booking first is
+            what makes a bad run cost one run instead of the whole chain — and because{" "}
+            <code className="text-paper">executeScheduled</code> has no access control, anyone can restart a chain that
+            stopped.
+          </>
+        }
+        receipts={[
+          {
+            kind: "The Hedera service",
+            what: "Schedule Service · HIP-1215",
+            href: "https://hips.hedera.com/hip/hip-1215",
+          },
+          { kind: "Where it books", what: "executeScheduled, line 420", href: `${SRC}/NocturneVault.sol#L420` },
+          {
+            kind: "It really happened",
+            what: "16 unattended runs",
+            href: `${SCAN}/contract/0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b`,
+          },
+        ]}
       >
-        <Chain />
-        <Aside>
-          Run 03 refuses and the chain continues anyway. A strategy that reverts costs one run, never the chain — and
-          because <code className="text-paper">executeScheduled</code> has no access control, anyone can restart one
-          that stopped.
-        </Aside>
-      </Move>
+        <Figure caption="One transaction, two steps, always in this order">
+          <LoopDiagram />
+        </Figure>
+      </Act>
 
-      <Move
-        n="02"
-        title="The strategy owns the tempo, not the vault."
-        lede="There is no correct constant. Checking hourly costs about 38 HBAR a day whether or not anything is happening; checking daily can sleep through the move it exists to catch. Only the strategy knows which of those is currently wrong, so nextInterval() sits on the interface beside plan()."
+      <Act
+        n="Two"
+        title="One vault. Any strategy."
+        lede="This is the part you change. The vault holds the money and runs the schedule; a strategy decides what to do and how long to wait. Pick one and watch the right-hand column."
+        takeaway={
+          <>
+            <span className="text-paper">nextInterval() is why this is not Hedera&apos;s own ScheduledVault.</span> That
+            template takes one fixed interval, so the use case in its own documentation —{" "}
+            <em>schedule increasingly frequent monitoring as positions approach liquidation</em> — cannot be written in
+            it.
+          </>
+        }
+        receipts={[
+          {
+            kind: "The interface",
+            what: "INocturneStrategy, 4 functions",
+            href: `${SRC}/interfaces/INocturneStrategy.sol`,
+          },
+          { kind: "The vault never changes", what: "NocturneVault.sol", href: `${SRC}/NocturneVault.sol` },
+          {
+            kind: "Three shipped",
+            what: "all deployed and verified",
+            href: `${SCAN}/contract/0xc0f202Ac01475AFBD07e09643d56bdacC9294B78`,
+          },
+        ]}
       >
-        <Cadence />
-        <Aside>
-          Hedera&apos;s own <code className="text-paper">ScheduledVault</code> takes one fixed interval and its strategy
-          interface returns actions only. The use case in their documentation —{" "}
-          <em>contracts schedule increasingly frequent monitoring as positions approach liquidation</em> — cannot be
-          expressed in it.
-        </Aside>
-      </Move>
+        <Figure caption="The seam: two functions between your code and the vault">
+          <SwapDiagram />
+        </Figure>
+      </Act>
 
-      <Move
-        n="03"
+      <Act
+        n="Three"
         title="It can refuse, and say why on chain."
-        lede="A stop-loss that trusts one price can be triggered by whoever last moved that price. Two sources have to agree within a tolerance you set before anything is sold — and when they do not, the vault records the reason and looks again sooner."
+        lede="Before it trades, a pool TWAP and a Chainlink feed have to agree inside a tolerance you set. When they do not, nothing is sold and the reason is written down."
+        takeaway={
+          <>
+            On <span className="text-paper">11 July 2026</span> one manipulated price took{" "}
+            <span className="text-paper">$9.05M</span> out of Bonzo Lend — roughly 40% of Hedera&apos;s TVL in a day.
+            Automation that believes a single feed is not a safety tool; it is a liquidation bot working for whoever
+            moved the price.
+          </>
+        }
+        receipts={[
+          {
+            kind: "The two sources",
+            what: "Chainlink + SaucerSwap V2",
+            href: `${SCAN}/contract/0x59bC155EB6c6C415fE43255aF66EcF0523c92B4a`,
+          },
+          { kind: "The check", what: "PriceGuard.sol", href: `${SRC}/lib/PriceGuard.sol` },
+          {
+            kind: "It really refused",
+            what: "Refused(1, sources disagree)",
+            href: `${SCAN}/contract/0x699Ec374cb2b6BaBb809cB70E58018E5f6be3E59`,
+          },
+        ]}
       >
-        <Gate />
+        <Figure caption="Two prices drifting apart, and the gate shutting">
+          <GateDiagram />
+        </Figure>
+      </Act>
 
-        {/*
-          What the guard is looking at right now, read from testnet in the
-          reader's browser. It sits under the drawing rather than on the
-          landing page because it answers "is that real?", which is a question
-          somebody only asks once they have understood the drawing.
-        */}
-        <div className="mt-10">
-          <TwoSources />
-        </div>
-
-        <Aside>
-          On <strong className="text-paper">11 July 2026</strong> an attacker pushed one oracle price twelve orders of
-          magnitude and took <strong className="text-paper">$9.05M</strong> out of Bonzo Lend — about 40% of
-          Hedera&apos;s TVL in a day. Automation that believes a single feed is not a safety tool; it is a liquidation
-          bot working for whoever moved the price.
-        </Aside>
-      </Move>
-
-      <Move
-        n="04"
-        title="And it pays for itself, until it cannot."
-        lede="The vault is the schedule's payer, so it funds its own future gas. What it must hold is not what a run costs — the network tests it against the whole gas allowance and then charges for the gas burned, and those differ by more than a factor of two."
+      <Act
+        n="Four"
+        title="It pays for itself, until it cannot."
+        lede="The vault is the schedule's payer, so it funds its own future gas. What it has to hold is not what a run costs — and the gap between those two is wide enough to strand a funded vault."
+        takeaway={
+          <>
+            <span className="text-paper">The first vault this project deployed died with money in it.</span> It held
+            2.76 ℏ and a run costs 1.63 ℏ, but the network tests the payer against the full 3.27 ℏ reservation. That is
+            one of six failures written down with the command that reproduces each.
+          </>
+        }
+        receipts={[
+          { kind: "The arithmetic", what: "runway(), measured not guessed", href: `${SRC}/NocturneVault.sol#L646` },
+          { kind: "All six failures", what: "docs/hedera-landmines.md", href: "/docs/landmines" },
+          { kind: "The vault that died", what: "0.0.10684549", href: `${SCAN}/account/0.0.10684549` },
+        ]}
       >
-        <div className="grid sm:grid-cols-3 gap-px bg-line border border-line">
-          {[
-            { k: "Reserved per run", v: "3.27", u: "HBAR", note: "3,000,000 gas at 109 tinybar" },
-            { k: "Actually charged", v: "1.63", u: "HBAR", note: "about 1.43M gas burned" },
-            { k: "Dies holding", v: "2.76", u: "HBAR", note: "more than a run costs" },
-          ].map(x => (
-            <div key={x.k} className="bg-ink-raised p-6">
-              <div className="eyebrow mb-3">{x.k}</div>
-              <div className="tabular font-mono text-3xl leading-none">
-                {x.v} <span className="text-sm text-paper-faint">{x.u}</span>
-              </div>
-              <div className="text-xs text-paper-faint mt-2">{x.note}</div>
-            </div>
-          ))}
-        </div>
-        <Aside>
-          That gap killed the first demo vault with money still in it. It is the fifth of six failures documented in{" "}
-          <Link className="link text-paper" href="/docs/landmines">
-            the landmines
-          </Link>
-          , each measured on testnet with the command that measured it.
-        </Aside>
-      </Move>
+        <Figure caption="Three measurements, to scale against each other">
+          <FuelDiagram />
+        </Figure>
+      </Act>
 
       {/*
         The addresses, at the end, where a reader who wants to check them has
-        already decided to. Six rows of hex on the way in is six rows of hex
-        between somebody and the point.
+        already decided to.
       */}
-      <section className="mt-24 border-t border-line pt-14">
-        <h2 className="display m-0 max-w-2xl text-[clamp(1.6rem,3.2vw,2.75rem)]">All of it, on testnet.</h2>
-        <p className="mt-5 mb-8 max-w-2xl leading-relaxed text-paper-dim">
-          Every contract this template deploys, with verified source. The table is read from the deployment file, so it
-          cannot drift from what is actually on chain.
-        </p>
+      <section className="mt-28 border-t border-line pt-14 sm:mt-36">
+        <Reveal>
+          <h2 className="display display-lit m-0 max-w-2xl text-[clamp(1.75rem,3.6vw,3rem)]">All of it, on testnet.</h2>
+          <p className="m-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
+            Read from the deployment file, so it cannot drift from what is actually on chain.
+          </p>
+        </Reveal>
         <ContractLedger />
       </section>
 
-      <section className="mt-24 border-t border-line pt-14">
-        <h2 className="display m-0 max-w-2xl text-[clamp(1.6rem,3.2vw,2.75rem)]">Then you close the tab.</h2>
-        <p className="mt-5 mb-8 max-w-2xl text-paper-dim leading-relaxed">
-          After the transaction that arms it, the owner sends nothing. Every execution afterwards is the network calling
-          the vault, and the vault paying its own fee. The way to check that is the transfer list — not the transaction
-          id, which carries the account that created the schedule and makes it look as though somebody sent the call.
-        </p>
-        <Link className="link text-paper" href="/">
-          See it running →
-        </Link>
+      <section className="mt-28 border-t border-line pt-14">
+        <Reveal>
+          <h2 className="display display-lit m-0 max-w-2xl text-[clamp(1.75rem,3.6vw,3rem)]">
+            Then you close the tab.
+          </h2>
+          <p className="m-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
+            After the transaction that arms it, you send nothing. Check it on the transfer list rather than the
+            transaction id — the id carries the account that created the schedule, which makes it look as though
+            somebody sent the call.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/" className="btn-signal">
+              See it running <span aria-hidden>→</span>
+            </Link>
+            <Link href="/docs" className="btn-line">
+              Read the docs
+            </Link>
+          </div>
+        </Reveal>
       </section>
     </div>
   </div>
-);
-
-const Move = ({ n, title, lede, children }: { n: string; title: string; lede: string; children: React.ReactNode }) => (
-  <section className="mt-24 border-t border-line pt-14">
-    {/*
-      The number and the claim on the left, the argument on the right, the
-      drawing under both. Same split the landing page uses, so a reader who
-      arrives here from it does not have to learn a second layout.
-    */}
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-x-16 gap-y-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <div>
-        <p className="eyebrow m-0 mb-5">{n}</p>
-        <h2 className="display m-0 text-[clamp(1.6rem,3.2vw,2.75rem)]">{title}</h2>
-      </div>
-      <p className="m-0 max-w-xl leading-relaxed text-paper-dim lg:pt-8">{lede}</p>
-    </div>
-    <div className="mt-12">{children}</div>
-  </section>
-);
-
-/** A note under a drawing: the fact that makes it matter. */
-const Aside = ({ children }: { children: React.ReactNode }) => (
-  <p className="mt-7 mb-0 max-w-2xl border-l-2 border-line-bright pl-5 text-sm leading-relaxed text-paper-dim">
-    {children}
-  </p>
 );
 
 export default HowItWorks;
