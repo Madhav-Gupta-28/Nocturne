@@ -1152,8 +1152,20 @@ Steps 1–4 are the template. 5–7 are most of the score.
 - **ASSUMPTION — action allowlist shape.** The vault bounding actions to
   "router or configured token" is believed sufficient. The alternative is
   encoding permitted selectors. To be settled in §11.2 before submission.
-- **ASSUMPTION — rate limit.** One run per `MIN_INTERVAL` is believed enough to
-  make `executeScheduled` spam pointless. To be measured.
+- **SETTLED — rate limit.** The belief that one run per `MIN_INTERVAL` made
+  `executeScheduled` spam pointless was **wrong**, and measuring it found a real
+  griefing vector. An uninvited caller inside the `CLOCK_SKEW` window advances
+  `nextRunAt` and orphans the schedule already booked; the orphan fires at its
+  original second, finds the vault not due, returns without doing anything, and
+  the vault is charged a full execution (~1.63 HBAR) for it. Once per cycle that
+  halves a vault's life at roughly 16:1 damage to attacker cost.
+
+  Fixed by releasing the pending schedule when the call did not come from it.
+  The two are distinguishable because **a scheduled call arrives with
+  `msg.sender` set to the contract itself** — measured with
+  `contracts/test/ScheduledSenderProbe.sol`, not assumed. The rate limit does
+  still hold for its original purpose: a run happens at most once per interval,
+  so there is no unbounded drain.
 - **No mainnet deployment.** Everything here is testnet by design; a template a
   developer cannot run for free is not a template.
 
