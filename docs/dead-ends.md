@@ -106,6 +106,16 @@ refusals, and there is a second test pinning the config trap that caused it.
 what it is charged (1.63). This one was only found because the demo vault was
 left to run dry instead of being topped up.
 
+**Believing `npx hardhat verify` when it says the network failed.** Sourcify
+retired its v1 API. `hardhat-verify@2.1.3` — the version pinned next to hardhat
+2.22.19 — still calls it, gets a 404 HTML page, and reports
+`Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. That reads like a
+transient block-explorer problem, so the natural response is to retry it, which
+never works. Upgrading is not the fix either: the versions that speak v2 require
+`hardhat@^2.26.0`, and the pin belongs to the scaffold. `scripts/verifyContracts.ts`
+posts to the v2 API directly instead, using the standard JSON input the compiler
+already wrote.
+
 **Patching a library to chase a phantom.** On Node 25, `globalThis.localStorage`
 is `{}`, so a `typeof !== "undefined"` guard passes and the next call fails. Time
 was spent patching `burner-connector` imports before the error text was read
