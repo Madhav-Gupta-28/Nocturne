@@ -39,7 +39,34 @@ describe("PriceGuard against live Hedera testnet", function () {
 
   let harness: PriceLensHarness;
 
-  before(async () => {
+  /**
+   * Deploying the harness costs real HBAR, so say so before failing.
+   *
+   * Without this the suite dies inside `before all` with
+   * `ProviderError: Insufficient funds for transfer`, which names neither the
+   * account nor the amount and reads like the network is broken. Worse, the
+   * default signer is the well-known Hardhat key, which on testnet is funded by
+   * strangers from time to time — so these tests can pass for one person and
+   * fail for the next with nothing changed.
+   *
+   * Roughly 1.7 HBAR of gas gets reserved against the sender at the relay's
+   * price before it will submit; 3 is comfortable headroom.
+   */
+  const NEEDED_TINYBAR = 300_000_000n;
+
+  before(async function () {
+    const [signer] = await ethers.getSigners();
+    const balance = (await ethers.provider.getBalance(signer.address)) / 10_000_000_000n;
+
+    if (balance < NEEDED_TINYBAR) {
+      console.log(
+        `\n  skipping: ${signer.address} holds ${Number(balance) / 1e8} HBAR, and deploying the harness ` +
+          `needs about ${Number(NEEDED_TINYBAR) / 1e8}.` +
+          `\n  Fund it at https://portal.hedera.com/faucet, or set __RUNTIME_DEPLOYER_PRIVATE_KEY.\n`,
+      );
+      this.skip();
+    }
+
     harness = (await (await ethers.getContractFactory("PriceLensHarness")).deploy()) as PriceLensHarness;
     await harness.waitForDeployment();
   });
