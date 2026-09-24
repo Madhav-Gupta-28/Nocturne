@@ -21,7 +21,7 @@ export type Doc = {
 export const DOCS: Doc[] = [
   {
     slug: "landmines",
-    title: "Five ways HSS automation fails silently",
+    title: "Six ways HSS automation fails silently",
     blurb:
       "Every one measured on testnet, with the command that measured it. None are in Hedera's documentation, and none of them look like a failure when they happen.",
     file: "docs/hedera-landmines.md",

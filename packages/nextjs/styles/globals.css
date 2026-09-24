@@ -26,6 +26,9 @@
   --color-hedera-smoke: #9b9b9d;
 }
 
+/* Markdown in /docs is rendered with `prose`, which does nothing without this. */
+@plugin "@tailwindcss/typography";
+
 @plugin "daisyui" {
   themes:
     light,
