@@ -53,26 +53,47 @@ type BuildInfo = {
 };
 
 /**
- * Finds the compilation unit that actually defines a contract.
+ * Finds the compilation unit that produced a contract's current bytecode.
  *
- * Hardhat writes one build-info per unit, so there are several and only one
- * holds any given contract. Matching on the source *path* rather than the name
- * avoids picking a unit that merely imports it — and the unit that defines it is
- * the only one whose standard JSON input reproduces its bytecode.
+ * Read from the contract's own `.dbg.json`, which names exactly one build-info,
+ * rather than by searching `artifacts/build-info` for a file that mentions the
+ * source. Searching looks equivalent and is not: repeated compiles leave several
+ * build-info files, more than one can contain the same source, and picking the
+ * wrong one produces a "recompiled bytecode length doesn't match" that points at
+ * nothing. Hardhat already recorded the answer, so use it.
  *
  * Deliberately independent of `deployments/`, so a vault the factory created can
  * be verified with the same code as a contract a deploy script placed.
  */
 function findSource(name: string): { sourceName: string; buildInfo: BuildInfo } {
-  const dir = path.join(__dirname, "../artifacts/build-info");
-  for (const file of fs.readdirSync(dir)) {
-    const buildInfo = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8")) as BuildInfo;
-    const sourceName = Object.keys(buildInfo.input.sources).find(
-      s => s === `contracts/${name}.sol` || s.endsWith(`/${name}.sol`),
-    );
-    if (sourceName) return { sourceName, buildInfo };
+  const artifacts = path.join(__dirname, "../artifacts/contracts");
+
+  const dbg = locate(artifacts, `${name}.dbg.json`);
+  if (!dbg) throw new Error(`no artifact for ${name} — run \`npm run hardhat:compile\` first`);
+
+  const { buildInfo: relative } = JSON.parse(fs.readFileSync(dbg, "utf8")) as { buildInfo: string };
+  const buildInfo = JSON.parse(fs.readFileSync(path.resolve(path.dirname(dbg), relative), "utf8")) as BuildInfo;
+
+  const sourceName = Object.keys(buildInfo.input.sources).find(
+    s => s === `contracts/${name}.sol` || s.endsWith(`/${name}.sol`),
+  );
+  if (!sourceName) throw new Error(`${name} is not in its own build-info, which should be impossible`);
+
+  return { sourceName, buildInfo };
+}
+
+/** First file with this name anywhere under `dir`. */
+function locate(dir: string, filename: string): string | undefined {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const found = locate(full, filename);
+      if (found) return found;
+    } else if (entry.name === filename) {
+      return full;
+    }
   }
-  throw new Error(`no build-info defines ${name} — run \`npm run hardhat:compile\` first`);
+  return undefined;
 }
 
 async function alreadyVerified(chainId: string, address: string): Promise<boolean> {

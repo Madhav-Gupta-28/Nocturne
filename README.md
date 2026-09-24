@@ -44,7 +44,7 @@ transaction that armed it.
 | | |
 | --- | --- |
 | Heartbeat | [`0x8b63C92F…3ec0b`](https://hashscan.io/testnet/contract/0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b) |
-| Factory | [`0x8BCF0110…A104`](https://hashscan.io/testnet/contract/0x8BCF01104d2748F29b36efF9538C5064b6FcA104) |
+| Factory | [`0x93569BE8…0F5a`](https://hashscan.io/testnet/contract/0x93569BE8bE07E3Bdec83b1E2e92E78E8A7a30F5a) |
 | First demo vault | `0.0.10684549` — 13 unattended runs, then died holding 2.76 HBAR (see below) |
 | Second demo vault | `0.0.10685769` — funded with 5 HBAR, predicted 2 runs, ran exactly 2 |
 
