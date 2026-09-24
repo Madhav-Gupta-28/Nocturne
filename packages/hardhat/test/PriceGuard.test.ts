@@ -262,3 +262,38 @@ describe("PriceGuard and TwapLib", () => {
     });
   });
 });
+
+describe("PriceGuard when a source misbehaves", () => {
+  /**
+   * The library promises that every way a source can fail comes back as
+   * `agreed == false` with a reason. Solidity's try/catch only covers the call
+   * in the `try` expression, not the statements in its success block, so a
+   * second call made while handling the first escapes unless it is wrapped too.
+   *
+   * It matters more than it looks. `plan` reverting is survivable — the vault
+   * catches it — but `nextInterval` reverting falls back to MAX_INTERVAL, which
+   * silently drops a vault from checking every few minutes to every 60 days.
+   */
+  it("reports a reason when the feed reverts on decimals()", async () => {
+    const lens = await (await ethers.getContractFactory("PriceLensHarness")).deploy();
+    const pool = await (
+      await ethers.getContractFactory("MockV3Pool")
+    ).deploy("0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002");
+    const feed = await (await ethers.getContractFactory("BadDecimalsFeed")).deploy();
+    await pool.setTick(0);
+
+    const reading = await lens.read({
+      pool: await pool.getAddress(),
+      twapWindow: 60,
+      feed: await feed.getAddress(),
+      maxFeedAge: 86_400n,
+      maxDivergenceBps: 200n,
+      assetIsToken0: false,
+      assetDecimals: 8,
+      quoteDecimals: 6,
+    });
+
+    expect(reading.agreed).to.equal(false);
+    expect(reading.reason).to.equal("feed unavailable");
+  });
+});

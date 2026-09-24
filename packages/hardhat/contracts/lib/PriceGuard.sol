@@ -180,7 +180,24 @@ library PriceGuard {
         ) {
             if (answer <= 0 || updatedAt == 0) return (false, 0, 0);
 
-            uint8 decimals = AggregatorV3Interface(feed).decimals();
+            // Its own try, and not a nicety. Solidity's try/catch covers the
+            // call in the `try` expression, never the statements in the success
+            // block — so a `decimals()` that reverts here would propagate out of
+            // this library, past `read`, and out of `plan` and `nextInterval`.
+            //
+            // `plan` reverting is survivable: the vault catches it. But
+            // `nextInterval` reverting falls back to MAX_INTERVAL, which would
+            // quietly drop a vault from minutes to a **60-day** cadence, and
+            // `explain` reverting takes the UI with it. A guard that promises
+            // every failure comes back as a reason has to keep that promise on
+            // every call it makes.
+            uint8 decimals;
+            try AggregatorV3Interface(feed).decimals() returns (uint8 d) {
+                decimals = d;
+            } catch {
+                return (false, 0, 0);
+            }
+
             price1e18 = decimals <= 18
                 ? uint256(answer) * (10 ** (18 - decimals))
                 : uint256(answer) / (10 ** (decimals - 18));
