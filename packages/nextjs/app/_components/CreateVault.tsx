@@ -23,13 +23,12 @@ const CHOICES = [
   {
     key: "HeartbeatStrategy",
     name: "Heartbeat",
-    blurb: "Calls a counter on a fixed interval, forever. The simplest possible strategy, and the liveness proof.",
+    blurb: "Calls a counter on a fixed interval, forever.",
   },
   {
     key: "ProtectiveExitStrategy",
     name: "Protective exit",
-    blurb:
-      "Watches a SaucerSwap pool against a Chainlink feed and sells when a floor breaks — unless the two disagree.",
+    blurb: "Sells if the price drops below your floor — unless two sources disagree.",
   },
 ] as const;
 
@@ -126,14 +125,13 @@ export const CreateVault = () => {
           {isMining ? "Creating…" : "Create vault"}
         </button>
 
-        <p className="m-0 max-w-md text-sm leading-relaxed text-paper-faint">
-          {runs === undefined || hbarPerRun === undefined ? (
-            "Reading the current gas price…"
+        <p className="m-0 max-w-xs text-sm leading-relaxed text-paper-faint">
+          {runs === undefined ? (
+            "Reading the gas price…"
           ) : (
             <>
-              About <span className="tabular font-mono text-paper">{runs}</span> executions. Each one has to reserve{" "}
-              <span className="tabular font-mono text-paper">{hbarPerRun.toFixed(2)}</span> HBAR at today&apos;s gas
-              price, though it is charged about half that. Withdraw the remainder any time.
+              Buys about <span className="tabular font-mono text-paper">{runs}</span> runs. Withdraw the rest whenever
+              you like.
             </>
           )}
         </p>

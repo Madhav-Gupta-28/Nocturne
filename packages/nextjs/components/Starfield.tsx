@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
 import * as THREE from "three";
 
 /**
@@ -32,6 +31,12 @@ import * as THREE from "three";
  *
  * The whole sky is one buffer geometry and one shader, so it is a single draw
  * call no matter how many stars are in it.
+ *
+ * It fills its container rather than the window, and there is exactly one
+ * container: the opening. A star field behind a page of running text is a cost
+ * the reader keeps paying for atmosphere they were already sold on the way in —
+ * so the sky ends where the argument begins, and everything below it is plain
+ * ground.
  */
 
 /*
@@ -120,12 +125,6 @@ const SIGNAL = new THREE.Color("#816cd5");
 
 export const Starfield = () => {
   const host = useRef<HTMLDivElement>(null);
-
-  // The sky is at full strength behind the landing page and steps back
-  // everywhere else. The documents are the part of this site somebody reads a
-  // paragraph at a time, and a moving field behind running text is a cost the
-  // reader pays for atmosphere they were already sold on the way in.
-  const atmospheric = usePathname() === "/";
 
   useEffect(() => {
     const mount = host.current;
@@ -273,6 +272,11 @@ export const Starfield = () => {
     resize();
     onScroll();
 
+    // A container's size does not change when the window does — a column can
+    // reflow and grow a line taller on its own — so watch the element.
+    const observer = new ResizeObserver(resize);
+    observer.observe(mount);
+
     const clock = new THREE.Clock();
     let frame = 0;
 
@@ -348,6 +352,7 @@ export const Starfield = () => {
 
     return () => {
       cancelAnimationFrame(frame);
+      observer.disconnect();
       window.removeEventListener("resize", resize);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pointermove", onPointer);
@@ -365,12 +370,14 @@ export const Starfield = () => {
     <div
       ref={host}
       aria-hidden
-      // Fixed and behind everything: `main` is positioned, so page content
-      // paints above a negative z-index without needing a stacking context of
-      // its own. The root's ink still paints beneath it.
-      className={`pointer-events-none fixed inset-0 -z-10 transition-opacity duration-700 ${
-        atmospheric ? "opacity-100" : "opacity-35"
-      }`}
+      className="pointer-events-none absolute inset-0 -z-10"
+      // Faded out along the bottom third rather than stopped at an edge. A
+      // star field that ends on a straight line reads as a photograph pasted
+      // onto the page; one that thins out reads as the sky the page is under.
+      style={{
+        maskImage: "linear-gradient(to bottom, #000 55%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to bottom, #000 55%, transparent 100%)",
+      }}
     />
   );
 };

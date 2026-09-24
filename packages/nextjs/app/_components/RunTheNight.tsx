@@ -41,30 +41,26 @@ const PHASES = [
   {
     n: "01",
     name: "Wake",
-    does: "The network calls the vault. Inside, msg.sender is the vault's own address — that is the only thing separating its scheduled wake-up from an uninvited caller.",
-    kills:
-      "A 1,000,000 gas budget. The inner scheduleCall needs about 1.5M, runs out, and the outer call still reports SUCCESS.",
+    does: "The network calls the vault. Inside, the caller is the vault itself.",
+    kills: "Too little gas. The booking fails, and the receipt still says SUCCESS.",
   },
   {
     n: "02",
     name: "Book",
-    does: "It schedules its successor before it plans anything at all. The next run exists before there is any work that could revert.",
-    kills:
-      "Booking last. A strategy that reverts takes the booking with it, and the chain ends there with a green receipt.",
+    does: "It schedules its next wake-up before it does any work.",
+    kills: "Booking last. One bad run then ends the whole chain.",
   },
   {
     n: "03",
-    name: "Observe",
-    does: "A SaucerSwap 60-second TWAP and a Chainlink feed are read, and have to agree inside a tolerance the owner set.",
-    kills:
-      "One source. On 11 July 2026 a single manipulated price took $9.05M out of Bonzo Lend, and roughly 40% of Hedera's TVL with it.",
+    name: "Look",
+    does: "Two prices are read, and have to agree.",
+    kills: "Trusting one price. That is how Bonzo lost $9.05M in July.",
   },
   {
     n: "04",
-    name: "Settle",
-    does: "It acts, or it refuses and records why. Either way it checks whether it can still afford the run it just booked.",
-    kills:
-      "Reserving the gas you burn instead of the gas you reserve. A vault holding 2.76 ℏ was refused a run that costs 1.63 ℏ, because the payer must cover the whole 3.27 ℏ allowance.",
+    name: "Act",
+    does: "It trades, or it refuses and writes down why.",
+    kills: "Counting the gas you burn, not the gas you reserve.",
   },
 ];
 
@@ -150,6 +146,21 @@ export const RunTheNight = () => {
   // again after a resize or a layout shift.
   const played = useRef(false);
 
+  /*
+    Keep the newest line in view.
+
+    Only while it is being written: scrolling the log on every render would
+    fight a reader who has scrolled back to look at an earlier run, and the
+    finished transcript is theirs to read in whatever order they like.
+  */
+  const log = useRef<HTMLOListElement>(null);
+
+  useEffect(() => {
+    if (status !== "running") return;
+    const el = log.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [shown, status]);
+
   // Plays itself the first time it comes into view, so the argument is made
   // without asking. Someone who has asked for reduced motion gets the finished
   // transcript immediately instead.
@@ -168,11 +179,10 @@ export const RunTheNight = () => {
 
   return (
     <section ref={ref} className="shell pt-28 sm:pt-36">
-      <SectionHead id="simulation" eyebrow="Browser simulation · no wallet, no transaction" title="Run the night.">
+      <SectionHead id="simulation" eyebrow="Simulation · no wallet needed" title="Watch one night.">
         <p>
-          Four runs of a vault holding a floor, played at the constants the contracts actually use. Watch the second run
-          refuse — and watch the chain continue anyway, which is the part that is easy to get wrong and fatal when you
-          do.
+          Four runs, played at the numbers the contracts really use. The second one refuses to trade — and the chain
+          carries on anyway.
         </p>
       </SectionHead>
 
@@ -185,7 +195,7 @@ export const RunTheNight = () => {
               return (
                 <li
                   key={phase.n}
-                  className="relative px-6 py-6 transition-colors duration-500"
+                  className="relative px-6 py-5 transition-colors duration-500"
                   style={{ background: on ? "var(--color-signal-glow)" : undefined }}
                 >
                   {/* A rail that lights rather than a border that moves. */}
@@ -200,9 +210,9 @@ export const RunTheNight = () => {
                     <span className={on ? "text-paper" : "text-paper-dim"}>{phase.name}</span>
                   </p>
 
-                  <p className="m-0 mt-4 text-sm leading-relaxed text-paper-dim">{phase.does}</p>
+                  <p className="m-0 mt-3 text-sm leading-relaxed text-paper-dim">{phase.does}</p>
 
-                  <p className="m-0 mt-4 border-l border-signal-dead/40 pl-4 text-xs leading-relaxed text-paper-faint">
+                  <p className="m-0 mt-3 border-l border-signal-dead/40 pl-4 text-xs leading-relaxed text-paper-faint">
                     <span className="eyebrow mr-2 text-signal-dead">Kills it</span>
                     {phase.kills}
                   </p>
@@ -211,8 +221,17 @@ export const RunTheNight = () => {
             })}
           </ol>
 
-          {/* The transcript. */}
-          <div className="flex min-h-[28rem] flex-col">
+          {/*
+            The transcript.
+
+            A fixed window that scrolls, not a list that grows. Twenty-two
+            lines laid out at full height is a thousand-pixel panel whose lower
+            half is empty for the first eight seconds — and a log that a reader
+            has to scroll the page to follow is not a log. This is the shape
+            the thing is imitating: a terminal that keeps the newest line in
+            view and lets the old ones go up.
+          */}
+          <div className="flex flex-col">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
               <span className="eyebrow flex items-center gap-2.5">
                 {status === "running" ? (
@@ -244,7 +263,7 @@ export const RunTheNight = () => {
               </div>
             </div>
 
-            <ol className="m-0 grow list-none divide-y divide-line p-0">
+            <ol ref={log} className="m-0 h-[19rem] list-none divide-y divide-line overflow-y-auto p-0 sm:h-[21rem]">
               <AnimatePresence initial={false}>
                 {visible.map((beat, i) => (
                   <motion.li
@@ -301,10 +320,9 @@ export const RunTheNight = () => {
       </Reveal>
 
       <Reveal delay={0.06}>
-        <p className="m-0 mt-5 max-w-3xl text-xs leading-relaxed text-paper-faint">
-          The disagreement in run two is a testnet artefact rather than a staged one: nothing arbitrages a testnet, so
-          the pool drifts from the feed and stays drifted. It is the wrong place to demonstrate a realistic sale and
-          exactly the right place to demonstrate a refusal.
+        <p className="m-0 mt-5 max-w-2xl text-xs leading-relaxed text-paper-faint">
+          Run two disagrees because nothing arbitrages a testnet, so the pool drifts from the feed and stays drifted.
+          The wrong place to show a sale, the right place to show a refusal.
         </p>
       </Reveal>
     </section>

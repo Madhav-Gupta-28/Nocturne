@@ -3,6 +3,8 @@ import { Chain } from "./_components/Chain";
 import { Gate } from "./_components/Gate";
 import type { NextPage } from "next";
 import { Cadence } from "~~/app/_components/Cadence";
+import { ContractLedger } from "~~/app/_components/ContractLedger";
+import { TwoSources } from "~~/app/_components/TwoSources";
 
 export const metadata = { title: "How it works" };
 
@@ -65,6 +67,17 @@ const HowItWorks: NextPage = () => (
         lede="A stop-loss that trusts one price can be triggered by whoever last moved that price. Two sources have to agree within a tolerance you set before anything is sold — and when they do not, the vault records the reason and looks again sooner."
       >
         <Gate />
+
+        {/*
+          What the guard is looking at right now, read from testnet in the
+          reader's browser. It sits under the drawing rather than on the
+          landing page because it answers "is that real?", which is a question
+          somebody only asks once they have understood the drawing.
+        */}
+        <div className="mt-10">
+          <TwoSources />
+        </div>
+
         <Aside>
           On <strong className="text-paper">11 July 2026</strong> an attacker pushed one oracle price twelve orders of
           magnitude and took <strong className="text-paper">$9.05M</strong> out of Bonzo Lend — about 40% of
@@ -101,6 +114,20 @@ const HowItWorks: NextPage = () => (
           , each measured on testnet with the command that measured it.
         </Aside>
       </Move>
+
+      {/*
+        The addresses, at the end, where a reader who wants to check them has
+        already decided to. Six rows of hex on the way in is six rows of hex
+        between somebody and the point.
+      */}
+      <section className="mt-24 border-t border-line pt-14">
+        <h2 className="display m-0 max-w-2xl text-[clamp(1.6rem,3.2vw,2.75rem)]">All of it, on testnet.</h2>
+        <p className="mt-5 mb-8 max-w-2xl leading-relaxed text-paper-dim">
+          Every contract this template deploys, with verified source. The table is read from the deployment file, so it
+          cannot drift from what is actually on chain.
+        </p>
+        <ContractLedger />
+      </section>
 
       <section className="mt-24 border-t border-line pt-14">
         <h2 className="display m-0 max-w-2xl text-[clamp(1.6rem,3.2vw,2.75rem)]">Then you close the tab.</h2>

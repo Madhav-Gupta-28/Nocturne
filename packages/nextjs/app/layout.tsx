@@ -3,7 +3,6 @@ import "@rainbow-me/rainbowkit/styles.css";
 import "@scaffold-hbar-ui/components/styles.css";
 import type { Viewport } from "next";
 import { ScaffoldHbarAppWithProviders } from "~~/components/ScaffoldHbarAppWithProviders";
-import { Starfield } from "~~/components/Starfield";
 import { ThemeProvider } from "~~/components/ThemeProvider";
 import "~~/styles/globals.css";
 import { getMetadata } from "~~/utils/scaffold-hbar/getMetadata";
@@ -74,11 +73,6 @@ const ScaffoldHbarApp = ({ children }: { children: React.ReactNode }) => {
   return (
     <html suppressHydrationWarning className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body>
-        {/*
-          The sky is mounted once, at the root, so it does not restart on a
-          navigation. Every page on this site is the same night.
-        */}
-        <Starfield />
         {/*
           Texture, over everything. A flat black field has no surface; grain
           gives the ground a material and the vignette gives it a shape. Both
