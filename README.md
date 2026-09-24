@@ -47,6 +47,7 @@ transaction that armed it.
 | Factory | [`0x93569BE8…0F5a`](https://hashscan.io/testnet/contract/0x93569BE8bE07E3Bdec83b1E2e92E78E8A7a30F5a) |
 | First demo vault | `0.0.10684549` — 13 unattended runs, then died holding 2.76 HBAR (see below) |
 | Second demo vault | `0.0.10685769` — funded with 5 HBAR, predicted 2 runs, ran exactly 2 |
+| Exit vault | `0.0.10690925` — refused a real sale, then made one. Both unattended. |
 
 All of them are source-verified on Sourcify, so HashScan shows the code rather
 than bytecode. Note that `npx hardhat verify` does **not** work on this stack —
@@ -55,6 +56,48 @@ Sourcify retired the v1 API the pinned `hardhat-verify` still calls. Use:
 ```bash
 npm run hardhat:verify:sourcify -- --network hederaTestnet
 ```
+
+---
+
+## The protective exit, on chain, both ways
+
+Vault [`0xE7489c93…A2Ce`](https://hashscan.io/testnet/contract/0xE7489c93Db8051324ff3212A36d597E4F5C1A2Ce)
+held 0.1 WHBAR against the live SaucerSwap pool and the live Chainlink feed. Its
+whole event log is readable on the mirror node; these are the two runs that
+matter, and **neither of them has a transaction from the owner behind it**.
+
+**It refused.** The pool priced WHBAR at 2.0503 USDC while Chainlink said 0.0915
+— a 22.4× gap, because nothing arbitrages a testnet. The vault sold nothing and
+wrote down why:
+
+```
+ScheduleBooked  0x…A321a2, 1790220353
+Refused         1, "sources disagree", 2050255753208667000, 91531290000000000
+```
+
+**Then, told the divergence was acceptable, it sold.** Same code, same vault,
+one config change to an absurd tolerance:
+
+```
+ScheduleBooked  0x…a3226e, 1790220958
+Executed        2, 2, 1790220958       <- run 2, two actions: approve + swap
+
+vault WHBAR  0.1  ->  0.0
+vault USDC   0.0  ->  0.204405
+```
+
+0.204405 USDC is exactly what QuoterV2 quoted beforehand. The vault paid its own
+fee — 2.6249 HBAR, the only negative entry in the transfer list.
+
+Two details in those logs are the design, not decoration. **`ScheduleBooked`
+appears before `Refused` and before `Executed`**: the successor is booked before
+any work is planned, so a strategy that reverts costs one run rather than the
+chain. And the refusal is a *recorded outcome with a reason*, not an error —
+which is what lets a vault decline to act and still be alive afterwards.
+
+The wide tolerance is not a sane configuration and exists only so the
+approve-and-swap path is proven on chain rather than against mocks. Reproduce
+either half with `scripts/armExitVault.ts`.
 
 ---
 
