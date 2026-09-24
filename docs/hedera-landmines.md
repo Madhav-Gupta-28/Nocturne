@@ -1,7 +1,7 @@
-# Five ways HSS automation fails silently
+# Six ways HSS automation fails silently
 
 Everything here was measured on Hedera testnet, with the command that measured
-it. None of it is in Hedera's documentation, and all five will bite anyone who
+it. None of it is in Hedera's documentation, and all six will bite anyone who
 writes a self-rescheduling contract.
 
 The first one is the dangerous one, because it does not look like a failure. The
@@ -225,6 +225,43 @@ still 66% headroom over what the call burns and reserves ~2.9 HBAR instead.
 rather than by what a run has historically cost. The earlier constant,
 `TINYBAR_PER_RUN`, is kept and reported, but only as context; using it to size a
 deposit overstates the runway by about half.
+
+---
+
+## 6. Inside a scheduled call, the balance is already down the whole allowance
+
+A contract reading its own balance during a scheduled execution does not see what
+it will end up with. It sees the balance **after the entire gas allowance has
+been debited**, because the refund of unused gas only lands once the call
+returns.
+
+Measured on vault `0.0.10690925`, funded with exactly 4 HBAR:
+
+```
+FuelLow emitted during the run   73000000 tinybar   = 0.73 HBAR
+balance after the run settled   222452080 tinybar   = 2.2245 HBAR
+actually charged                177547920 tinybar   = 1.7755 HBAR
+```
+
+`4.00 - 3.27 = 0.73` to the tinybar, where 3.27 is `MIN_SCHEDULE_GAS` at 109
+tinybar per gas. The run was then charged 1.7755 and the remaining 1.49 came
+back.
+
+So a fuel check written inside the scheduled call is reading a number that is a
+full reserve too low, and will believe the vault is nearly empty when it has
+comfortably more than a run left. **Anything that acts on that — disarming,
+halting, refusing to book a successor — stops a vault that was fine**, and it
+stops it from inside a transaction that reports SUCCESS.
+
+**What Nocturne does:** the understatement is left in place deliberately, because
+it errs in the safe direction: `FuelLow` warns a run early rather than a run
+late, and nothing in the vault ever *acts* on `runway()` — it is a signal to the
+owner, not a control input. `_bookNext` runs unconditionally, so a vault that
+looks broke inside a call still books its successor and lets the network decide
+whether it can pay.
+
+The consequence worth remembering: `runway()` read from outside and `runway()`
+read during a scheduled run will legitimately disagree by one.
 
 ---
 

@@ -399,6 +399,19 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         }
 
         // Say something before the fuel runs out rather than after.
+        //
+        // The number reported here is deliberately pessimistic, and cannot be
+        // made otherwise. Inside a scheduled call the balance has already had
+        // the *whole* gas allowance debited; the unused part is refunded only
+        // once this returns. A vault funded with exactly 4 HBAR read itself as
+        // 0.73 at this line — 4.00 minus the 3.27 reserve, to the tinybar — and
+        // settled at 2.2245 a moment later, having been charged 1.7755.
+        //
+        // So this warns about a run earlier than strictly necessary, which is
+        // the right direction. What matters is that nothing in this contract
+        // *acts* on it: `_bookNext` has already run, unconditionally, above.
+        // A vault that looks broke here still books its successor and lets the
+        // network decide whether it can pay.
         uint256 left = _runway();
         if (left <= FUEL_WARN_RUNS) emit FuelLow(address(this).balance, left);
     }

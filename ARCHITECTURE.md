@@ -99,7 +99,7 @@ It cannot do the sentence above. Four gaps, each verified by reading its source:
 4. **No HTS association.** `depositTokens` calls `transferFrom` on a token the
    vault was never associated with, which fails for any HTS asset (§3.7).
 
-### 1.4 The five ways HSS automation silently breaks
+### 1.4 The six ways HSS automation silently breaks
 
 This is the contribution. None of it is in Hedera's documentation.
 
@@ -110,6 +110,7 @@ This is the contribution. None of it is in Hedera's documentation.
 | 3 | At most **one** scheduled call per transaction | An action that books two schedules is rejected outright and the whole transaction fails | 3.2 |
 | 4 | Expiry is capped at **62 days** | A schedule booked further out is refused, and the job silently never exists | 3.2 |
 | 5 | The payer must cover the **whole gas allowance**, not the gas burned | A vault funded against what a run *costs* dies with roughly a run's worth of HBAR still in it | 3.3 |
+| 6 | Inside a scheduled call the balance is **already down the whole allowance** | A fuel check run in-call reads a full reserve too low and can halt a vault that is fine | 3.3 |
 
 Landmine 1 is the dangerous one, because it does not look like a failure. The
 work succeeds. The transaction succeeds. The explorer shows green. The

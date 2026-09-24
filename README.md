@@ -104,7 +104,7 @@ the abstraction holds. A third should be a file, not a rewrite.
 
 ---
 
-## Five ways HSS automation fails silently
+## Six ways HSS automation fails silently
 
 All measured on testnet, none of them in Hedera's documentation, each with the
 command that produced it in [`docs/hedera-landmines.md`](docs/hedera-landmines.md).
@@ -124,6 +124,11 @@ A second vault was then funded with 5 HBAR to check the corrected arithmetic
 against the network *before* the fact. It predicted two runs. It ran twice and
 was refused on the third, holding 1.74 HBAR — and `runway()` read `0` rather than
 the `1` the old formula would have reported.
+
+6. **Inside a scheduled call, the balance is already down the whole allowance.**
+   A vault funded with 4 HBAR read its own balance as 0.73 mid-run — `4.00 − 3.27`
+   to the tinybar — then settled at 2.2245 once the unused gas came back. A fuel
+   check written inside the call sees a vault that looks broke when it is not.
 
 Landmine 5 is why `runway()` is not a single division:
 
