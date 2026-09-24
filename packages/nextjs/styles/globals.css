@@ -1,99 +1,87 @@
-/* Styrene A Web – Hedera brand font (fallback: Montserrat per brand.hedera.com) */
-@font-face {
-  font-family: "Styrene A Web";
-  src:
-    url("https://db.onlinewebfonts.com/t/819f612977ba7ba86c14b739b908c73f.woff2") format("woff2"),
-    url("https://db.onlinewebfonts.com/t/819f612977ba7ba86c14b739b908c73f.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap");
+/* Markdown in /docs is rendered with `prose`, which does nothing without this. */
 @import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
+/*
+  Night Score.
+
+  Three pigments and nothing else: ink for the ground, paper for everything
+  written on it, brass for the one thing that is alive. State is carried by
+  weight and fill rather than by hue, so a panel, a rule and a caption are the
+  same colour at different strengths. The single exception is `signal-dead`,
+  spent once, on the only condition a reader must not miss: a chain that has
+  stopped.
+*/
 @theme {
-  --shadow-center: 0 0 12px -2px rgb(0 0 0 / 0.05);
+  --color-ink: #0a0c10;
+  --color-ink-raised: #12151c;
+  --color-ink-sunken: #07080b;
+
+  --color-paper: #edeae3;
+  --color-paper-dim: #a8a59f;
+  --color-paper-faint: #6f6d69;
+
+  --color-brass: #e3a33c;
+  --color-brass-dim: #8a6626;
+
+  --color-signal-dead: #d4553f;
+
+  --color-line: #1e222b;
+  --color-line-bright: #2b3038;
+
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
   --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --font-sans: "Styrene A Web", "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --color-hedera-ultraviolet: #8259ef;
-  --color-hedera-azure: #0031ff;
-  --color-hedera-charcoal: #11151d;
-  --color-hedera-indigo: #00156e;
-  --color-hedera-cobalt: #2d84eb;
-  --color-hedera-violet: #4f46e5;
-  --color-hedera-smoke: #9b9b9d;
 }
 
-/* Markdown in /docs is rendered with `prose`, which does nothing without this. */
-@plugin "@tailwindcss/typography";
+/*
+  DaisyUI is re-themed rather than removed.
 
+  The scaffold's own surfaces — the wallet modal, the debug page, the block
+  explorer — are built from its components, and ripping the plugin out would
+  break all three. Pointing its tokens at the palette above means those pages
+  inherit Night Score without being touched.
+*/
 @plugin "daisyui" {
-  themes:
-    light,
-    dark --prefersdark;
-}
-
-@plugin "daisyui/theme" {
-  name: "light";
-
-  --color-primary: #4f46e5;
-  --color-primary-content: #ffffff;
-  --color-secondary: #8259ef;
-  --color-secondary-content: #ffffff;
-  --color-accent: #2d84eb;
-  --color-accent-content: #ffffff;
-  --color-neutral: #11151d;
-  --color-neutral-content: #ffffff;
-  --color-base-100: #ffffff;
-  --color-base-200: #f7f7f8;
-  --color-base-300: #e8e8ec;
-  --color-base-content: #11151d;
-  --color-info: #2d84eb;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
-
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
-  --tt-tailw: 6px;
+  themes: dark --default;
 }
 
 @plugin "daisyui/theme" {
   name: "dark";
 
-  --color-primary: #8259ef;
-  --color-primary-content: #ffffff;
-  --color-secondary: #4f46e5;
-  --color-secondary-content: #ffffff;
-  --color-accent: #2d84eb;
-  --color-accent-content: #ffffff;
-  --color-neutral: #ffffff;
-  --color-neutral-content: #11151d;
-  --color-base-100: #181c27;
-  --color-base-200: #11151d;
-  --color-base-300: #0a0d14;
-  --color-base-content: #f0f0f2;
-  --color-info: #2d84eb;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
+  --color-primary: #e3a33c;
+  --color-primary-content: #0a0c10;
+  --color-secondary: #12151c;
+  --color-secondary-content: #edeae3;
+  --color-accent: #e3a33c;
+  --color-accent-content: #0a0c10;
+  --color-neutral: #12151c;
+  --color-neutral-content: #edeae3;
 
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
+  --color-base-100: #12151c;
+  --color-base-200: #0a0c10;
+  --color-base-300: #1e222b;
+  --color-base-content: #edeae3;
 
+  --color-info: #e3a33c;
+  --color-success: #e3a33c;
+  --color-warning: #e3a33c;
+  --color-error: #d4553f;
+
+  --radius-field: 2px;
+  --radius-box: 3px;
   --tt-tailw: 6px;
-  --tt-bg: var(--color-primary);
 }
 
 /*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
+  Tailwind v4 defaults every border to `currentColor`, which on this ground
+  means a rule inherits the colour of the text beside it. Pin it to the line
+  token so a divider stays a divider.
 */
 @layer base {
   *,
@@ -101,7 +89,7 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-line, currentColor);
   }
 
   p {
@@ -110,7 +98,10 @@
 
   body {
     min-height: 100vh;
-    font-family: "Styrene A Web", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 
   h1,
@@ -118,20 +109,41 @@
   h3,
   h4 {
     margin-bottom: 0.5rem;
-    line-height: 1;
+    line-height: 1.05;
+  }
+
+  ::selection {
+    background: var(--color-brass);
+    color: var(--color-ink);
   }
 }
 
 :root,
 [data-theme] {
-  background: var(--color-base-200);
+  background: var(--color-ink);
+  color-scheme: dark;
+}
+
+/* ── the marks a score is built from ───────────────────────────────── */
+
+/*
+  A section label. Mono, spaced, quiet — the way a tempo mark sits above a
+  stave rather than in it.
+*/
+.label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-paper-faint);
+}
+
+/* Figures that must line up in a column, and never reflow as they tick. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 .btn {
-  @apply shadow-md;
-}
-
-.btn.btn-ghost {
   @apply shadow-none;
 }
 
@@ -140,16 +152,71 @@
 }
 
 .link:hover {
-  opacity: 80%;
+  color: var(--color-brass);
 }
 
+/* ── motion ────────────────────────────────────────────────────────── */
+
+/*
+  One easing curve for the whole site. Everything decelerates the same way,
+  which is what makes separate animations read as one system.
+*/
+@theme {
+  --ease-score: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered entrance for the hero. Rests at visible, never parked hidden. */
+.rise {
+  animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A brass dot that breathes, for a chain that is currently alive. */
+@keyframes alive {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.alive {
+  animation: alive 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+  Kept because the scaffold's own burner-key modals paint with it. Re-pointed at
+  brass so those inherited surfaces match the rest of the site.
+*/
 .hedera-gradient {
-  background: linear-gradient(135deg, #8259ef 0%, #0031ff 100%);
-}
-
-.hedera-gradient-text {
-  background: linear-gradient(135deg, #8259ef 0%, #0031ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background: linear-gradient(135deg, #e3a33c 0%, #8a6626 100%);
 }

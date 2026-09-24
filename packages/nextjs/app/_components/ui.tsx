@@ -26,21 +26,21 @@ export const Panel = ({
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  /** Prose rather than state: no card, just a rule above it. */
+  /** Prose rather than state: no raised surface, just a rule above it. */
   quiet?: boolean;
 }) => (
-  <section className={quiet ? "border-t border-base-300 pt-8 mt-2" : "bg-base-100 rounded-2xl p-6 shadow-sm"}>
-    <h2 className="text-sm font-semibold uppercase tracking-wider opacity-50 mt-0 mb-1">{title}</h2>
-    {subtitle ? <p className="text-sm opacity-60 mt-0 mb-4">{subtitle}</p> : <div className="mb-4" />}
+  <section className={quiet ? "border-t border-line pt-9" : "border border-line bg-ink-raised rounded-sm p-6 sm:p-8"}>
+    <h2 className="label m-0">{title}</h2>
+    {subtitle ? <p className="text-sm text-paper-dim mt-3 mb-6 max-w-2xl">{subtitle}</p> : <div className="mb-6" />}
     {children}
   </section>
 );
 
 export const Stat = ({ label, value, hint }: { label: string; value: string; hint?: string }) => (
   <div className="min-w-24">
-    <div className="text-3xl font-semibold tabular-nums leading-none">{value}</div>
-    <div className="text-sm opacity-60 mt-1">{label}</div>
-    {hint ? <div className="text-xs opacity-40">{hint}</div> : null}
+    <div className="label mb-2">{label}</div>
+    <div className="tabular font-display text-4xl leading-none">{value}</div>
+    {hint ? <div className="text-xs text-paper-faint mt-2">{hint}</div> : null}
   </div>
 );
 

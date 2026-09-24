@@ -59,7 +59,7 @@ export const TwoSources = () => {
       title="Two sources, and what they say"
       subtitle="Read live from SaucerSwap and Chainlink. A vault will not trade on these unless they agree."
     >
-      <div className="flex flex-wrap gap-8">
+      <div className="flex flex-wrap gap-x-14 gap-y-8">
         <Source
           label="SaucerSwap"
           detail="60-second TWAP"
@@ -73,30 +73,30 @@ export const TwoSources = () => {
           href={getBlockExplorerAddressLink(targetNetwork, HBAR_USD)}
         />
         <div>
-          <div className="text-3xl font-semibold tabular-nums leading-none">
+          <div className="label mb-2">Apart</div>
+          <div className="tabular font-display text-4xl leading-none text-brass">
             {r ? `${(Number(r.divergenceBps) / 100).toFixed(0)}%` : "—"}
           </div>
-          <div className="text-sm opacity-60 mt-1">apart</div>
-          <div className="text-xs opacity-40">tolerance 2%</div>
+          <div className="text-xs text-paper-faint mt-2">tolerance 2%</div>
         </div>
       </div>
 
       {r ? (
-        <div className={`alert mt-5 py-3 ${r.agreed ? "alert-success" : "alert-warning"}`}>
-          <span className="text-sm">
+        <div className="mt-8 border-l-2 border-brass pl-5 py-1">
+          <span className="text-sm text-paper-dim block">
             {r.agreed ? (
               <>The sources corroborate each other, so a vault would act on this price.</>
             ) : (
               <>
-                <span className="font-semibold">Would refuse to trade</span> — {r.reason}. Nothing is sold, the reason
-                is recorded on chain, and the vault looks again sooner.
+                <span className="text-paper font-medium">Would refuse to trade</span> — {r.reason}. Nothing is sold, the
+                reason is recorded on chain, and the vault looks again sooner.
               </>
             )}
           </span>
         </div>
       ) : null}
 
-      <p className="text-xs opacity-50 mt-3 mb-0">
+      <p className="text-xs text-paper-faint mt-6 mb-0 max-w-2xl leading-relaxed">
         The gap is a testnet artefact: nothing arbitrages a testnet, so the pool drifts and stays drifted. It is the
         wrong place to demonstrate a realistic sale and exactly the right place to demonstrate a refusal.
       </p>
@@ -106,12 +106,12 @@ export const TwoSources = () => {
 
 const Source = ({ label, detail, value, href }: { label: string; detail: string; value: string; href: string }) => (
   <div>
-    <div className="text-3xl font-semibold tabular-nums leading-none">{value}</div>
-    <div className="text-sm opacity-60 mt-1">
-      <a className="link no-underline hover:underline" href={href} target="_blank" rel="noreferrer">
+    <div className="label mb-2">
+      <a className="link" href={href} target="_blank" rel="noreferrer">
         {label}
       </a>
     </div>
-    <div className="text-xs opacity-40">{detail}</div>
+    <div className="tabular font-display text-4xl leading-none">{value}</div>
+    <div className="text-xs text-paper-faint mt-2">{detail}</div>
   </div>
 );

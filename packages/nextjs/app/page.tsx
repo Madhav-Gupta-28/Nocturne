@@ -1,5 +1,6 @@
 "use client";
 
+import { Cadence } from "./_components/Cadence";
 import { CreateVault } from "./_components/CreateVault";
 import { Hero } from "./_components/Hero";
 import { TwoSources } from "./_components/TwoSources";
@@ -35,9 +36,10 @@ const Home: NextPage = () => {
   const vault = latest && latest !== ZERO ? (latest as Address) : undefined;
 
   return (
-    <div className="flex flex-col items-center grow w-full px-4 pt-10 pb-20">
-      <div className="w-full max-w-4xl flex flex-col gap-6">
+    <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
+      <div className="w-full max-w-5xl flex flex-col gap-14">
         <Hero />
+        <Accelerando />
         <TwoSources />
         {!isConnected ? <ConnectPrompt /> : vault ? <VaultDashboard vault={vault} /> : <CreateVault />}
         <HowItWorks />
@@ -55,28 +57,60 @@ const ConnectPrompt = () => (
   </Panel>
 );
 
+/**
+ * The claim that needs a picture rather than a sentence.
+ *
+ * Every other point on this page can be made in prose. This one cannot: "the
+ * strategy chooses the interval" means nothing until you watch the checks bunch
+ * up as the floor gets close.
+ */
+const Accelerando = () => (
+  <section className="border-t border-line pt-9">
+    <p className="label m-0">The contribution</p>
+    <h2 className="font-display text-3xl sm:text-4xl mt-4 mb-4 leading-tight max-w-2xl">
+      A position far from trouble is cheap to watch. One near its floor is not.
+    </h2>
+    <p className="text-paper-dim max-w-2xl mt-0 mb-9 leading-relaxed">
+      The strategy picks the interval, not the vault. Hedera&apos;s own{" "}
+      <code className="text-paper">ScheduledVault</code> takes one fixed number, so the use case in their own
+      documentation — <em>contracts schedule increasingly frequent monitoring as positions approach liquidation</em> —
+      cannot be written in it.
+    </p>
+    <Cadence />
+  </section>
+);
+
 const HowItWorks = () => (
-  <Panel title="Why this is not a cron job" quiet>
-    <ul className="list-disc list-outside pl-5 opacity-80 flex flex-col gap-3 m-0 text-sm">
-      <li>
-        The vault books its own next run through HIP-1215, and it books it <em>before</em> it does any work. A strategy
-        that reverts then costs one run instead of the whole chain.
-      </li>
-      <li>
-        The strategy picks the interval, not the vault. A position far from trouble is checked every six hours and one
-        near its floor every sixty seconds — at ~1.6 HBAR a run, that is the difference between 6 and 460 HBAR a day.
-      </li>
-      <li>
-        Before it trades, a pool TWAP and a Chainlink feed have to agree. On 11 July 2026 a single manipulated price
-        took $9.05M out of Bonzo Lend, and roughly 40% of Hedera&apos;s TVL with it.
-      </li>
-      <li>
-        Reserving too little gas is the quiet killer: the work succeeds, the receipt says SUCCESS, and the automation
-        never runs again. That one and three others are written down in{" "}
-        <code className="text-xs">docs/hedera-landmines.md</code>, with the commands to reproduce them.
-      </li>
-    </ul>
-  </Panel>
+  <section className="border-t border-line pt-9">
+    <p className="label m-0">Why this is not a cron job</p>
+    <ol className="mt-8 mb-0 p-0 list-none flex flex-col">
+      {[
+        {
+          n: "01",
+          head: "It books its successor before it does any work",
+          body: "Each execution schedules the next one first and only then plans. A strategy that reverts costs one run instead of the whole chain — and because executeScheduled has no access control, anyone can restart a chain that stopped.",
+        },
+        {
+          n: "02",
+          head: "It can refuse, and say why on chain",
+          body: "Before it trades, a pool TWAP and a Chainlink feed have to agree. On 11 July 2026 a single manipulated price took $9.05M out of Bonzo Lend, and roughly 40% of Hedera's TVL with it.",
+        },
+        {
+          n: "03",
+          head: "Reserving too little gas is the quiet killer",
+          body: "The work succeeds, the receipt says SUCCESS, and the automation never runs again. That one and five others are written down with the commands to reproduce them.",
+        },
+      ].map(item => (
+        <li key={item.n} className="grid sm:grid-cols-[3rem_1fr] gap-x-6 gap-y-2 border-b border-line py-7 first:pt-0">
+          <span className="label pt-1">{item.n}</span>
+          <div>
+            <h3 className="font-display text-2xl m-0 mb-3 leading-tight">{item.head}</h3>
+            <p className="m-0 text-paper-dim leading-relaxed max-w-2xl">{item.body}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
 );
 
 export default Home;
