@@ -63,7 +63,7 @@ export const CreateVault = () => {
       chosen; a 16px radio next to a paragraph makes the paragraph look like
       help text.
     */
-    <div className="border border-line bg-ink-raised/40 backdrop-blur-sm">
+    <div className="lift border border-line bg-ink-raised/40 backdrop-blur-sm">
       <div className="flex items-center justify-between border-b border-line px-6 py-4">
         <span className="eyebrow">Create a vault</span>
         <span className="eyebrow">One per owner</span>

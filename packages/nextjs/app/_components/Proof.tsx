@@ -72,7 +72,7 @@ export const Proof = () => {
       </SectionHead>
 
       <Reveal>
-        <div className="mt-12 border border-line bg-ink-raised/40 backdrop-blur-sm">
+        <div className="lift mt-12 border border-line bg-ink-raised/40 backdrop-blur-sm">
           <dl className="m-0 grid divide-line sm:grid-cols-3 sm:divide-x max-sm:divide-y">
             <Figure
               label="Executions nobody sent"
@@ -91,7 +91,7 @@ export const Proof = () => {
         worse than no table at all.
       */}
       <Reveal delay={0.06}>
-        <div className="mt-6 border border-line bg-ink-raised/30">
+        <div className="lift mt-6 border border-line bg-ink-raised/30">
           <div className="flex items-center justify-between border-b border-line px-5 py-3">
             <span className="eyebrow">On chain · {rows.length} contracts · verified source</span>
             <span className="eyebrow hidden sm:block">Open on HashScan</span>

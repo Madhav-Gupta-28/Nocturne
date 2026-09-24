@@ -317,6 +317,51 @@
     radial-gradient(40% 40% at 88% 60%, rgba(39, 195, 212, 0.06), transparent 70%);
 }
 
+/*
+  Depth.
+
+  Everything on this page is a hairline rectangle on a dark ground, which is
+  precise and completely flat: with no shadow and no light, a panel is a drawing
+  of a panel rather than an object sitting in front of something. These three
+  give the page a z-axis.
+*/
+
+/* A panel that sits above the sky rather than being cut out of it. */
+.lift {
+  box-shadow:
+    0 1px 0 0 rgba(233, 236, 244, 0.04) inset,
+    0 30px 80px -40px rgba(0, 0, 0, 0.9),
+    0 8px 30px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* The same, with the accent leaking out from under it. For the one lit object. */
+.lift-signal {
+  box-shadow:
+    0 1px 0 0 rgba(39, 195, 212, 0.12) inset,
+    0 30px 90px -40px rgba(0, 0, 0, 0.9),
+    0 0 60px -22px var(--color-signal-glow);
+}
+
+/*
+  Poster type with light behind it.
+
+  A headline this large on black has enormous edge contrast and nothing else —
+  it reads as a sticker. A wide, very faint bloom in the text's own colour puts
+  it in the same air as the star field behind it, at a strength you notice only
+  when it is removed.
+*/
+.display-lit {
+  text-shadow:
+    0 0 70px rgba(233, 236, 244, 0.13),
+    0 0 160px rgba(233, 236, 244, 0.06);
+}
+
+.display-lit-signal {
+  text-shadow:
+    0 0 50px rgba(39, 195, 212, 0.4),
+    0 0 130px rgba(39, 195, 212, 0.22);
+}
+
 /* ── controls ──────────────────────────────────────────────────────── */
 
 /*

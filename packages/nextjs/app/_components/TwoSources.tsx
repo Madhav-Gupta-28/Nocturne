@@ -59,7 +59,7 @@ export const TwoSources = () => {
       says what it is for, and a panel that repeats its own section title is the
       surest sign a page was assembled rather than composed.
     */
-    <div className="border border-line bg-ink-raised/40 p-6 backdrop-blur-sm sm:p-9">
+    <div className="lift border border-line bg-ink-raised/40 p-6 backdrop-blur-sm sm:p-9">
       <div className="flex flex-wrap gap-x-16 gap-y-8">
         <Source
           label="SaucerSwap"

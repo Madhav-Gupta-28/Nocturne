@@ -168,7 +168,7 @@ export const RunTheNight = () => {
 
   return (
     <section ref={ref} className="shell pt-28 sm:pt-36">
-      <SectionHead eyebrow="Browser simulation · no wallet, no transaction" title="Run the night.">
+      <SectionHead id="simulation" eyebrow="Browser simulation · no wallet, no transaction" title="Run the night.">
         <p>
           Four runs of a vault holding a floor, played at the constants the contracts actually use. Watch the second run
           refuse — and watch the chain continue anyway, which is the part that is easy to get wrong and fatal when you
@@ -177,7 +177,7 @@ export const RunTheNight = () => {
       </SectionHead>
 
       <Reveal>
-        <div className="mt-12 grid grid-cols-[minmax(0,1fr)] border border-line bg-ink-raised/40 backdrop-blur-sm lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+        <div className="lift mt-12 grid grid-cols-[minmax(0,1fr)] border border-line bg-ink-raised/40 backdrop-blur-sm lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           {/* The four phases, and the four ways each one dies quietly. */}
           <ol className="m-0 list-none divide-y divide-line border-b border-line p-0 lg:border-b-0 lg:border-r">
             {PHASES.map((phase, i) => {

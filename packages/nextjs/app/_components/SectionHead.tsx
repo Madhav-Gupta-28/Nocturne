@@ -33,7 +33,7 @@ export const SectionHead = ({
 
     <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
       <Reveal>
-        <h2 className="display display-section m-0">{title}</h2>
+        <h2 className="display display-section display-lit m-0">{title}</h2>
       </Reveal>
 
       {children ? (

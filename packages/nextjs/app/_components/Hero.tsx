@@ -44,9 +44,9 @@ export const Hero = () => {
         type reads as being set rather than as a block flying in. The window
         never moves, which is what keeps it from looking like a carousel.
       */}
-      <h1 className="display display-hero m-0 mt-8 text-left">
+      <h1 className="display display-hero display-lit m-0 mt-8 text-left">
         <Line index={0}>Close the tab.</Line>
-        <Line index={1} className="text-signal">
+        <Line index={1} className="text-signal display-lit-signal">
           It already happened.
         </Line>
       </h1>
@@ -91,18 +91,28 @@ export const Hero = () => {
   );
 };
 
-/** One line of the headline, in its own clip window. */
+/**
+ * One line of the headline, in its own clip window.
+ *
+ * The clip has to go once the line has arrived. Type this size carries a wide,
+ * very faint bloom so it sits in the same air as the stars behind it — and
+ * `overflow: hidden` crops that bloom to the line box, which paints a visible
+ * rectangle of grey around every word. The mask exists for a second; the glow
+ * has to outlive it.
+ */
 const Line = ({ children, index, className }: { children: string; index: number; className?: string }) => {
   const still = useReducedMotion();
+  const [arrived, setArrived] = useState(still);
 
   return (
-    <span className="block overflow-hidden pb-[0.06em]">
+    <span className={`block pb-[0.06em] ${arrived ? "" : "overflow-hidden"}`}>
       <motion.span
         className={`block ${className ?? ""}`}
         variants={lineVariants}
         custom={index}
         initial={still ? false : "rest"}
         animate="play"
+        onAnimationComplete={() => setArrived(true)}
       >
         {children}
       </motion.span>
@@ -133,7 +143,7 @@ const CommandCard = () => {
   };
 
   return (
-    <figure className="m-0 border border-signal/45 bg-ink-sunken/70 shadow-[0_0_50px_-20px_var(--color-signal-glow)] backdrop-blur-sm">
+    <figure className="lift-signal m-0 border border-signal/45 bg-ink-sunken/70 backdrop-blur-sm">
       <figcaption className="flex items-center justify-between border-b border-signal/30 px-5 py-3">
         <span className="eyebrow text-signal">Scaffold it</span>
         <button

@@ -113,7 +113,7 @@ const ConnectPrompt = () => (
  */
 const Accelerando = () => (
   <section className="shell pt-28 sm:pt-36">
-    <SectionHead eyebrow="Interval chosen per run, not per vault" title="Cheap to watch. Until it is not.">
+    <SectionHead id="cadence" eyebrow="Interval chosen per run, not per vault" title="Cheap to watch. Until it is not.">
       <p>
         The strategy picks the interval, not the vault. Hedera&apos;s own{" "}
         <code className="text-paper">ScheduledVault</code> takes one fixed number, so the use case in their own
