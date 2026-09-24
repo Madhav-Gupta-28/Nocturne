@@ -145,12 +145,19 @@ contract NocturneVault is Ownable, ReentrancyGuard {
 
     /**
      * @notice Contracts a strategy is allowed to propose calls to.
-     * @dev The strategy decides *what* to do; this decides *where* it may reach.
-     *      Without it a swapped-in strategy could plan a transfer to itself. The
-     *      owner sets this, and a plan touching anything outside it is rejected
-     *      whole rather than part-executed.
+     * @dev The strategy decides *what* to do; this decides what it may reach —
+     *      down to the function, not just the address.
+     *
+     *      Per-address consent is not enough. Permitting a token so the strategy
+     *      can `approve(router, amount)` would, on its own, also permit
+     *      `transfer(attacker, balance)`: the grant a legitimate swap needs and
+     *      the one that empties the vault are the same grant. Keying on the
+     *      selector as well separates them.
+     *
+     *      The owner sets this, and a plan proposing any call outside it is
+     *      rejected whole rather than part-executed.
      */
-    mapping(address => bool) public allowedTarget;
+    mapping(address target => mapping(bytes4 selector => bool)) public allowedCall;
 
     // ------------------------------------------------------------------
     // Events
@@ -158,7 +165,7 @@ contract NocturneVault is Ownable, ReentrancyGuard {
 
     event StrategySet(address indexed strategy);
     event Configured(bytes config);
-    event TargetAllowed(address indexed target, bool allowed);
+    event CallAllowed(address indexed target, bytes4 indexed selector, bool allowed);
     event Armed(uint256 firstRunAt, address schedule);
     event Disarmed();
 
@@ -233,11 +240,17 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         emit Configured(config_);
     }
 
-    /// @notice Permit or forbid a contract the strategy may propose calls to.
-    function setAllowedTarget(address target, bool allowed) external onlyOwner {
+    /**
+     * @notice Permit or forbid one function on one contract.
+     * @param target The contract a plan may call.
+     * @param selector The four-byte function selector on it, e.g.
+     *        `IERC20.approve.selector`. Allowing a contract without naming a
+     *        function is deliberately not possible.
+     */
+    function setAllowedCall(address target, bytes4 selector, bool allowed) external onlyOwner {
         if (target == address(0)) revert ZeroAddress();
-        allowedTarget[target] = allowed;
-        emit TargetAllowed(target, allowed);
+        allowedCall[target][selector] = allowed;
+        emit CallAllowed(target, selector, allowed);
     }
 
     /**
@@ -386,7 +399,7 @@ contract NocturneVault is Ownable, ReentrancyGuard {
                 refusalCount++;
                 (string memory why, uint256 a, uint256 b) = _explain();
                 emit Refused(run, why, a, b);
-            } else if (!_targetsAllowed(actions, run)) {
+            } else if (!_callsAllowed(actions, run)) {
                 // Rejected whole. A partly executed plan is worse than none:
                 // an approve that lands without its swap leaves an allowance
                 // sitting open.
@@ -430,9 +443,38 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         emit Executed(run, actions.length, block.timestamp + gap);
     }
 
-    function _targetsAllowed(INocturneStrategy.Action[] memory actions, uint64 run) private returns (bool) {
+    /**
+     * @dev Bounds a plan by what it calls, not only where.
+     *
+     *      Allowing an address alone is not enough, and the gap is not
+     *      theoretical. A vault that wants its strategy to run
+     *      `approve(router, amount)` must permit calls to the token. If that
+     *      permission covers every function on the token, it equally covers
+     *      `transfer(attacker, balance)` — the grant a legitimate swap needs is
+     *      then indistinguishable from the one that empties the vault.
+     *
+     *      So consent is recorded per `(target, selector)`. The owner allows the
+     *      exact functions a strategy is supposed to call, and a plan proposing
+     *      anything else is rejected whole.
+     *
+     *      An action with fewer than four bytes of calldata is refused outright.
+     *      There is no function for the owner to have consented to, and it is
+     *      also the plainest way to move HBAR out of a vault.
+     */
+    function _callsAllowed(INocturneStrategy.Action[] memory actions, uint64 run) private returns (bool) {
         for (uint256 i; i < actions.length; ++i) {
-            if (!allowedTarget[actions[i].target]) {
+            bytes memory data = actions[i].data;
+            if (data.length < 4) {
+                emit PlanRejected(run, actions[i].target);
+                return false;
+            }
+
+            bytes4 selector = bytes4(data[0]) |
+                (bytes4(data[1]) >> 8) |
+                (bytes4(data[2]) >> 16) |
+                (bytes4(data[3]) >> 24);
+
+            if (!allowedCall[actions[i].target][selector]) {
                 emit PlanRejected(run, actions[i].target);
                 return false;
             }

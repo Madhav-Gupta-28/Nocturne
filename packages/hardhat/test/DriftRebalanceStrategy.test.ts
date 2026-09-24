@@ -64,9 +64,14 @@ describe("DriftRebalanceStrategy", () => {
     await vault.waitForDeployment();
     await owner.sendTransaction({ to: await vault.getAddress(), value: ONE_HBAR * 160n });
 
-    await vault.setAllowedTarget(await tokenA.getAddress(), true);
-    await vault.setAllowedTarget(await tokenB.getAddress(), true);
-    await vault.setAllowedTarget(await router.getAddress(), true);
+    const approve = tokenA.interface.getFunction("approve")!.selector;
+    await vault.setAllowedCall(await tokenA.getAddress(), approve, true);
+    await vault.setAllowedCall(await tokenB.getAddress(), approve, true);
+    await vault.setAllowedCall(
+      await router.getAddress(),
+      router.interface.getFunction("exactInputSingle")!.selector,
+      true,
+    );
 
     await setPrice(pool, feed, 2);
 

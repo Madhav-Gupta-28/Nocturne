@@ -30,7 +30,7 @@ describe("HeartbeatStrategy", () => {
     await owner.sendTransaction({ to: await vault.getAddress(), value: ONE_HBAR * 160n });
 
     const config = await strategy.encodeConfig(await heartbeat.getAddress(), INTERVAL);
-    await vault.setAllowedTarget(await heartbeat.getAddress(), true);
+    await vault.setAllowedCall(await heartbeat.getAddress(), heartbeat.interface.getFunction("beat")!.selector, true);
     await vault.configure(config);
 
     return { vault, strategy, heartbeat, hss, owner, config };

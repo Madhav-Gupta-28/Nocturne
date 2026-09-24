@@ -144,14 +144,16 @@ async function build(): Promise<string> {
   await (await whbar.approve(vaultAddr, position, { gasLimit: 800_000 })).wait();
   await (await vault.depositToken(WHBAR_TOKEN, position, { gasLimit: 900_000 })).wait();
 
-  // The token for the approve, the router for the swap. A plan touching
-  // anything else is rejected whole.
-  for (const [name, target] of [
-    ["WHBAR token", WHBAR_TOKEN],
-    ["router", ROUTER],
+  // Exactly two calls, named by function rather than by address. Allowing the
+  // token wholesale would also permit `transfer(attacker, balance)` — the same
+  // grant the legitimate approve needs.
+  const router = await ethers.getContractAt("ISwapRouter", ROUTER);
+  for (const [name, target, selector] of [
+    ["WHBAR.approve", WHBAR_TOKEN, whbar.interface.getFunction("approve")!.selector],
+    ["router.exactInputSingle", ROUTER, router.interface.getFunction("exactInputSingle")!.selector],
   ] as const) {
-    console.log(`allowing ${name} as a target...`);
-    await (await vault.setAllowedTarget(target, true, { gasLimit: 500_000 })).wait();
+    console.log(`allowing ${name}...`);
+    await (await vault.setAllowedCall(target, selector, true, { gasLimit: 500_000 })).wait();
   }
 
   return vaultAddr;

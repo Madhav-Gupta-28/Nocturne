@@ -60,9 +60,12 @@ async function main() {
   console.log(`vault    ${vaultAddr}`);
   console.log(`tx       ${createTx.hash}`);
 
-  // 2. Say where the strategy is allowed to reach.
-  console.log(`\nallowing the heartbeat as a target...`);
-  await (await vault.setAllowedTarget(heartbeatAddr, true, { gasLimit: 1_000_000 })).wait();
+  // 2. Say exactly what the strategy is allowed to call. Naming the function
+  //    matters as much as naming the contract: permitting an address wholesale
+  //    would let a swapped-in strategy call anything on it.
+  const beat = heartbeat.interface.getFunction("beat")!.selector;
+  console.log(`\nallowing Heartbeat.beat()...`);
+  await (await vault.setAllowedCall(heartbeatAddr, beat, true, { gasLimit: 1_000_000 })).wait();
 
   // 3. Configure, which also validates. A bad config fails here rather than at
   //    3am inside a scheduled call nobody is watching.

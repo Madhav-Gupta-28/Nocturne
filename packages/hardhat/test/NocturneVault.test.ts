@@ -35,7 +35,7 @@ describe("NocturneVault", () => {
     // Fuel for 100 runs, so nothing in these tests fails for lack of it.
     await owner.sendTransaction({ to: await vault.getAddress(), value: ONE_HBAR * 160n });
     await vault.configure("0x1234");
-    await vault.setAllowedTarget(await sink.getAddress(), true);
+    await vault.setAllowedCall(await sink.getAddress(), sink.interface.getFunction("ping")!.selector, true);
 
     return { vault, strategy, hss, sink, owner, stranger };
   }
@@ -93,7 +93,7 @@ describe("NocturneVault", () => {
         "OwnableUnauthorizedAccount",
       );
       await expect(
-        vault.connect(stranger).setAllowedTarget(await sink.getAddress(), true),
+        vault.connect(stranger).setAllowedCall(await sink.getAddress(), "0x12345678", true),
       ).to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
     });
   });
@@ -297,7 +297,7 @@ describe("NocturneVault", () => {
       await vault.waitForDeployment();
       await owner.sendTransaction({ to: await vault.getAddress(), value: ONE_HBAR * 10n });
       await vault.configure("0x01");
-      await vault.setAllowedTarget(await sink.getAddress(), true);
+      await vault.setAllowedCall(await sink.getAddress(), sink.interface.getFunction("ping")!.selector, true);
       await vault.arm();
 
       await time.increaseTo((await vault.nextRunAt()) + 1n);
@@ -331,6 +331,77 @@ describe("NocturneVault", () => {
 
       await time.increaseTo((await vault.nextRunAt()) + 1n);
       await expect(hss.fireLatest()).to.emit(vault, "Refused").withArgs(1n, "unknown", 0n, 0n);
+    });
+  });
+
+  /**
+   * The allow-list has to bound *what* a plan may call, not only *where*.
+   *
+   * A vault that wants a strategy to `approve(router, amount)` has to allow the
+   * token as a target. If allowing an address permits every function on it, the
+   * same permission also covers `transfer(attacker, balance)` — so the grant a
+   * legitimate swap needs is indistinguishable from the one that empties the
+   * vault. ARCHITECTURE §11.2 claims this case is rejected; these pin it down.
+   */
+  describe("a hostile plan", () => {
+    async function withToken() {
+      const fixture = await loadFixture(deployFixture);
+      const token = await (await ethers.getContractFactory("MockToken")).deploy("Mock", "MOCK", 18);
+      await token.waitForDeployment();
+      await token.mint(await fixture.vault.getAddress(), 1_000n);
+      return { ...fixture, token };
+    }
+
+    it("refuses a transfer to an arbitrary address on an allowed token", async () => {
+      const { vault, strategy, hss, token, stranger } = await withToken();
+      const tokenAddr = await token.getAddress();
+
+      // The grant a real swap needs: the strategy must be able to approve.
+      await vault.setAllowedCall(tokenAddr, token.interface.getFunction("approve")!.selector, true);
+
+      await strategy.setActions([
+        {
+          target: tokenAddr,
+          value: 0n,
+          data: token.interface.encodeFunctionData("transfer", [stranger.address, 1_000n]),
+        },
+      ]);
+      await vault.arm();
+      await time.increaseTo((await vault.nextRunAt()) + 1n);
+      await expect(hss.fireLatest()).to.emit(vault, "PlanRejected");
+
+      expect(await token.balanceOf(stranger.address)).to.equal(0n);
+      expect(await token.balanceOf(await vault.getAddress())).to.equal(1_000n);
+    });
+
+    it("allows the selector it was actually given", async () => {
+      const { vault, strategy, hss, token, stranger } = await withToken();
+      const tokenAddr = await token.getAddress();
+      await vault.setAllowedCall(tokenAddr, token.interface.getFunction("approve")!.selector, true);
+
+      await strategy.setActions([
+        {
+          target: tokenAddr,
+          value: 0n,
+          data: token.interface.encodeFunctionData("approve", [stranger.address, 1_000n]),
+        },
+      ]);
+      await vault.arm();
+      await time.increaseTo((await vault.nextRunAt()) + 1n);
+      await expect(hss.fireLatest()).to.emit(vault, "Executed");
+
+      expect(await token.allowance(await vault.getAddress(), stranger.address)).to.equal(1_000n);
+    });
+
+    it("refuses an action carrying no selector at all", async () => {
+      // A bare value transfer has no function to allow, so there is nothing the
+      // owner could have consented to. Rejecting it also closes the plainest
+      // way to move HBAR out of a vault.
+      const { vault, strategy, hss, stranger } = await withToken();
+      await strategy.setActions([{ target: stranger.address, value: 1n, data: "0x" }]);
+      await vault.arm();
+      await time.increaseTo((await vault.nextRunAt()) + 1n);
+      await expect(hss.fireLatest()).to.emit(vault, "PlanRejected");
     });
   });
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Panel, Stat, encodeHeartbeatConfig, formatDuration, formatHbar, useNow } from "./ui";
 import type { Address } from "viem";
+import { toFunctionSelector } from "viem";
 import { useDeployedContractInfo, useHederaAccountId, useTargetNetwork } from "~~/hooks/scaffold-hbar";
 import { useVaultStatus, useVaultWrite } from "~~/hooks/useNocturneVault";
 import { chainIdToHederaNetwork, getBlockExplorerAddressLink, mirrorNodeUrl } from "~~/utils/scaffold-hbar";
@@ -12,6 +13,9 @@ const FUEL_WARN_RUNS = 5n;
 
 /** The vault's own floor. Anything shorter is clamped on chain. */
 const MIN_INTERVAL = 60;
+
+/** `Heartbeat.beat()` — the only call this vault's strategy ever makes. */
+const BEAT_SELECTOR = toFunctionSelector("function beat()");
 
 /**
  * How late a run has to be before the chain is treated as broken rather than
@@ -167,7 +171,9 @@ const Controls = ({ vault, armed, onDone }: { vault: Address; armed: boolean; on
         disabled={isPending || !heartbeat?.address || !valid}
         onClick={async () => {
           const target = heartbeat!.address as Address;
-          await send({ functionName: "setAllowedTarget", args: [target, true] });
+          // Name the function, not just the contract. Allowing an address
+          // wholesale would let any strategy call anything on it.
+          await send({ functionName: "setAllowedCall", args: [target, BEAT_SELECTOR, true] });
           await send({ functionName: "configure", args: [encodeHeartbeatConfig(target, BigInt(seconds))] });
           // Only this one books a schedule, so only this one needs the gas for it.
           await send({ functionName: "arm", books: true });

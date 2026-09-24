@@ -194,7 +194,7 @@ describe("NocturneFactory", () => {
     await strategy.setActions([
       { target: await sink.getAddress(), value: 0n, data: sink.interface.encodeFunctionData("ping") },
     ]);
-    await vault.setAllowedTarget(await sink.getAddress(), true);
+    await vault.setAllowedCall(await sink.getAddress(), sink.interface.getFunction("ping")!.selector, true);
     await vault.configure("0x01");
     await vault.arm();
 

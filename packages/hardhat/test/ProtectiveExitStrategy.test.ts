@@ -65,8 +65,12 @@ describe("ProtectiveExitStrategy", () => {
     await owner.sendTransaction({ to: await vault.getAddress(), value: ONE_HBAR * 160n });
     await asset.mint(await vault.getAddress(), HELD);
 
-    await vault.setAllowedTarget(await asset.getAddress(), true);
-    await vault.setAllowedTarget(await router.getAddress(), true);
+    await vault.setAllowedCall(await asset.getAddress(), asset.interface.getFunction("approve")!.selector, true);
+    await vault.setAllowedCall(
+      await router.getAddress(),
+      router.interface.getFunction("exactInputSingle")!.selector,
+      true,
+    );
 
     // Both sources start at $2.50, comfortably above the $2.00 floor.
     await setPrices(pool, feed, 2.5, 2.5);
