@@ -1,6 +1,8 @@
 {
-  "name": "sh",
-  "version": "0.0.1",
+  "name": "nocturne",
+  "version": "0.1.0",
+  "description": "Recurring on-chain jobs on Hedera, without a keeper.",
+  "license": "MIT",
   "private": true,
   "workspaces": {
     "packages": [
