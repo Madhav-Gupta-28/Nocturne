@@ -65,15 +65,28 @@ export const Sidebar = ({
                     .filter(h => h.depth === 2)
                     .map(h => (
                       <li key={h.id}>
-                        <a
-                          href={`#${h.id}`}
-                          onClick={onNavigate}
-                          className={`block py-1.5 pl-3 font-mono text-[11px] leading-snug transition-colors ${
-                            active === h.id ? "text-signal" : "text-paper-faint hover:text-paper"
-                          }`}
-                        >
-                          {h.text}
-                        </a>
+                        {/*
+                          Split so the number sits in its own column and the
+                          titles line up with each other. Written inline they
+                          ragged-left by a character, which on a rail of eight
+                          entries reads as a mistake.
+                        */}
+                        {(() => {
+                          const m = /^(\d{1,2})\s*·\s*(.*)$/.exec(h.text);
+                          const on = active === h.id;
+                          return (
+                            <a
+                              href={`#${h.id}`}
+                              onClick={onNavigate}
+                              className={`flex gap-2.5 py-1.5 pl-3 font-mono text-[11px] leading-snug transition-colors ${
+                                on ? "text-signal" : "text-paper-faint hover:text-paper"
+                              }`}
+                            >
+                              {m ? <span className={on ? "" : "text-paper-faint/60"}>{m[1]}</span> : null}
+                              <span>{m ? m[2] : h.text}</span>
+                            </a>
+                          );
+                        })()}
                       </li>
                     ))}
                 </ul>

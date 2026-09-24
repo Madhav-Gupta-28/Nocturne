@@ -87,25 +87,10 @@ export function DebugContracts() {
         addresses={addresses}
       />
 
-      {/*
-        The selected contract's explanation, repeated below the picker.
-
-        It is the same text the popover carries, and that is on purpose: the
-        popover closes the moment the pointer leaves it, so by the time somebody
-        is reading an argument form the explanation is gone. Restating it here
-        costs one paragraph and means the context is present while the call is
-        being made.
-      */}
-      {note ? (
-        <div className="mt-10 border-l-2 border-signal bg-ink-raised/40 py-5 pl-6">
-          <p className="eyebrow m-0">{String(selectedContract)}</p>
-          <p className="mb-0 mt-3 max-w-3xl leading-relaxed text-paper-dim">{note.what}</p>
-          {note.tryThis ? (
-            <p className="mb-0 mt-3 text-sm text-paper-faint">
-              Start with <code className="text-signal">{note.tryThis.call}</code> — {note.tryThis.proves}
-            </p>
-          ) : null}
-        </div>
+      {note?.tryThis ? (
+        <p className="mt-6 mb-0 text-sm text-paper-faint">
+          Start with <code className="text-signal">{note.tryThis.call}</code> — {note.tryThis.proves}
+        </p>
       ) : null}
 
       {/*
@@ -114,7 +99,7 @@ export function DebugContracts() {
         forking it to change corner radii would mean maintaining a copy of
         somebody else's component forever.
       */}
-      <div className="debug-shell mt-10">
+      <div className="debug-shell mt-8">
         {contractNames.map(
           contractName =>
             contractName === selectedContract && <ContractUI key={String(contractName)} contractName={contractName} />,

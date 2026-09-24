@@ -47,7 +47,7 @@ const DocPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
           <Sidebar docs={DOCS} headings={headings} />
         </div>
 
-        <main className="min-w-0">
+        <main className="min-w-0 lg:pl-14">
           {/*
             The source, because a document whose whole argument is "check this
             yourself" should be checkable at the level of the document too.
