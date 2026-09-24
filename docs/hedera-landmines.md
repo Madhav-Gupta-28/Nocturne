@@ -228,6 +228,37 @@ deposit overstates the runway by about half.
 
 ---
 
+## A useful fact, for once
+
+**A scheduled call arrives with `msg.sender` set to the contract itself.** The
+network runs it as though the contract called itself; `tx.origin` is the contract
+too, not the account that created the schedule.
+
+```
+sender = 0x03F7F064E6ceD8e154e3FdAAF92DcCC4e818E97B   <- the probe contract
+origin = 0x03F7F064E6ceD8e154e3FdAAF92DcCC4e818E97B   <- also the contract
+lag    = -1s                                          <- fired a second early
+```
+
+Reproduce with `contracts/test/ScheduledSenderProbe.sol` (live at
+`0x03F7F064E6ceD8e154e3FdAAF92DcCC4e818E97B`), which books a call to itself and
+records what it was handed.
+
+This matters because a self-rescheduling entry point has to be permissionless —
+there is no caller to authenticate, and locking it down would mean a stalled
+chain could never be revived. `msg.sender` gives such a function a way to tell
+its own wake-up call from an uninvited one without giving up that property.
+
+`NocturneVault` uses it for exactly one thing. An uninvited caller inside the
+`CLOCK_SKEW` window advances `nextRunAt`, which orphans the schedule already
+booked; the orphan fires, finds the vault not due, does nothing, and the vault is
+charged a full execution for it. So when `msg.sender != address(this)`, the vault
+releases the pending schedule before booking the next one.
+
+The lag also confirms landmine 2 from a second, independent contract.
+
+---
+
 ## And three more that are not about scheduling
 
 ### `scheduleCall` never reverts
