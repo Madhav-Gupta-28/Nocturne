@@ -84,7 +84,7 @@ export const Gate = () => {
         </div>
 
         <div className="mt-6 flex items-baseline gap-5 flex-wrap">
-          <span className="tabular font-display text-4xl leading-none">
+          <span className="tabular font-mono text-3xl leading-none">
             {bps >= 1000 ? `${(bps / 100).toFixed(0)}%` : `${(bps / 100).toFixed(2)}%`}
           </span>
           <span className={open ? "text-paper-dim" : "text-brass"}>
@@ -101,6 +101,6 @@ export const Gate = () => {
 const Reading = ({ label, value }: { label: string; value: number }) => (
   <div className="bg-ink-raised p-6 sm:p-8">
     <div className="eyebrow mb-3">{label}</div>
-    <div className="tabular font-display text-4xl leading-none transition-all duration-700">${value.toFixed(4)}</div>
+    <div className="tabular font-mono text-3xl leading-none transition-all duration-700">${value.toFixed(4)}</div>
   </div>
 );

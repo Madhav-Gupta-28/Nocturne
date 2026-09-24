@@ -13,8 +13,8 @@ import remarkGfm from "remark-gfm";
 export const Markdown = ({ children }: { children: string }) => (
   <article
     className="prose prose-invert max-w-none
-      prose-headings:font-display prose-headings:font-normal prose-headings:tracking-[-0.01em]
-      prose-h1:text-4xl sm:prose-h1:text-5xl prose-h1:leading-[1.05] prose-h1:mb-8
+      prose-headings:font-display prose-headings:font-normal prose-headings:uppercase prose-headings:leading-[0.95]
+      prose-h1:text-[2.75rem] sm:prose-h1:text-[3.5rem] prose-h1:mb-8
       prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-5 prose-h2:pt-9 prose-h2:border-t prose-h2:border-line
       prose-h3:text-xl prose-h3:mt-10
       prose-p:text-paper-dim prose-li:text-paper-dim

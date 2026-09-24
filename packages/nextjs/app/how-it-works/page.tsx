@@ -18,10 +18,12 @@ export const metadata = { title: "How it works" };
 const HowItWorks: NextPage = () => (
   <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
     <div className="w-full max-w-5xl">
-      <header className="pt-16 pb-14 sm:pt-24">
+      <header className="night pt-20 pb-16 sm:pt-28">
         <p className="eyebrow m-0">How it works</p>
-        <h1 className="font-display text-4xl sm:text-6xl leading-[1] tracking-[-0.02em] mt-5 mb-0 max-w-3xl text-balance">
-          A contract cannot wake up. On Hedera, it no longer has to.
+        <h1 className="display text-[3rem] sm:text-[5rem] mt-7 mb-0 max-w-4xl">
+          A contract cannot wake up.
+          <br />
+          <span className="text-brass">On Hedera it no longer has to.</span>
         </h1>
         <p className="mt-7 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
           Every piece of on-chain automation in production is a contract plus an off-chain process that pokes it — a
@@ -84,8 +86,8 @@ const HowItWorks: NextPage = () => (
           ].map(x => (
             <div key={x.k} className="bg-ink-raised p-6">
               <div className="eyebrow mb-3">{x.k}</div>
-              <div className="tabular font-display text-4xl leading-none">
-                {x.v} <span className="text-base text-paper-faint">{x.u}</span>
+              <div className="tabular font-mono text-3xl leading-none">
+                {x.v} <span className="text-sm text-paper-faint">{x.u}</span>
               </div>
               <div className="text-xs text-paper-faint mt-2">{x.note}</div>
             </div>
@@ -100,7 +102,7 @@ const HowItWorks: NextPage = () => (
         </Aside>
       </Move>
 
-      <section className="border-t border-line pt-9 mt-20">
+      <section className="pt-14 mt-20 rule">
         <h2 className="font-display text-3xl sm:text-4xl leading-tight m-0 max-w-2xl">Then you close the tab.</h2>
         <p className="mt-5 mb-8 max-w-2xl text-paper-dim leading-relaxed">
           After the transaction that arms it, the owner sends nothing. Every execution afterwards is the network calling
@@ -116,11 +118,11 @@ const HowItWorks: NextPage = () => (
 );
 
 const Move = ({ n, title, lede, children }: { n: string; title: string; lede: string; children: React.ReactNode }) => (
-  <section className="border-t border-line pt-9 mt-20 first-of-type:mt-0">
+  <section className="pt-14 mt-20 rule first-of-type:mt-0">
     <div className="grid lg:grid-cols-[4rem_1fr] gap-x-8">
       <span className="eyebrow pt-2 self-start">{n}</span>
       <div>
-        <h2 className="font-display text-3xl sm:text-4xl leading-tight m-0 max-w-2xl text-balance">{title}</h2>
+        <h2 className="display text-3xl sm:text-[2.75rem] m-0 max-w-3xl">{title}</h2>
         <p className="mt-5 mb-10 max-w-2xl text-paper-dim leading-relaxed">{lede}</p>
         {children}
       </div>

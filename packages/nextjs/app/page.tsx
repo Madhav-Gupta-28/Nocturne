@@ -37,7 +37,7 @@ const Home: NextPage = () => {
 
   return (
     <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
-      <div className="w-full max-w-5xl flex flex-col gap-14">
+      <div className="w-full max-w-5xl flex flex-col gap-4">
         <Hero />
         <Accelerando />
         <TwoSources />
@@ -65,11 +65,8 @@ const ConnectPrompt = () => (
  * up as the floor gets close.
  */
 const Accelerando = () => (
-  <section className="border-t border-line pt-9">
-    <p className="eyebrow m-0">The contribution</p>
-    <h2 className="font-display text-3xl sm:text-4xl mt-4 mb-4 leading-tight max-w-2xl">
-      A position far from trouble is cheap to watch. One near its floor is not.
-    </h2>
+  <section className="pt-16 rule">
+    <h2 className="display text-4xl sm:text-5xl m-0 mb-6 max-w-3xl">Cheap to watch. Until it is not.</h2>
     <p className="text-paper-dim max-w-2xl mt-0 mb-9 leading-relaxed">
       The strategy picks the interval, not the vault. Hedera&apos;s own{" "}
       <code className="text-paper">ScheduledVault</code> takes one fixed number, so the use case in their own
@@ -81,8 +78,8 @@ const Accelerando = () => (
 );
 
 const HowItWorks = () => (
-  <section className="border-t border-line pt-9">
-    <p className="eyebrow m-0">Why this is not a cron job</p>
+  <section className="pt-16 rule">
+    <h2 className="display text-4xl sm:text-5xl m-0 mb-10">Why this is not a cron job</h2>
     <ol className="mt-8 mb-0 p-0 list-none flex flex-col">
       {[
         {
@@ -104,7 +101,7 @@ const HowItWorks = () => (
         <li key={item.n} className="grid sm:grid-cols-[3rem_1fr] gap-x-6 gap-y-2 border-b border-line py-7 first:pt-0">
           <span className="eyebrow pt-1">{item.n}</span>
           <div>
-            <h3 className="font-display text-2xl m-0 mb-3 leading-tight">{item.head}</h3>
+            <h3 className="display text-2xl sm:text-3xl m-0 mb-4">{item.head}</h3>
             <p className="m-0 text-paper-dim leading-relaxed max-w-2xl">{item.body}</p>
           </div>
         </li>

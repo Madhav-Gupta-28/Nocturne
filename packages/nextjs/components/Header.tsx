@@ -53,8 +53,8 @@ export const HeaderMenuLinks = () => {
               href={href}
               passHref
               className={`${
-                isActive ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/5"
-              } py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col transition-colors`}
+                isActive ? "text-brass" : "text-paper-dim hover:text-paper"
+              } eyebrow py-2 px-3 gap-2 grid grid-flow-col items-center transition-colors`}
             >
               {icon}
               <span>{label}</span>
@@ -97,7 +97,7 @@ export const Header = () => {
             <Image alt="Hedera icon" className="cursor-pointer hidden dark:block" fill src="/Hedera-Icon-White.svg" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold leading-tight text-base">Nocturne</span>
+            <span className="display leading-none text-xl">Nocturne</span>
             <span className="text-[10px] tracking-wider uppercase text-base-content/50 font-medium">
               Runs without you
             </span>

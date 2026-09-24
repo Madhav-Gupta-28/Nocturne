@@ -16,9 +16,9 @@
   stopped.
 */
 @theme {
-  --color-ink: #0a0c10;
-  --color-ink-raised: #12151c;
-  --color-ink-sunken: #07080b;
+  --color-ink: #0a0a0b;
+  --color-ink-raised: #111113;
+  --color-ink-sunken: #070708;
 
   --color-paper: #edeae3;
   --color-paper-dim: #a8a59f;
@@ -29,8 +29,8 @@
 
   --color-signal-dead: #d4553f;
 
-  --color-line: #1e222b;
-  --color-line-bright: #2b3038;
+  --color-line: #1c1c1f;
+  --color-line-bright: #2a2a2f;
 
   --font-display: var(--font-display), ui-serif, Georgia, serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -141,6 +141,69 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-paper-faint);
+}
+
+/*
+  Display type is set like signage: caps, tight, and tracked in slightly,
+  because a condensed face at 90px opens up at the default spacing.
+*/
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  line-height: 0.88;
+}
+
+/*
+  A short accent rule above a section heading. Erebus uses one; it does the
+  work a numbered label would, without spending a line of text on it.
+*/
+.rule::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 2px;
+  background: var(--color-brass);
+  margin-bottom: 26px;
+}
+
+/*
+  The ground.
+
+  Two layers over flat ink: a faint star field, and one warm bloom behind the
+  opening. Both are painted with gradients rather than an image so they cost
+  nothing to ship and stay sharp at any density.
+*/
+.night {
+  position: relative;
+  isolation: isolate;
+}
+
+.night::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(237, 234, 227, 0.22), transparent 100%),
+    radial-gradient(1px 1px at 28% 62%, rgba(237, 234, 227, 0.16), transparent 100%),
+    radial-gradient(1px 1px at 44% 26%, rgba(237, 234, 227, 0.2), transparent 100%),
+    radial-gradient(1px 1px at 61% 74%, rgba(237, 234, 227, 0.14), transparent 100%),
+    radial-gradient(1px 1px at 76% 34%, rgba(237, 234, 227, 0.2), transparent 100%),
+    radial-gradient(1px 1px at 88% 58%, rgba(237, 234, 227, 0.15), transparent 100%),
+    radial-gradient(1px 1px at 34% 88%, rgba(237, 234, 227, 0.13), transparent 100%),
+    radial-gradient(1px 1px at 68% 12%, rgba(237, 234, 227, 0.18), transparent 100%);
+}
+
+.night::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(60% 55% at 50% 0%, rgba(227, 163, 60, 0.09), transparent 70%);
 }
 
 /* Figures that must line up in a column, and never reflow as they tick. */

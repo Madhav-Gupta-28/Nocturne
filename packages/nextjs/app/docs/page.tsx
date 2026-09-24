@@ -14,10 +14,10 @@ export const metadata = { title: "Docs" };
 const DocsIndex: NextPage = () => (
   <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
     <div className="w-full max-w-4xl">
-      <header className="pt-16 pb-14 sm:pt-24">
+      <header className="night pt-20 pb-16 sm:pt-28">
         <p className="eyebrow m-0">Docs</p>
-        <h1 className="font-display text-4xl sm:text-6xl leading-[1] tracking-[-0.02em] mt-5 mb-0 max-w-3xl text-balance">
-          Everything here was measured, and says how.
+        <h1 className="display text-[3rem] sm:text-[5rem] mt-7 mb-0 max-w-4xl">
+          Everything here was <span className="text-brass">measured.</span>
         </h1>
         <p className="mt-7 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
           Rendered from the markdown in the repository, so nothing on these pages can drift from what the code actually
@@ -34,7 +34,7 @@ const DocsIndex: NextPage = () => (
             >
               <span className="eyebrow pt-2 self-start">{String(i + 1).padStart(2, "0")}</span>
               <div>
-                <h2 className="font-display text-2xl sm:text-3xl m-0 mb-3 leading-tight group-hover:text-brass transition-colors">
+                <h2 className="display text-2xl sm:text-3xl m-0 mb-4 group-hover:text-brass transition-colors">
                   {doc.title}
                 </h2>
                 <p className="m-0 text-paper-dim leading-relaxed max-w-2xl">{doc.blurb}</p>

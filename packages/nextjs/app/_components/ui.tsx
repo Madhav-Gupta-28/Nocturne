@@ -29,7 +29,7 @@ export const Panel = ({
   /** Prose rather than state: no raised surface, just a rule above it. */
   quiet?: boolean;
 }) => (
-  <section className={quiet ? "border-t border-line pt-9" : "border border-line bg-ink-raised rounded-sm p-6 sm:p-8"}>
+  <section className={quiet ? "pt-14 rule" : "border border-line bg-ink-raised p-6 sm:p-8"}>
     <h2 className="eyebrow m-0">{title}</h2>
     {subtitle ? <p className="text-sm text-paper-dim mt-3 mb-6 max-w-2xl">{subtitle}</p> : <div className="mb-6" />}
     {children}
@@ -39,7 +39,7 @@ export const Panel = ({
 export const Stat = ({ label, value, hint }: { label: string; value: string; hint?: string }) => (
   <div className="min-w-24">
     <div className="eyebrow mb-2">{label}</div>
-    <div className="tabular font-display text-4xl leading-none">{value}</div>
+    <div className="tabular font-mono text-3xl leading-none">{value}</div>
     {hint ? <div className="text-xs text-paper-faint mt-2">{hint}</div> : null}
   </div>
 );

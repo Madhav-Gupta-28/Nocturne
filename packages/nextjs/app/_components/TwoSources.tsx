@@ -74,7 +74,7 @@ export const TwoSources = () => {
         />
         <div>
           <div className="eyebrow mb-2">Apart</div>
-          <div className="tabular font-display text-4xl leading-none text-brass">
+          <div className="tabular font-mono text-3xl leading-none text-brass">
             {r ? `${(Number(r.divergenceBps) / 100).toFixed(0)}%` : "—"}
           </div>
           <div className="text-xs text-paper-faint mt-2">tolerance 2%</div>
@@ -111,7 +111,7 @@ const Source = ({ label, detail, value, href }: { label: string; detail: string;
         {label}
       </a>
     </div>
-    <div className="tabular font-display text-4xl leading-none">{value}</div>
+    <div className="tabular font-mono text-3xl leading-none">{value}</div>
     <div className="text-xs text-paper-faint mt-2">{detail}</div>
   </div>
 );

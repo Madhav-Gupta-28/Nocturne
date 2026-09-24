@@ -1,4 +1,4 @@
-import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Anton, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "@rainbow-me/rainbowkit/styles.css";
 import "@scaffold-hbar-ui/components/styles.css";
 import type { Viewport } from "next";
@@ -27,21 +27,19 @@ export const viewport: Viewport = {
 /**
  * Three faces, one job each.
  *
- * A nocturne is a piece written for the night and played whether or not anyone
- * is listening, so the display face is a serif — the register of something
- * composed rather than shipped. Fraunces is drawn with an optical-size axis, so
- * at headline sizes it thins its hairlines instead of scaling a text weight up
- * and going muddy on a dark ground.
+ * The display face is a poster grotesque set in caps: narrow enough that a
+ * declarative sentence can run at 90px without wrapping, and heavy enough to
+ * hold a dark ground without its hairlines disappearing into it.
  *
  * Plex Sans and Plex Mono carry everything else. They were designed together,
  * so a measured number sitting inside a sentence does not look pasted in — and
  * most of the numbers on this site are measurements.
  */
-const display = Fraunces({
+const display = Anton({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-  weight: ["400", "600"],
+  weight: "400",
 });
 
 const sans = IBM_Plex_Sans({

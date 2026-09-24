@@ -73,19 +73,41 @@ function schedule() {
 }
 
 export const Cadence = () => {
-  const [shown, setShown] = useState(false);
+  /*
+    Drawn is the resting state, not the reward for an event.
+
+    This began gated behind an IntersectionObserver so the accelerando would
+    play when the reader arrived. It meant the checks and the band labels did
+    not exist until the observer fired — and when it did not, the panel showed
+    a bare curve with the entire argument missing from it. A diagram has to be
+    complete while the page is still; motion is an enhancement on top of that.
+  */
+  const [animate, setAnimate] = useState(false);
   const ref = useRef<SVGSVGElement>(null);
 
-  // Draw when it is actually looked at, so the accelerando is not spent
-  // off-screen before the reader arrives.
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(entries => entries.forEach(e => e.isIntersecting && setShown(true)), {
-      threshold: 0.35,
-    });
+    if (!el || !("IntersectionObserver" in window)) {
+      setAnimate(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      entries =>
+        entries.forEach(e => {
+          if (!e.isIntersecting) return;
+          io.disconnect();
+          setAnimate(true);
+        }),
+      { threshold: 0.2 },
+    );
     io.observe(el);
-    return () => io.disconnect();
+    // If the observer never fires — an odd viewport, a print, a reader landing
+    // mid-document — draw it anyway rather than leave it half made.
+    const fallback = setTimeout(() => setAnimate(true), 1200);
+    return () => {
+      io.disconnect();
+      clearTimeout(fallback);
+    };
   }, []);
 
   const marks = schedule();
@@ -144,7 +166,7 @@ export const Cadence = () => {
           strokeLinecap="round"
           style={{
             strokeDasharray: 2400,
-            strokeDashoffset: shown ? 0 : 2400,
+            strokeDashoffset: animate ? 0 : 2400,
             transition: "stroke-dashoffset 2.4s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         />
@@ -164,7 +186,7 @@ export const Cadence = () => {
                 y2={floorY}
                 stroke={urgent ? "var(--color-brass)" : "var(--color-line-bright)"}
                 strokeWidth="1"
-                opacity={shown ? (urgent ? 0.9 : 0.75) : 0}
+                opacity={animate ? (urgent ? 0.9 : 0.75) : 0}
                 style={{ transition: `opacity 0.5s ease ${0.3 + m.t * 2.1}s` }}
               />
             );
@@ -184,7 +206,7 @@ export const Cadence = () => {
           if (band.from === 1) return null;
           const row = i % 2 === 0 ? PAD.top - 14 : PAD.top - 32;
           return (
-            <g key={band.name} opacity={shown ? 1 : 0} style={{ transition: `opacity 0.6s ease ${0.6 + t * 1.6}s` }}>
+            <g key={band.name} opacity={animate ? 1 : 0} style={{ transition: `opacity 0.6s ease ${0.6 + t * 1.6}s` }}>
               <line
                 x1={x(t)}
                 x2={x(t)}
