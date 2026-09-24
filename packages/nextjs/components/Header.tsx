@@ -20,6 +20,10 @@ export const menuLinks: HeaderMenuLink[] = [
     href: "/",
   },
   {
+    label: "How it works",
+    href: "/how-it-works",
+  },
+  {
     label: "Docs",
     href: "/docs",
     icon: <BookOpenIcon className="h-4 w-4" />,
