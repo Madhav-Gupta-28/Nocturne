@@ -12,6 +12,7 @@ import { getDeployGasPrice } from "../utils/getDeployGasPrice";
  *   ProtectiveExitStrategy  sells a position when a floor breaks
  *   DriftRebalanceStrategy  restores a target ratio when it drifts
  *   NocturneFactory         makes a vault per owner
+ *   PriceLens               read-only view of what the price guard sees
  *
  * Strategies hold nothing and keep no per-user state, so one deployment of each
  * serves every vault. Only vaults are per-owner.
@@ -38,12 +39,17 @@ const deployNocturne: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const rebalanceStrategy = await deploy("DriftRebalanceStrategy", { ...common, args: [] });
   const factory = await deploy("NocturneFactory", { ...common, args: [] });
 
+  // Read-only, stateless, and shared by every vault: it gives the frontend an
+  // address at which to ask what the price guard currently sees.
+  const lens = await deploy("PriceLens", { ...common, args: [] });
+
   log("");
   log("  Heartbeat               %s", heartbeat.address);
   log("  HeartbeatStrategy       %s", heartbeatStrategy.address);
   log("  ProtectiveExitStrategy  %s", exitStrategy.address);
   log("  DriftRebalanceStrategy  %s", rebalanceStrategy.address);
   log("  NocturneFactory         %s", factory.address);
+  log("  PriceLens               %s", lens.address);
   log("");
   log("  Next: npx hardhat run scripts/armVault.ts --network %s", hre.network.name);
   log("");

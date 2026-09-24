@@ -170,6 +170,31 @@ const runtimeContracts = {
         anonymous: false,
         inputs: [
           {
+            indexed: true,
+            internalType: "address",
+            name: "target",
+            type: "address",
+          },
+          {
+            indexed: true,
+            internalType: "bytes4",
+            name: "selector",
+            type: "bytes4",
+          },
+          {
+            indexed: false,
+            internalType: "bool",
+            name: "allowed",
+            type: "bool",
+          },
+        ],
+        name: "CallAllowed",
+        type: "event",
+      },
+      {
+        anonymous: false,
+        inputs: [
+          {
             indexed: false,
             internalType: "bytes",
             name: "config",
@@ -425,25 +450,6 @@ const runtimeContracts = {
           {
             indexed: true,
             internalType: "address",
-            name: "target",
-            type: "address",
-          },
-          {
-            indexed: false,
-            internalType: "bool",
-            name: "allowed",
-            type: "bool",
-          },
-        ],
-        name: "TargetAllowed",
-        type: "event",
-      },
-      {
-        anonymous: false,
-        inputs: [
-          {
-            indexed: true,
-            internalType: "address",
             name: "token",
             type: "address",
           },
@@ -590,11 +596,16 @@ const runtimeContracts = {
         inputs: [
           {
             internalType: "address",
-            name: "",
+            name: "target",
             type: "address",
           },
+          {
+            internalType: "bytes4",
+            name: "selector",
+            type: "bytes4",
+          },
         ],
-        name: "allowedTarget",
+        name: "allowedCall",
         outputs: [
           {
             internalType: "bool",
@@ -877,12 +888,17 @@ const runtimeContracts = {
             type: "address",
           },
           {
+            internalType: "bytes4",
+            name: "selector",
+            type: "bytes4",
+          },
+          {
             internalType: "bool",
             name: "allowed",
             type: "bool",
           },
         ],
-        name: "setAllowedTarget",
+        name: "setAllowedCall",
         outputs: [],
         stateMutability: "nonpayable",
         type: "function",

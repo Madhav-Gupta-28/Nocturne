@@ -2,6 +2,7 @@
 
 import { Beats } from "./_components/Beats";
 import { CreateVault } from "./_components/CreateVault";
+import { TwoSources } from "./_components/TwoSources";
 import { VaultDashboard } from "./_components/VaultDashboard";
 import { Panel } from "./_components/ui";
 import type { NextPage } from "next";
@@ -38,6 +39,7 @@ const Home: NextPage = () => {
       <div className="w-full max-w-4xl flex flex-col gap-6">
         <Hero />
         <Beats />
+        <TwoSources />
         {!isConnected ? <ConnectPrompt /> : vault ? <VaultDashboard vault={vault} /> : <CreateVault />}
         <HowItWorks />
       </div>

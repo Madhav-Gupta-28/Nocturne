@@ -557,7 +557,7 @@ const deployedContracts = {
       deployedOnBlock: 40892384,
     },
     NocturneFactory: {
-      address: "0x93569BE8bE07E3Bdec83b1E2e92E78E8A7a30F5a",
+      address: "0x851d40D35D1F5F8220d3632cE7438801bE658923",
       abi: [
         {
           inputs: [],
@@ -734,7 +734,174 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 40907215,
+      deployedOnBlock: 40908951,
+    },
+    PriceLens: {
+      address: "0x69bBf55bB272fe356D4251eeD8915d5963989B9D",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "int24",
+              name: "tick",
+              type: "int24",
+            },
+          ],
+          name: "TickOutOfBounds",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "bool",
+                  name: "agreed",
+                  type: "bool",
+                },
+                {
+                  internalType: "uint256",
+                  name: "twap",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "feed",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "divergenceBps",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "feedAge",
+                  type: "uint256",
+                },
+                {
+                  internalType: "string",
+                  name: "reason",
+                  type: "string",
+                },
+              ],
+              internalType: "struct PriceGuard.Reading",
+              name: "reading",
+              type: "tuple",
+            },
+            {
+              internalType: "bool",
+              name: "sellingAsset",
+              type: "bool",
+            },
+          ],
+          name: "actionablePrice",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "pool",
+                  type: "address",
+                },
+                {
+                  internalType: "uint32",
+                  name: "twapWindow",
+                  type: "uint32",
+                },
+                {
+                  internalType: "address",
+                  name: "feed",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "maxFeedAge",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "maxDivergenceBps",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bool",
+                  name: "assetIsToken0",
+                  type: "bool",
+                },
+                {
+                  internalType: "uint8",
+                  name: "assetDecimals",
+                  type: "uint8",
+                },
+                {
+                  internalType: "uint8",
+                  name: "quoteDecimals",
+                  type: "uint8",
+                },
+              ],
+              internalType: "struct PriceGuard.Sources",
+              name: "sources",
+              type: "tuple",
+            },
+          ],
+          name: "read",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "bool",
+                  name: "agreed",
+                  type: "bool",
+                },
+                {
+                  internalType: "uint256",
+                  name: "twap",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "feed",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "divergenceBps",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "feedAge",
+                  type: "uint256",
+                },
+                {
+                  internalType: "string",
+                  name: "reason",
+                  type: "string",
+                },
+              ],
+              internalType: "struct PriceGuard.Reading",
+              name: "reading",
+              type: "tuple",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 40909002,
     },
     ProtectiveExitStrategy: {
       address: "0x669862bBc4BBD814c3733587539230084dAf0ad6",
