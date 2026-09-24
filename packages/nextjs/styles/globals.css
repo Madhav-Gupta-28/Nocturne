@@ -8,41 +8,56 @@
 /*
   Nocturne.
 
-  One light source, and it is cold. The ground is a blue-black rather than a
-  neutral one, because a true black behind a star field reads as a switched-off
-  screen. The paper is a cool white rather than cream, because warm text under a
-  moon looks like lamplight.
+  One light source, and it is cold. The ground is a violet-black rather than a
+  neutral one — every grey on this page is pulled a few degrees toward the
+  accent's hue, so the neutrals read as chosen rather than inherited. Hedera's
+  own Charcoal is a blue-grey black for the same reason.
 
-  State is carried by weight and fill rather than by hue, so a panel, a rule and
-  a caption are the same colour at different strengths. There are exactly two
-  exceptions and both are earned: `signal` for what is alive — a running chain,
-  a live figure, the thing you can click — and `signal-dead` for the only
+  The accent is Hedera's Ultraviolet, calmed. Their brand value is #8259EF —
+  hue 291, chroma 0.214, lightness 59 in OKLCH. Ours keeps the hue exactly and
+  pulls the chroma down to 0.155, which is the difference between a colour that
+  announces itself and one that simply is.
+
+  The lightness is the part that actually matters, and it is why the two
+  previous accents failed. A cyan at #27c3d4 and an amber at #e3a33c both sit
+  at OKLCH lightness ~75 — within 1.8:1 of the paper they sit beside. An accent
+  that bright does not rank below the text, it competes with it, and on a dark
+  ground a saturated colour near the peak of the eye's luminous-efficiency
+  curve reads as glare. This one sits at lightness 60: 3.43:1 against the
+  paper, a clear step down, close to the relationship a well-made dark site
+  uses. Violet also sits low on that efficiency curve, so the same nominal
+  vividness arrives as a quarter of the glare.
+
+  Everything here clears WCAG AA against both the ground and the raised
+  surface, including the 10.5px labels, which the previous palette did not.
+
+  State is carried by weight and fill rather than by hue, so a panel, a rule
+  and a caption are the same colour at different strengths. There are exactly
+  two exceptions and both are earned: `signal` for what is alive — a running
+  chain, a live figure, the thing you can click — and `signal-dead` for the one
   condition a reader must not miss, a chain that has stopped.
 */
 @theme {
-  --color-ink: #07080c;
-  --color-ink-raised: #0e1016;
-  --color-ink-sunken: #04050a;
+  --color-ink: #08070e;
+  --color-ink-raised: #100e1a;
+  --color-ink-sunken: #050409;
 
-  --color-paper: #e9ecf4;
-  --color-paper-dim: #98a0b3;
-  --color-paper-faint: #5e6577;
+  --color-paper: #e9e8f2;
+  --color-paper-dim: #a09db4;
+  --color-paper-faint: #7c7a94;
 
-  /*
-    An instrument light. This site is a monitor — a vault watching a price at
-    4am and a panel counting executions nobody sent — and the colour of a thing
-    that is awake in the dark is not a brand purple. It is cold, it is slightly
-    clinical, and it is the only saturated thing on the page.
-  */
-  --color-signal: #27c3d4;
-  --color-signal-dim: #1d6a74;
-  --color-signal-glow: rgba(39, 195, 212, 0.16);
+  /* Hedera Ultraviolet's hue, at two thirds of its chroma. See above. */
+  --color-signal: #816cd5;
+  --color-signal-dim: #483c79;
+  --color-signal-glow: rgba(129, 108, 213, 0.16);
 
-  /* Spent only on a chain that has stopped. Warm, because nothing else is. */
-  --color-signal-dead: #ff5a45;
+  /* Spent only on a chain that has stopped. Warm, because nothing else is,
+     and held at the same lightness as the accent so it reads as a sibling
+     rather than as an alarm. */
+  --color-signal-dead: #d66c51;
 
-  --color-line: #191c26;
-  --color-line-bright: #2a2f3d;
+  --color-line: #1c1a28;
+  --color-line-bright: #2e2b3e;
 
   --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -67,24 +82,24 @@
 @plugin "daisyui/theme" {
   name: "dark";
 
-  --color-primary: #27c3d4;
-  --color-primary-content: #04050a;
-  --color-secondary: #0e1016;
-  --color-secondary-content: #e9ecf4;
-  --color-accent: #27c3d4;
-  --color-accent-content: #04050a;
-  --color-neutral: #0e1016;
-  --color-neutral-content: #e9ecf4;
+  --color-primary: #816cd5;
+  --color-primary-content: #050409;
+  --color-secondary: #100e1a;
+  --color-secondary-content: #e9e8f2;
+  --color-accent: #816cd5;
+  --color-accent-content: #050409;
+  --color-neutral: #100e1a;
+  --color-neutral-content: #e9e8f2;
 
-  --color-base-100: #0e1016;
-  --color-base-200: #07080c;
-  --color-base-300: #191c26;
-  --color-base-content: #e9ecf4;
+  --color-base-100: #100e1a;
+  --color-base-200: #08070e;
+  --color-base-300: #1c1a28;
+  --color-base-content: #e9e8f2;
 
-  --color-info: #27c3d4;
-  --color-success: #27c3d4;
-  --color-warning: #27c3d4;
-  --color-error: #ff5a45;
+  --color-info: #816cd5;
+  --color-success: #816cd5;
+  --color-warning: #816cd5;
+  --color-error: #d66c51;
 
   --radius-field: 0px;
   --radius-box: 0px;
@@ -175,12 +190,24 @@
   `display: flex`, and on a table header that removes the cell from table layout
   and stacks the columns.
 */
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-paper-faint);
+/*
+  Declared inside `@layer components`, and that is load-bearing.
+
+  Tailwind's utilities live in the `utilities` layer, and un-layered CSS beats
+  every layered rule regardless of specificity. Written at the top level, this
+  rule's `color` silently overrode every `text-*` utility placed beside it — so
+  `eyebrow text-signal` rendered grey, and four accents on this site were dead
+  without ever looking broken. In a layer, the utility wins, which is what
+  anyone writing that pair expects.
+*/
+@layer components {
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-paper-faint);
+  }
 }
 
 /*
@@ -286,7 +313,7 @@
 */
 .vignette {
   z-index: -5;
-  background: radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(4, 5, 10, 0.6) 100%);
+  background: radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(5, 4, 9, 0.6) 100%);
 }
 
 /*
@@ -314,7 +341,7 @@
   pointer-events: none;
   background:
     radial-gradient(50% 45% at 50% 0%, var(--color-signal-glow), transparent 72%),
-    radial-gradient(40% 40% at 88% 60%, rgba(39, 195, 212, 0.06), transparent 70%);
+    radial-gradient(40% 40% at 88% 60%, rgba(129, 108, 213, 0.06), transparent 70%);
 }
 
 /*
@@ -329,7 +356,7 @@
 /* A panel that sits above the sky rather than being cut out of it. */
 .lift {
   box-shadow:
-    0 1px 0 0 rgba(233, 236, 244, 0.04) inset,
+    0 1px 0 0 rgba(233, 232, 242, 0.04) inset,
     0 30px 80px -40px rgba(0, 0, 0, 0.9),
     0 8px 30px -20px rgba(0, 0, 0, 0.8);
 }
@@ -337,7 +364,7 @@
 /* The same, with the accent leaking out from under it. For the one lit object. */
 .lift-signal {
   box-shadow:
-    0 1px 0 0 rgba(39, 195, 212, 0.12) inset,
+    0 1px 0 0 rgba(129, 108, 213, 0.12) inset,
     0 30px 90px -40px rgba(0, 0, 0, 0.9),
     0 0 60px -22px var(--color-signal-glow);
 }
@@ -352,14 +379,14 @@
 */
 .display-lit {
   text-shadow:
-    0 0 70px rgba(233, 236, 244, 0.13),
-    0 0 160px rgba(233, 236, 244, 0.06);
+    0 0 70px rgba(233, 232, 242, 0.13),
+    0 0 160px rgba(233, 232, 242, 0.06);
 }
 
 .display-lit-signal {
   text-shadow:
-    0 0 50px rgba(39, 195, 212, 0.4),
-    0 0 130px rgba(39, 195, 212, 0.22);
+    0 0 55px rgba(129, 108, 213, 0.3),
+    0 0 140px rgba(129, 108, 213, 0.16);
 }
 
 /* ── controls ──────────────────────────────────────────────────────── */
@@ -413,7 +440,7 @@
 .btn-line:hover {
   color: var(--color-paper);
   border-color: var(--color-paper);
-  background: rgba(233, 236, 244, 0.04);
+  background: rgba(233, 232, 242, 0.04);
 }
 
 /*
@@ -545,9 +572,12 @@ footer .btn-primary:hover {
 }
 
 /*
-  Kept because the scaffold's own burner-key modals paint with it. Re-pointed at
-  the signal so those inherited surfaces match the rest of the site.
+  Kept because the scaffold's own burner-key modals paint with it — and pointed
+  at Hedera's own signature gradient, Ultraviolet to Azure, rather than at an
+  approximation of it. It is the one place on the site where the brand's exact
+  values belong, because it is the one element that is the platform's rather
+  than ours.
 */
 .hedera-gradient {
-  background: linear-gradient(135deg, #27c3d4 0%, #1d6a74 100%);
+  background: linear-gradient(135deg, #8259ef 0%, #0031ff 100%);
 }

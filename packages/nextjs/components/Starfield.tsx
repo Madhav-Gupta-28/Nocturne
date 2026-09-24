@@ -109,9 +109,14 @@ const FRAGMENT = /* glsl */ `
   }
 `;
 
-/** Cool white for most of the field, the site's signal colour for a minority. */
-const WHITE = new THREE.Color("#dfe6f5");
-const SIGNAL = new THREE.Color("#27c3d4");
+/**
+ * Cool white for most of the field, the site's accent for a minority.
+ *
+ * Both are pulled toward the accent's hue rather than being neutral, which is
+ * what keeps the sky inside the palette instead of sitting behind it.
+ */
+const WHITE = new THREE.Color("#e2e0ef");
+const SIGNAL = new THREE.Color("#816cd5");
 
 export const Starfield = () => {
   const host = useRef<HTMLDivElement>(null);
@@ -208,7 +213,7 @@ export const Starfield = () => {
     const meteorGeometry = new THREE.BufferGeometry();
     meteorGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
     const meteorMaterial = new THREE.LineBasicMaterial({
-      color: 0xdfe6f5,
+      color: 0xe2e0ef,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
