@@ -30,7 +30,14 @@ export const RainbowKitCustomConnectButton = () => {
             {(() => {
               if (!connected) {
                 return (
-                  <button className="btn btn-primary btn-sm" onClick={openConnectModal} type="button">
+                  // Outlined, not filled. Moonlight is the only colour on this
+                  // site and it is spent as light; a solid block of it in the
+                  // header would make it look like a brand button instead.
+                  <button
+                    className="border border-paper px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-paper hover:text-ink"
+                    onClick={openConnectModal}
+                    type="button"
+                  >
                     Connect Wallet
                   </button>
                 );

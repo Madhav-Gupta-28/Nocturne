@@ -20,7 +20,7 @@ const HowItWorks: NextPage = () => (
     <div className="w-full max-w-5xl">
       <header className="night pt-20 pb-16 sm:pt-28">
         <p className="eyebrow m-0">How it works</p>
-        <h1 className="display text-[3rem] sm:text-[5rem] mt-7 mb-0 max-w-4xl">
+        <h1 className="display text-[2.5rem] sm:text-[4.25rem] mt-7 mb-0 max-w-4xl">
           A contract cannot wake up.
           <br />
           <span className="text-signal">On Hedera it no longer has to.</span>
@@ -122,7 +122,7 @@ const Move = ({ n, title, lede, children }: { n: string; title: string; lede: st
     <div className="grid lg:grid-cols-[4rem_1fr] gap-x-8">
       <span className="eyebrow pt-2 self-start">{n}</span>
       <div>
-        <h2 className="display text-3xl sm:text-[2.75rem] m-0 max-w-3xl">{title}</h2>
+        <h2 className="display text-[1.75rem] sm:text-[2.5rem] m-0 max-w-3xl">{title}</h2>
         <p className="mt-5 mb-10 max-w-2xl text-paper-dim leading-relaxed">{lede}</p>
         {children}
       </div>

@@ -32,6 +32,8 @@ export const Chain = () => {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    const run = () => RUNS.forEach((_, i) => setTimeout(() => setStep(i), 260 * i));
+
     const io = new IntersectionObserver(
       entries =>
         entries.forEach(e => {
@@ -39,12 +41,24 @@ export const Chain = () => {
           io.disconnect();
           // One beat per run, so the eye follows the chain being laid rather
           // than arriving at a finished picture.
-          RUNS.forEach((_, i) => setTimeout(() => setStep(i), 260 * i));
+          run();
         }),
       { threshold: 0.4 },
     );
     io.observe(el);
-    return () => io.disconnect();
+
+    // The argument is in the panels, so it cannot depend on an observer firing.
+    // If it has not by now — a short viewport, a screenshot, an engine that
+    // never scrolls — draw the finished chain and let the animation go.
+    const fallback = setTimeout(() => {
+      io.disconnect();
+      run();
+    }, 1200);
+
+    return () => {
+      io.disconnect();
+      clearTimeout(fallback);
+    };
   }, []);
 
   return (
@@ -55,7 +69,7 @@ export const Chain = () => {
           <li
             key={run.n}
             className="bg-ink-raised p-5 transition-opacity duration-500"
-            style={{ opacity: on ? 1 : 0.2 }}
+            style={{ opacity: on ? 1 : 0.45 }}
           >
             <div className="eyebrow flex items-center justify-between">
               <span>Run {String(run.n).padStart(2, "0")}</span>

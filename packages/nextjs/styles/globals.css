@@ -169,7 +169,13 @@
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.005em;
-  line-height: 0.88;
+  /*
+    Tight, but not as tight as a single line wants. At 0.88 a heading that wraps
+    puts the descender of one line into the cap of the next, and every heading
+    on this site is caps, so there is nothing to hide it.
+  */
+  line-height: 0.94;
+  text-wrap: balance;
 }
 
 /*
