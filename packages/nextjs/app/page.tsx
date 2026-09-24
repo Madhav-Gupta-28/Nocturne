@@ -19,15 +19,16 @@ import { useScaffoldReadContract } from "~~/hooks/scaffold-hbar";
  * One page, five sections, one claim: you set it once and it keeps running.
  *
  * It is ordered as an argument and nothing is on it twice. The opening says
- * what you get; `Problem` says why that was hard; `Proof` shows the chain
- * agreeing; `RunTheNight` plays the mechanism, because the ordering inside a
- * run is something you watch rather than something you read; and only then
- * does the page ask for a wallet.
+ * what you get; `Problem` says why that was hard; `Proof` shows a real vault
+ * refusing a trade and then making one, with the live price reading beside it;
+ * `RunTheNight` plays the mechanism, because the ordering inside a run is
+ * something you watch rather than something you read; and only then does the
+ * page ask for a wallet.
  *
- * Everything that answers a second question — the cadence diagram, the two
- * price sources, the deployed addresses — lives on `/how-it-works`. It is all
- * good material and none of it belongs in front of somebody who is still
- * deciding whether to care.
+ * Everything that answers a second question — the cadence diagram, the fuel
+ * arithmetic, the deployed addresses — lives on `/how-it-works`. It is all good
+ * material and none of it belongs in front of somebody who is still deciding
+ * whether to care.
  */
 
 const ZERO = "0x0000000000000000000000000000000000000000";

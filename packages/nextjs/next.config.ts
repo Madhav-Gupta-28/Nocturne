@@ -16,8 +16,8 @@ const nextConfig: NextConfig = {
     config.externals.push("pino-pretty", "lokijs", "encoding");
 
     // @coinbase/cdp-sdk declares the @x402/* packages as OPTIONAL peer
-    // dependencies and then imports them statically. npm correctly does not
-    // install an optional peer nobody asked for, but webpack still tries to
+    // dependencies and then imports them statically. An optional peer nobody
+    // asked for is correctly left uninstalled, but webpack still tries to
     // resolve the import and fails the production build outright:
     //
     //   Module not found: Can't resolve '@x402/evm/upto/client'

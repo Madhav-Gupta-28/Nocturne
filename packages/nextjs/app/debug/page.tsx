@@ -31,7 +31,7 @@ const Debug: NextPage = () => (
           <h1 className="display mb-0 text-[clamp(2.4rem,7vw,6rem)]">
             <span className="display-lit">Call it</span> <span className="marker">yourself.</span>
           </h1>
-          <p className="mb-0 mt-8 max-w-lg text-lg leading-relaxed text-paper-dim">
+          <p className="mb-0 mt-12 max-w-lg text-lg leading-relaxed text-paper-dim">
             Every deployed contract, live on testnet. Reads are free — writes need a wallet.
           </p>
         </div>

@@ -43,6 +43,16 @@ type Reading = {
 
 const usd = (price1e18: bigint) => `$${(Number(price1e18) / 1e18).toFixed(4)}`;
 
+/**
+ * How far apart, in the unit a reader can hold. A few percent reads as a
+ * percentage; a testnet gap of two thousand percent does not, and "22×" does.
+ */
+const apart = (r: Reading) => {
+  if (r.divergenceBps < 10_000n) return `${(Number(r.divergenceBps) / 100).toFixed(1)}%`;
+  const [hi, lo] = r.twap > r.feed ? [r.twap, r.feed] : [r.feed, r.twap];
+  return `${(Number(hi) / Number(lo)).toFixed(1)}×`;
+};
+
 export const TwoSources = () => {
   const { targetNetwork } = useTargetNetwork();
   const { data } = useScaffoldReadContract({
@@ -75,9 +85,7 @@ export const TwoSources = () => {
         />
         <div>
           <div className="eyebrow mb-2">Apart</div>
-          <div className="tabular font-mono text-4xl leading-none text-signal">
-            {r ? `${(Number(r.divergenceBps) / 100).toFixed(0)}%` : "—"}
-          </div>
+          <div className="tabular font-mono text-4xl leading-none text-signal">{r ? apart(r) : "—"}</div>
           <div className="text-xs text-paper-faint mt-2">tolerance 2%</div>
         </div>
       </div>

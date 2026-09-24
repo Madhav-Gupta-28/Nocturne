@@ -6,8 +6,22 @@ for a faucet. Everything below was run end to end before it was written down.
 ## 01 · Scaffold it
 
 ```bash
-npx create-scaffold-hbar@latest --template Madhav-Gupta-28/Nocturne
+npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
 ```
+
+The `--` is not optional. Without it the flag is consumed by npm, and you land
+in the stock template picker.
+
+> **If GitHub rate-limits the CLI, you get the wrong project.** The
+> CLI reads this template's `template.json` through the GitHub API. When that
+> call fails it quietly falls back to its own defaults — Foundry and Yarn — and
+> drops `packages/hardhat`. Pin the choices yourself and the call no longer
+> matters:
+>
+> ```bash
+> npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne \
+>   -f nextjs-app -s hardhat --package-manager npm
+> ```
 
 You get one repository with two workspaces:
 
@@ -16,11 +30,10 @@ You get one repository with two workspaces:
 | `packages/hardhat` | Six contracts, 123 offline tests, deploy and demo scripts |
 | `packages/nextjs` | This site — the landing page, these docs, a vault dashboard |
 
-Node 20.18.3 or newer. Both npm and yarn work; the examples use npm.
+Node 20.18.3 or newer. The CLI installs dependencies for you.
 
 ```bash
 cd nocturne
-npm install
 npm run hardhat:compile
 ```
 
@@ -169,5 +182,5 @@ Before you deploy anything with money behind it, read
 | `npm run next:dev` | Run the frontend |
 | `npm run next:build` | Production build |
 
-Note the `--` before `--network`. npm needs it to pass the flag through to the
-script rather than consuming it itself.
+Note the `--` before `--network`. Without it the flag is consumed by npm,
+not passed through to the script.

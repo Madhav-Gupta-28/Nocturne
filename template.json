@@ -52,7 +52,7 @@
           "title": "Put a vault on testnet and walk away",
           "steps": [
             {
-              "label": "Deploy the engine and both strategies",
+              "label": "Deploy the vault factory and three strategies",
               "command": "{run:hardhat:deploy} -- --network hederaTestnet"
             },
             {
@@ -68,7 +68,7 @@
           "title": "Read this before changing the scheduling code",
           "steps": [
             {
-              "label": "Five ways HSS automation fails silently, each measured on testnet",
+              "label": "Six ways HSS automation fails silently, each measured on testnet",
               "url": "https://github.com/Madhav-Gupta-28/Nocturne/blob/main/docs/hedera-landmines.md"
             }
           ]

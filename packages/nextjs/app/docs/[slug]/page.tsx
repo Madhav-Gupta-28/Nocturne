@@ -68,7 +68,7 @@ const DocPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
           {isEntry ? (
             <header className="mb-16">
               <p className="eyebrow mb-0">Nocturne · Hedera testnet</p>
-              <h1 className="display display-lit mb-0 mt-6 text-[clamp(2.6rem,6vw,4.5rem)]">
+              <h1 className="display display-lit mb-0 mt-9 text-[clamp(2.6rem,6vw,4.5rem)]">
                 Contracts that <span className="marker">run themselves.</span>
               </h1>
               <p className="mb-0 mt-8 max-w-[62ch] text-lg leading-relaxed text-paper-dim">

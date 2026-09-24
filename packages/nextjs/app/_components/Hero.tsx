@@ -18,7 +18,9 @@ import { Starfield } from "~~/components/Starfield";
  * click, and everything a curious reader wants is reachable from the header.
  */
 
-const COMMAND = "npx create-scaffold-hbar@latest --template Madhav-Gupta-28/Nocturne";
+// The `--` is load-bearing. Without it `--template` is consumed by npm, never
+// reaches the CLI, and the user lands in the stock template picker.
+const COMMAND = "npm create scaffold-hbar@latest -- --template Madhav-Gupta-28/Nocturne";
 
 export const Hero = () => {
   const still = useReducedMotion();
@@ -156,7 +158,7 @@ const CommandCard = () => {
         <pre className="m-0 overflow-x-auto px-5 py-5 text-[13px] leading-relaxed text-paper-dim">
           <code>
             <span className="select-none text-paper-faint">$ </span>
-            npx create-scaffold-hbar@latest <span className="text-paper">--template Madhav-Gupta-28/Nocturne</span>
+            npm create scaffold-hbar@latest -- <span className="text-paper">--template Madhav-Gupta-28/Nocturne</span>
           </code>
         </pre>
       </figure>

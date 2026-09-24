@@ -7,10 +7,6 @@ chooses when that should be from what it observes, and refuses to act when its
 two price sources disagree. Two strategies ship on top of it: a position that
 exits itself, and a portfolio that rebalances itself.
 
-```bash
-npm create scaffold-hbar@latest --template <owner>/scaffold-hbar-nocturne
-```
-
 > *Nocturne* — a piece written for the night, played whether or not anyone
 > is listening.
 

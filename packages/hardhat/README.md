@@ -34,8 +34,8 @@ npm run hardhat:deploy -- --network hederaTestnet      # asks for the password
 npm run hardhat:verify:sourcify -- --network hederaTestnet
 ```
 
-The `--` matters: without it npm swallows `--network` and Hardhat fails with
-HH308. `npx hardhat verify` does not work on this stack — see
+The `--` matters. Without it, `--network` is swallowed by npm, and Hardhat
+fails with HH308. `npx hardhat verify` does not work on this stack — see
 [`docs/hedera-landmines.md`](../../docs/hedera-landmines.md).
 
 ## Arm a vault
