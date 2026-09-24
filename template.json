@@ -4,9 +4,16 @@
   "version": "0.1.0",
   "create-scaffold-hbar": {
     "capabilities": {
-      "frontend": ["nextjs-app"],
-      "solidityFramework": ["hardhat"],
-      "packageManager": ["npm", "yarn"]
+      "frontend": [
+        "nextjs-app"
+      ],
+      "solidityFramework": [
+        "hardhat"
+      ],
+      "packageManager": [
+        "npm",
+        "yarn"
+      ]
     },
     "defaults": {
       "frontend": "nextjs-app",
@@ -46,7 +53,7 @@
           "steps": [
             {
               "label": "Deploy the engine and both strategies",
-              "command": "{run:hardhat:deploy} --network hederaTestnet"
+              "command": "{run:hardhat:deploy} -- --network hederaTestnet"
             },
             {
               "label": "Start the app, arm a vault, then close the tab",
@@ -61,7 +68,7 @@
           "title": "Read this before changing the scheduling code",
           "steps": [
             {
-              "label": "Four ways HSS automation fails silently, each measured on testnet",
+              "label": "Five ways HSS automation fails silently, each measured on testnet",
               "url": "https://github.com/Madhav-Gupta-28/Nocturne/blob/main/docs/hedera-landmines.md"
             }
           ]
