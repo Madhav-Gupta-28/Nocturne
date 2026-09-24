@@ -356,6 +356,21 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         // stray call cannot end the chain.
         if (block.timestamp + CLOCK_SKEW < nextRunAt) return;
 
+        // Somebody other than the network woke us up.
+        //
+        // That is allowed — it is how a stalled chain gets revived — but it
+        // leaves the already-booked schedule behind. Left alone that orphan
+        // fires at its original second, finds the vault no longer due, returns
+        // without doing anything, and the vault is charged a full execution for
+        // it. Repeated once per cycle it halves the vault's life, which makes it
+        // worth the one comparison below.
+        //
+        // A scheduled call arrives with `msg.sender` set to this contract: the
+        // network runs it as though the vault called itself. Measured, not
+        // assumed — see `contracts/test/ScheduledSenderProbe.sol`, which the
+        // network fired with sender and origin both equal to the probe.
+        if (msg.sender != address(this)) _releaseSchedule();
+
         uint64 run = ++runCount;
         lastRunAt = uint64(block.timestamp);
 

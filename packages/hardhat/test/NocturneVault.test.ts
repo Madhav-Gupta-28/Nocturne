@@ -334,6 +334,30 @@ describe("NocturneVault", () => {
     });
   });
 
+  describe("an uninvited early caller", () => {
+    it("does not leave the pending schedule behind to fire into nothing", async () => {
+      const { vault, strategy, hss, sink, stranger } = await loadFixture(deployFixture);
+      await strategy.setActions(await pingAction(sink));
+      await strategy.setInterval(HOUR);
+      await vault.arm();
+
+      expect(await hss.pendingCount()).to.equal(1);
+
+      // CLOCK_SKEW is 10s, so this is inside the window where the vault will
+      // accept a call that is not its own wake-up.
+      await time.increaseTo((await vault.nextRunAt()) - 5n);
+      await hss.newTransaction();
+      await vault.connect(stranger).executeScheduled();
+
+      // The run happened and booked a successor. The schedule that was already
+      // pending must not still be out there: it would fire at the old time,
+      // find the vault not due, do nothing, and charge the vault for the
+      // privilege.
+      expect(await vault.runCount()).to.equal(1);
+      expect(await hss.pendingCount()).to.equal(1);
+    });
+  });
+
   // ----------------------------------------------------------------
   // Fuel
   // ----------------------------------------------------------------
