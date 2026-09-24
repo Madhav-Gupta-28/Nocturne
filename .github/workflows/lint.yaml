@@ -1,4 +1,13 @@
-name: Lint
+name: CI
+
+# What a reviewer would run by hand, run on every push: the contracts compile,
+# the offline test suite passes, and the frontend lints, typechecks and builds.
+#
+# There is deliberately no deploy-to-local-node step. The contracts call the
+# Hedera Schedule Service precompile at 0x16b, which a plain Hardhat node does
+# not have — the test suite covers the whole loop against
+# MockHederaScheduleService instead, which is the thing a local deploy would
+# have been standing in for.
 
 on:
   push:
@@ -10,39 +19,41 @@ on:
 
 jobs:
   ci:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        node: [lts/*]
+        # The floor the template declares, and the current LTS. Node 25's
+        # stub localStorage is handled by packages/nextjs/node-compat.cjs.
+        node: ["20.18.3", "22"]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Setup node env
-        uses: actions/setup-node@v3
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: npm
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install
+        run: npm ci
 
-      - name: Run Hardhat node and deploy contracts
-        run: |
-          npm run hardhat:chain &
-          timeout 60s bash -c 'until curl -s -X POST http://127.0.0.1:8545 -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"web3_clientVersion\",\"params\":[],\"id\":1}" >/dev/null; do sleep 2; done'
-          npm run hardhat:deploy --network localhost
+      - name: Compile contracts
+        run: npm run hardhat:compile
 
-      - name: Run nextjs lint
-        run: npm run next:lint --max-warnings=0
+      - name: Test contracts (offline, against the mock scheduler)
+        run: npm run hardhat:test
 
-      - name: Check typings on nextjs
+      - name: Lint contracts
+        run: npm run hardhat:lint -- --max-warnings=0
+
+      - name: Lint frontend
+        run: npm run next:lint -- --max-warnings=0
+
+      - name: Typecheck frontend
         run: npm run next:check-types
 
-      - name: Run hardhat lint
-        run: npm run hardhat:lint --max-warnings=0
+      - name: Build frontend
+        run: npm run next:build
