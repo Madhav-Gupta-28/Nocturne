@@ -48,6 +48,14 @@ transaction that armed it.
 | First demo vault | `0.0.10684549` — 13 unattended runs, then died holding 2.76 HBAR (see below) |
 | Second demo vault | `0.0.10685769` — funded with 5 HBAR, predicted 2 runs, ran exactly 2 |
 
+All of them are source-verified on Sourcify, so HashScan shows the code rather
+than bytecode. Note that `npx hardhat verify` does **not** work on this stack —
+Sourcify retired the v1 API the pinned `hardhat-verify` still calls. Use:
+
+```bash
+npm run hardhat:verify:sourcify -- --network hederaTestnet
+```
+
 ---
 
 ## Why it is not a cron job
