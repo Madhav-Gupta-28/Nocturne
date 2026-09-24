@@ -14,8 +14,8 @@ in the stock template picker.
 
 > **If GitHub rate-limits the CLI, you get the wrong project.** The
 > CLI reads this template's `template.json` through the GitHub API. When that
-> call fails it quietly falls back to its own defaults — Foundry and Yarn — and
-> drops `packages/hardhat`. Pin the choices yourself and the call no longer
+> call fails it quietly falls back to its own default — Foundry — and drops
+> `packages/hardhat`. Pin the choices yourself and the call no longer
 > matters:
 >
 > ```bash

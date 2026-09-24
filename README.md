@@ -1,286 +1,265 @@
 # Nocturne
 
-**Close the tab. Come back. It already happened.**
+**Cron for contracts. No server.**
 
-A Scaffold-HBAR template for contracts that run themselves. A vault books its own
-next execution through the Hedera Schedule Service, decides how long to wait from
-what it can see, and refuses to trade when its two price sources disagree.
+A Scaffold-HBAR template for on-chain jobs with no keeper. A vault books its own
+next run through the Hedera Schedule Service, pays for it from its own balance,
+and won't trade unless SaucerSwap and Chainlink agree on the price.
 
-No keeper. No bot. No cron job on somebody's laptop. The thing that fires at 4am
-is the network.
+[![CI](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml)
+&nbsp;MIT · Hedera testnet · 123 offline tests + 5 live
 
 ```bash
-npx create-scaffold-hbar@latest --template Madhav-Gupta-28/Nocturne
+npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
 ```
+
+![Nocturne landing page](docs/images/hero.jpg)
 
 ---
 
-## What you can check in two minutes
+## Proof, on testnet
 
-Nocturne's central claim is the one a screenshot cannot make, so here is how to
-falsify it instead.
+One vault held 0.1 WHBAR against the live SaucerSwap V2 pool and the live
+Chainlink HBAR/USD feed. Nobody sent any of its runs. The network did, and the
+vault paid.
 
-A vault ran unattended on testnet and beat a counter every two minutes. Read the
-counter:
+![The refusal and the swap](docs/images/proof.jpg)
+
+| Run | What happened | Fee, paid by the vault | Transaction |
+| --- | --- | --- | --- |
+| 1 | **Refused.** Pool $2.0503, Chainlink $0.0915, 22.4× apart. Sold nothing. | 1.78 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790220055.062657433) |
+| 2 | **Sold.** Tolerance widened on purpose: approve + swap, 0.1 WHBAR → 0.204405 USDC. | 2.62 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790220899.081501493) |
+| 3 | **Refused**, "nothing held". It does not sell twice. | — | [vault](https://hashscan.io/testnet/contract/0.0.10690925) |
+
+The 22× gap is a testnet artefact: nothing arbitrages a testnet pool. That makes
+it a poor place to show a realistic sale, so run 2 uses an absurd tolerance to
+prove the swap path on chain. And it's the perfect place to show a refusal.
+
+### Check it yourself
+
+Who paid for the swap? The mirror node says the vault, and only the vault:
 
 ```bash
-cast call 0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b "beats()(uint256)" \
-  --rpc-url https://testnet.hashio.io/api
+curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?timestamp=1790220899.081501493" \
+  | jq '.transactions[] | {scheduled, result, paid_by: [.transfers[] | select(.amount < 0)]}'
 ```
 
-Then read who paid for those beats:
-
-```bash
-curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?account.id=0.0.10684549&limit=5&order=desc" \
-  | jq '.transactions[] | {result, scheduled, transfers: [.transfers[] | select(.amount < 0)]}'
+```json
+{ "scheduled": true, "result": "SUCCESS",
+  "paid_by": [{ "account": "0.0.10690925", "amount": -262493037 }] }
 ```
 
 **Read the transfer list, not the transaction id.** A scheduled transaction's id
-carries the account that *created* the schedule, which makes the owner look like
-the sender of every call. They are not. The fee comes out of the vault's own
-account, and the owner appears exactly once in the whole history — the
-transaction that armed it.
+names whoever *created* the schedule, so it looks as if someone sent the call.
+The transfer list shows who actually paid.
 
-| | |
+The same refusal is visible right now, before you arm anything:
+`npm run hardhat:test:live` reads the real pool and feed and asserts that the
+guard refuses.
+
+---
+
+## Why SaucerSwap and Chainlink are load-bearing
+
+Remove either one and the exit strategy can't run.
+
+| | SaucerSwap V2 | Chainlink HBAR/USD |
+| --- | --- | --- |
+| Read | 60-second TWAP from the pool's `observe`, via [`TwapLib`](packages/hardhat/contracts/lib/TwapLib.sol) + [`TickMath`](packages/hardhat/contracts/lib/TickMath.sol) | `latestRoundData`, with staleness and decimals checked |
+| Decides | Whether the floor has broken | Whether the pool price can be believed |
+| Acts | The swap itself: `exactInputSingle` on the V2 router, with a minimum output | The minimum output, when it's the lower price |
+
+[`PriceGuard`](packages/hardhat/contracts/lib/PriceGuard.sol) sits between the
+two sources and every trade:
+
+- **It never reverts.** A bad reading becomes a refusal with a reason: `pool has
+  no window yet`, `feed unavailable`, `feed stale`, `pool price is zero`,
+  `sources disagree`. A strategy that reverted would lose the vault its run.
+- **It overstates the gap.** Divergence is measured against the smaller price,
+  so every rounding choice makes a refusal more likely.
+- **It acts on the cautious price.** `actionablePrice` takes whichever source is
+  worse for the trade, and `amountOutMinimum` is set from it.
+
+Why two sources: on 11 July 2026 a single manipulated oracle price took
+[$9.05M out of Bonzo Lend](https://www.coindesk.com/web3/2026/07/11/lending-protocol-bonzo-loses-77-of-value-locked-as-usd9-million-oracle-exploit-rattles-hedera),
+77% of its TVL. An automated seller that trusts one feed is a liquidation bot
+working for whoever moved the price.
+
+---
+
+## How it works
+
+**It books the next run before doing any work.** Each run schedules its
+successor first, then plans. A strategy that reverts costs one run, not the
+whole chain.
+
+**The strategy sets the pace.** `nextInterval()` returns six hours for a
+position far from its floor and sixty seconds for one near it. Hedera's own
+`ScheduledVault` example takes a fixed interval, so it can't express this.
+
+**It pays its own way.** Fees come from the vault's balance. `runway()` tells
+you how many runs are left, using the reserve the network actually demands, not
+the fee it charges (see landmine 5).
+
+| Contract | Role |
 | --- | --- |
-| Heartbeat | [`0x8b63C92F…3ec0b`](https://hashscan.io/testnet/contract/0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b) |
-| Factory | [`0xc0f202Ac…4B78`](https://hashscan.io/testnet/contract/0xc0f202Ac01475AFBD07e09643d56bdacC9294B78) |
-| First demo vault | `0.0.10684549` — 13 unattended runs, then died holding 2.76 HBAR (see below) |
-| Second demo vault | `0.0.10685769` — funded with 5 HBAR, predicted 2 runs, ran exactly 2 |
-| Exit vault | `0.0.10690925` — refused a real sale, then made one. Both unattended. |
-
-All of them are source-verified on Sourcify, so HashScan shows the code rather
-than bytecode. Note that `npx hardhat verify` does **not** work on this stack —
-Sourcify retired the v1 API the pinned `hardhat-verify` still calls. Use:
-
-```bash
-npm run hardhat:verify:sourcify -- --network hederaTestnet
-```
-
----
-
-## The protective exit, on chain, both ways
-
-Vault [`0xE7489c93…A2Ce`](https://hashscan.io/testnet/contract/0xE7489c93Db8051324ff3212A36d597E4F5C1A2Ce)
-held 0.1 WHBAR against the live SaucerSwap pool and the live Chainlink feed. Its
-whole event log is readable on the mirror node; these are the two runs that
-matter, and **neither of them has a transaction from the owner behind it**.
-
-**It refused.** The pool priced WHBAR at 2.0503 USDC while Chainlink said 0.0915
-— a 22.4× gap, because nothing arbitrages a testnet. The vault sold nothing and
-wrote down why:
-
-```
-ScheduleBooked  0x…A321a2, 1790220353
-Refused         1, "sources disagree", 2050255753208667000, 91531290000000000
-```
-
-**Then, told the divergence was acceptable, it sold.** Same code, same vault,
-one config change to an absurd tolerance:
-
-```
-ScheduleBooked  0x…a3226e, 1790220958
-Executed        2, 2, 1790220958       <- run 2, two actions: approve + swap
-
-vault WHBAR  0.1  ->  0.0
-vault USDC   0.0  ->  0.204405
-```
-
-0.204405 USDC is exactly what QuoterV2 quoted beforehand. The vault paid its own
-fee — 2.6249 HBAR, the only negative entry in the transfer list.
-
-Two details in those logs are the design, not decoration. **`ScheduleBooked`
-appears before `Refused` and before `Executed`**: the successor is booked before
-any work is planned, so a strategy that reverts costs one run rather than the
-chain. And the refusal is a *recorded outcome with a reason*, not an error —
-which is what lets a vault decline to act and still be alive afterwards.
-
-The wide tolerance is not a sane configuration and exists only so the
-approve-and-swap path is proven on chain rather than against mocks. Reproduce
-either half with `scripts/armExitVault.ts`.
-
----
-
-## Why it is not a cron job
-
-**It books its own successor, before it does any work.** Each execution schedules
-the next one first and only then plans. A strategy that reverts costs one run
-instead of the whole chain — and because `executeScheduled` has no access
-control, anyone can restart a chain that stopped.
-
-**The strategy chooses the cadence, not the vault.** `nextInterval()` is the
-whole contribution. A position far from trouble is checked every six hours; one
-near its floor every sixty seconds. At ~1.6 HBAR a run that is the difference
-between 6 and 460 HBAR a day, and only the strategy knows which is currently
-right.
-
-> Hedera's own `ScheduledVault` example takes a fixed interval, and its strategy
-> interface returns actions only. Their documented use case — *"as positions
-> approach liquidation thresholds, contracts schedule increasingly frequent
-> monitoring"* — cannot be expressed in it. `nextInterval` is that sentence in
-> code.
-
-**It can refuse.** Before it trades, a pool TWAP and a Chainlink feed have to
-agree within a tolerance you set. When they do not, it sells nothing, records
-*why*, and looks again sooner. On **11 July 2026** a single manipulated price
-took **$9.05M** out of Bonzo Lend and roughly 40% of Hedera's TVL with it; an
-automated seller that believes one feed is not a safety tool, it is a liquidation
-bot working for whoever moved the price.
-
----
-
-## What's in it
-
-| Contract | What it is |
-| --- | --- |
-| `NocturneVault` | The engine. Holds funds, books schedules, executes plans, never reverts inside a scheduled call. |
-| `NocturneFactory` | One vault per owner. Real deploys — **never clones**, see below. |
+| `NocturneVault` | Holds funds, books schedules, runs plans. Never reverts inside a scheduled call. |
+| `NocturneFactory` | One vault per owner. Real deploys, never clones (clones can't schedule). |
 | `INocturneStrategy` | Four functions: `plan`, `nextInterval`, `validateConfig`, `explain`. |
-| `HeartbeatStrategy` | The reference implementation, and the liveness proof. |
-| `ProtectiveExitStrategy` | A floor. One-way, terminal, urgent. |
-| `DriftRebalanceStrategy` | A target. Two-way, repeating, and declines trades that cost more than they correct. |
-| `lib/PriceGuard` | Two-source agreement, with a reason string when they disagree. |
-| `lib/TwapLib`, `lib/TickMath` | Uniswap V3 TWAP reading, constants derived independently (MIT, not copied from GPL v3-core). |
+| `HeartbeatStrategy` | Fixed cadence. The smallest strategy that works. |
+| `ProtectiveExitStrategy` | Sells to a floor. One-way and urgent. |
+| `DriftRebalanceStrategy` | Holds a ratio. Two-way, and skips trades that cost more than they fix. |
+| `PriceLens` | Read-only view of what the guard sees, for the frontend. |
 
-Two strategies of genuinely different shape on one engine is the evidence that
-the abstraction holds. A third should be a file, not a rewrite.
+Three strategies with different shapes on one engine is the evidence that the
+interface holds. A fourth is a new file, not a rewrite.
 
 ---
 
 ## Six ways HSS automation fails silently
 
-All measured on testnet, none of them in Hedera's documentation, each with the
-command that produced it in [`docs/hedera-landmines.md`](docs/hedera-landmines.md).
+All measured on testnet. None are in Hedera's docs. Each comes with the command
+that reproduces it in [`docs/hedera-landmines.md`](docs/hedera-landmines.md).
 
-1. **A self-rescheduling entry point needs ~1.5M gas.** Give it 1M and it runs
-   once, reports **SUCCESS**, and never runs again. Nothing reverts.
-2. **Scheduled calls see `block.timestamp` ~2 seconds early.** A deadline check
-   that passes every unit test fails in production.
-3. **Exactly one schedule per transaction.** Booking two rejects the whole thing.
-4. **Expiry is refused beyond 62 days.**
-5. **A payer must cover the whole gas allowance, not the gas it burns.** This one
-   killed the first demo vault with 2.76 HBAR still in it: thirteen runs charged
-   1.63 HBAR each, and the fourteenth was refused because the reserve is
-   3,000,000 gas × 109 tinybar = **3.27 HBAR**.
-
-A second vault was then funded with 5 HBAR to check the corrected arithmetic
-against the network *before* the fact. It predicted two runs. It ran twice and
-was refused on the third, holding 1.74 HBAR — and `runway()` read `0` rather than
-the `1` the old formula would have reported.
-
-6. **Inside a scheduled call, the balance is already down the whole allowance.**
-   A vault funded with 4 HBAR read its own balance as 0.73 mid-run — `4.00 − 3.27`
-   to the tinybar — then settled at 2.2245 once the unused gas came back. A fuel
-   check written inside the call sees a vault that looks broke when it is not.
-
-Landmine 5 is why `runway()` is not a single division:
-
-```
-runs = 0                                 if balance < reserve
-runs = (balance - reserve) / charge + 1  otherwise
-```
-
-Both figures come from `tx.gasprice`, which inside the EVM is quoted in **tinybar
-per gas** — the same unit as `address(this).balance`, so no 1e10 conversion
-applies — and which the relay fills in even during `eth_call`. `block.basefee` is
-`0` on Hedera and must not be used.
-
-### And one that is not about scheduling
-
-**EIP-1167 clones break HSS entirely.** A delegatecall frame gets a
-`delegatable_contract_id` admin key, and the scheduled call then fails at
-execution with `INVALID_PAYER_SIGNATURE`
-([hiero-consensus-node#27263](https://github.com/hiero-ledger/hiero-consensus-node/issues/27263)).
-`NocturneFactory` therefore deploys a real vault every time and pays the gas for
-it. A template that clones would look cheaper and silently not work.
+1. **1M gas kills the chain.** A self-rescheduling call needs ~1.5M. At 1M it
+   runs once, reports SUCCESS, and never runs again.
+2. **The clock is ~2 seconds behind.** Scheduled calls see an early
+   `block.timestamp`.
+3. **One schedule per transaction.** Book two and the whole transaction fails.
+4. **62 days maximum.** Anything later is refused.
+5. **The payer is checked against gas reserved, not gas burned.** The first demo
+   vault [died holding 2.76 HBAR](https://hashscan.io/testnet/transaction/1790184109.000053722):
+   each run cost 1.63, but the network wanted 3.27 up front.
+6. **Mid-run, the balance is already down the whole reserve.** A fuel check
+   inside the call sees a vault that looks broke.
 
 ---
 
 ## Quick start
 
-Requires **Node ≥ 20.18.3** (tested on 22).
+### Prerequisites
+
+- Node **20.18.3** or newer (CI runs 20.18.3 and 22)
+- npm
+- A Hedera testnet account with about **40 HBAR** from the
+  [portal faucet](https://portal.hedera.com/faucet)
+- Optional, for checking claims: `curl` and `jq`
+
+### Scaffold
 
 ```bash
-npm install
-cp packages/hardhat/.env.example packages/hardhat/.env
-npm run hardhat:account:import   # or :generate, then fund at the faucet
+npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
+cd nocturne
 ```
 
-Deploy and arm a vault that beats every two minutes:
+The `--` is required. Without it, `--template` is consumed by npm, and you land
+in the stock template picker.
+
+> **If GitHub rate-limits the CLI, you get the wrong project.** The CLI reads
+> `template.json` through the GitHub API. When that call fails it quietly falls
+> back to Foundry, and `packages/hardhat` is dropped. Pin the choices and the
+> API call stops mattering:
+>
+> ```bash
+> npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne \
+>   -f nextjs-app -s hardhat --package-manager npm
+> ```
+
+### Environment variables
+
+Every variable has a working testnet default. The only one you must create is
+the deployer key, and a script writes it for you.
+
+| Variable | File | Required | What it is |
+| --- | --- | --- | --- |
+| `DEPLOYER_PRIVATE_KEY_ENCRYPTED` | `packages/hardhat/.env` | to deploy | Written by `npm run hardhat:account:generate` (or `:import`). Password-encrypted. Never paste a raw key. |
+| `HEDERA_RPC_URL` | `packages/hardhat/.env` | no | JSON-RPC for Hardhat. Default `https://testnet.hashio.io/api`. |
+| `NEXT_PUBLIC_HEDERA_TESTNET_RPC_URL` | `packages/nextjs/.env.local` | no | Frontend RPC. Default Hashio testnet. |
+| `NEXT_PUBLIC_HEDERA_MAINNET_RPC_URL` | `packages/nextjs/.env.local` | no | Frontend RPC. Default Hashio mainnet. |
+| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | `packages/nextjs/.env.local` | no | Your WalletConnect id. The scaffold ships a shared one for development. |
+| `HEDERA_MIRROR_TESTNET_URL` | `packages/nextjs/.env.local` | no | Mirror node for the account API route. Default public testnet. |
+
+### Run it
 
 ```bash
-npm run hardhat:deploy -- --network hederaTestnet
+npm run hardhat:test                                   # 123 tests, no network
+npm run hardhat:account:generate                       # then fund it at the faucet
+npm run hardhat:deploy -- --network hederaTestnet      # six contracts
+npm run hardhat:verify:sourcify -- --network hederaTestnet
+npm run next:dev                                       # http://localhost:3000
+```
+
+Arm a vault from the terminal instead of the UI:
+
+```bash
 cd packages/hardhat
 FUEL_HBAR=12 INTERVAL=120 npx hardhat run scripts/armVault.ts --network hederaTestnet
+npx hardhat run scripts/armExitVault.ts --network hederaTestnet   # the refusal above
+npx hardhat run scripts/watchVault.ts --network hederaTestnet     # reads only
 ```
 
-Then send nothing else:
+**Budget against the reserve, not the fee.** A run needs 3.27 HBAR in the vault
+to be accepted and is charged about 1.63, so 12 HBAR buys six runs, not seven.
+Keep ~3 HBAR in the owner account too, because arming reserves gas of its own.
 
-```bash
-npx hardhat run scripts/watchVault.ts --network hederaTestnet
-```
-
-**Budget against the reserve, not the cost.** A run needs 3.27 HBAR in the vault
-to be accepted and is then charged about 1.63, so 12 HBAR is six runs, not seven.
-Leave the owner ~3 HBAR too — arming reserves its own gas, and an owner who put
-everything into the vault cannot arm it.
-
-The frontend:
-
-```bash
-npm run next:dev
-```
-
-Create a vault, arm it, watch the countdown, then close the tab.
+![Docs, served by the app](docs/images/docs.jpg)
 
 ---
 
-## Tests
+## Deployed on testnet
 
-```bash
-npm run hardhat:test          # 115 offline
-npm run hardhat:test:live     # 5 against live testnet contracts
-```
+All Sourcify-verified, so HashScan shows source.
 
-The live ones are the interesting ones: they read the real SaucerSwap pool and
-the real Chainlink feed, and one of them asserts that `PriceGuard` **refuses** to
-act because those two sources genuinely disagree right now.
+| Contract | Address |
+| --- | --- |
+| NocturneFactory | [`0xc0f202Ac01475AFBD07e09643d56bdacC9294B78`](https://hashscan.io/testnet/contract/0xc0f202Ac01475AFBD07e09643d56bdacC9294B78) |
+| ProtectiveExitStrategy | [`0x699Ec374cb2b6BaBb809cB70E58018E5f6be3E59`](https://hashscan.io/testnet/contract/0x699Ec374cb2b6BaBb809cB70E58018E5f6be3E59) |
+| DriftRebalanceStrategy | [`0xfFFc7Da411a899e8c76fc4546D63e8e38Fc55D64`](https://hashscan.io/testnet/contract/0xfFFc7Da411a899e8c76fc4546D63e8e38Fc55D64) |
+| HeartbeatStrategy | [`0xA5638e6682e2FDCC89CEE92Ffc9EC98F3D602428`](https://hashscan.io/testnet/contract/0xA5638e6682e2FDCC89CEE92Ffc9EC98F3D602428) |
+| PriceLens | [`0x7F017Bd04879389b2A9CEeD5941EeE75aD28cCdb`](https://hashscan.io/testnet/contract/0x7F017Bd04879389b2A9CEeD5941EeE75aD28cCdb) |
+| Heartbeat | [`0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b`](https://hashscan.io/testnet/contract/0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b) |
+
+The exit vault `0.0.10690925` above was built by an earlier deployment of the
+same contracts.
+
+---
+
+## Rubric map
+
+| Criterion | Where to look |
+| --- | --- |
+| **Ecosystem integration** | SaucerSwap V2 (TWAP + router swap) and Chainlink HBAR/USD decide every trade. [Load-bearing](#why-saucerswap-and-chainlink-are-load-bearing), [on-chain proof](#proof-on-testnet), `test/live/`. |
+| **Documentation** | This README, seven docs pages served in the app at `/docs` ([`docs/`](docs)), [`ARCHITECTURE.md`](ARCHITECTURE.md), [`AGENTS.md`](AGENTS.md) for coding agents. |
+| **Code quality** | 123 offline tests + 5 live, CI on Node 20 and 22, zero lint warnings, every contract Sourcify-verified. |
+| **Hedera service depth** | Schedule Service (`scheduleCall`, `hasScheduleCapacity`, `deleteSchedule`), Token Service (`associateToken`), Mirror Node, and [six measured failure modes](docs/hedera-landmines.md). |
 
 ---
 
 ## Reading order
 
-1. [`ARCHITECTURE.md`](ARCHITECTURE.md) — the whole design, with every chain fact
-   marked as measured or assumed, and the commands to re-measure them.
-2. [`docs/hedera-landmines.md`](docs/hedera-landmines.md) — the five failures,
-   reproducible.
-3. [`docs/dead-ends.md`](docs/dead-ends.md) — what was tried and abandoned, and
-   what closed it.
-4. `contracts/interfaces/INocturneStrategy.sol` — four functions.
-5. `contracts/strategies/HeartbeatStrategy.sol` — the simplest implementation.
-6. `contracts/NocturneVault.sol` — `executeScheduled` is the heart of it.
+1. [`docs/quickstart.md`](docs/quickstart.md): nothing to a running vault.
+2. [`contracts/interfaces/INocturneStrategy.sol`](packages/hardhat/contracts/interfaces/INocturneStrategy.sol): four functions.
+3. [`contracts/strategies/HeartbeatStrategy.sol`](packages/hardhat/contracts/strategies/HeartbeatStrategy.sol): the simplest one.
+4. [`contracts/NocturneVault.sol`](packages/hardhat/contracts/NocturneVault.sol): `executeScheduled` is the heart of it.
+5. [`docs/hedera-landmines.md`](docs/hedera-landmines.md), then [`ARCHITECTURE.md`](ARCHITECTURE.md) for every chain fact, measured or assumed.
 
 ---
 
 ## Built on Scaffold-HBAR
 
-Next.js App Router, wagmi + RainbowKit, Hardhat, Hashio RPC and Mirror Node
-config for testnet and mainnet, plus the stock **Debug Contracts** page and local
-block explorer.
+Next.js App Router, wagmi + RainbowKit, Hardhat, Hashio and Mirror Node config,
+the Debug Contracts page and the block explorer, all kept. Two fixes on top,
+each checked against a stock scaffold first:
 
-Two fixes this template carries over the stock scaffold, both verified against a
-pristine one first:
+- **`.npmrc` at the root.** The stock scaffold puts `legacy-peer-deps` only in
+  `packages/hardhat/.npmrc`, where a root workspace install ignores it, so
+  `npm install` fails on an ERESOLVE.
+- **`@x402/*` aliased out in `next.config.ts`.** Otherwise `npm run next:build`
+  fails on modules nothing here uses.
 
-- **`.npmrc` at the repo root.** The scaffold ships `legacy-peer-deps` only in
-  `packages/hardhat/.npmrc`, where npm ignores it during a root workspace
-  install, so `npm install` dies on an ERESOLVE between hardhat 2.22.19 and
-  hardhat-verify's `^2.26.0`.
-- **`@x402/*` aliased out in `next.config.ts`.** `npm run build` otherwise fails
-  on five unresolvable modules.
-
-Links: [Scaffold HBAR docs](https://docs.hedera.com/solutions/tools/scaffold-hbar/index)
+[Scaffold-HBAR docs](https://docs.hedera.com/solutions/tools/scaffold-hbar/index)
 · [create-scaffold-hbar](https://github.com/hedera-dev/create-scaffold-hbar)
-· [Hedera faucet](https://portal.hedera.com/faucet)
-· [HashScan](https://hashscan.io/)
+· [Faucet](https://portal.hedera.com/faucet)
+· [HashScan](https://hashscan.io/testnet)
 
-MIT.
+MIT

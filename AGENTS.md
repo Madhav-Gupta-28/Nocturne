@@ -16,8 +16,8 @@ and gives the command to re-measure it.
 ## Things that will bite you here
 
 These are specific to this chain and this mechanism, and none of them fail in a
-way that looks like a failure. All five are documented with reproductions in
-[`docs/hedera-landmines.md`](docs/hedera-landmines.md).
+way that looks like a failure. The six scheduling ones are documented with
+reproductions in [`docs/hedera-landmines.md`](docs/hedera-landmines.md).
 
 **Allow calls, not contracts.** `setAllowedCall(target, selector, allowed)` is
 keyed on the function. Permitting an address wholesale would let a strategy call
@@ -96,7 +96,7 @@ which is the last point a bad config fails loudly instead of at 3am.
 npm install                 # root; the repo's .npmrc is required, see README
 
 # Contracts
-npm run hardhat:test        # 115 offline tests
+npm run hardhat:test        # 123 offline tests
 npm run hardhat:test:live   # 5 against live testnet contracts
 npm run hardhat:compile
 npm run hardhat:deploy -- --network hederaTestnet
