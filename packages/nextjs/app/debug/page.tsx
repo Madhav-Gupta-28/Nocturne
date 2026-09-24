@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DebugContracts } from "./_components/DebugContracts";
 import type { NextPage } from "next";
+import { RainbowKitCustomConnectButton } from "~~/components/scaffold-hbar";
 import { getMetadata } from "~~/utils/scaffold-hbar/getMetadata";
 
 export const metadata = getMetadata({

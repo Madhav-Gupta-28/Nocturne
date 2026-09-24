@@ -32,10 +32,18 @@ export const Hero = () => {
           Each line is a clip window with the glyphs sliding up inside it, so
           the type reads as being set rather than as a block flying in.
         */}
-        <h1 className="display display-hero display-lit m-0 text-left">
-          <Line index={0}>Set it once.</Line>
-          <Line index={1} className="text-signal display-lit-signal">
-            It runs forever.
+        {/*
+          Category, then the impossible-sounding part. Every developer knows
+          what a cron job is and every one of them knows it needs a machine —
+          so naming the category and then removing the machine states the whole
+          product in six words, before anybody has read a paragraph.
+        */}
+        <h1 className="display display-hero m-0 text-left">
+          <Line index={0} className="display-lit">
+            Cron for contracts.
+          </Line>
+          <Line index={1}>
+            <span className="marker">No server.</span>
           </Line>
         </h1>
 
@@ -49,10 +57,9 @@ export const Hero = () => {
         <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20">
           <motion.div className="min-w-0" variants={fadeUp} custom={5} initial={still ? false : "rest"} animate="play">
             <p className="m-0 max-w-xl text-lg leading-relaxed text-paper-dim sm:text-xl">
-              Fund a vault and tell it what to do. It asks Hedera to wake it up later, does the job, and books its next
-              wake-up before it stops.{" "}
-              <span className="text-paper">No server, no bot — the network is what calls it.</span> It keeps going until
-              the HBAR runs out, and you take back whatever is left.
+              A repeating on-chain job needs a machine you own, pay for and keep online. Nocturne gives the contract two
+              things instead:{" "}
+              <span className="text-paper">a way to book its own next run, and the money to pay for it.</span>
             </p>
 
             <div className="mt-10">
@@ -72,7 +79,7 @@ export const Hero = () => {
 };
 
 /** One line of the headline, in its own clip window. */
-const Line = ({ children, index, className }: { children: string; index: number; className?: string }) => {
+const Line = ({ children, index, className }: { children: React.ReactNode; index: number; className?: string }) => {
   const still = useReducedMotion();
   const [arrived, setArrived] = useState(still);
 
@@ -152,10 +159,6 @@ const CommandCard = () => {
             npx create-scaffold-hbar@latest <span className="text-paper">--template Madhav-Gupta-28/Nocturne</span>
           </code>
         </pre>
-
-        <p className="m-0 border-t border-line px-5 py-4 text-xs leading-relaxed text-paper-faint">
-          Contracts, tests, deploy scripts and this page.
-        </p>
       </figure>
     </div>
   );

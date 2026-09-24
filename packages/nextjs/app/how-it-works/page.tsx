@@ -30,13 +30,12 @@ const HowItWorks: NextPage = () => (
   <div className="flex w-full grow flex-col pb-28">
     <div className="shell">
       <header className="glowfield pt-16 pb-4 sm:pt-24">
-        <p className="eyebrow m-0">How it works</p>
-        <h1 className="display display-lit mb-0 mt-7 text-[clamp(2.2rem,6.4vw,5.5rem)]">
-          Four pictures.
+        <h1 className="display mb-0 text-[clamp(2.2rem,6.4vw,5.5rem)]">
+          <span className="display-lit">The whole thing,</span>
           <br />
-          <span className="text-signal display-lit-signal">That is the whole template.</span>
+          <span className="marker">in four pictures.</span>
         </h1>
-        <p className="mb-0 mt-9 max-w-2xl text-lg leading-relaxed text-paper-dim">
+        <p className="mb-0 mt-10 max-w-2xl text-lg leading-relaxed text-paper-dim">
           A contract that calls itself, an interface you swap, a check it can fail, and a fee it pays out of its own
           balance.
         </p>
@@ -60,14 +59,13 @@ const HowItWorks: NextPage = () => (
 
       <Act
         n="One"
-        title="It books the next run before it does any work."
-        lede="The network wakes the vault. The first thing the vault does — before it looks at a price or moves a token — is ask Hedera to wake it again."
+        title="It books the next run first."
+        lede="Hedera calls executeScheduled. Before the vault reads a price or moves a token, it calls scheduleCall at 0x16b and books its own next wake-up."
         takeaway={
           <>
-            <span className="text-paper">Run 15&apos;s work fails, and run 16 still happens.</span> Booking first is
-            what makes a bad run cost one run instead of the whole chain — and because{" "}
-            <code className="text-paper">executeScheduled</code> has no access control, anyone can restart a chain that
-            stopped.
+            <span className="text-paper">Run 15 fails. Run 16 still happens.</span> A bad run costs one run, never the
+            chain — and since <code className="text-paper">executeScheduled</code> has no access control, anyone can
+            restart a stalled one.
           </>
         }
         receipts={[
@@ -92,13 +90,12 @@ const HowItWorks: NextPage = () => (
       <Act
         n="Two"
         title="One vault. Any strategy."
-        lede="This is the part you change. The vault holds the money and runs the schedule; a strategy decides what to do and how long to wait. Pick one and watch the right-hand column."
+        lede="The vault holds the money and drives the schedule. A strategy answers two questions — what to do, and how long to wait. Pick one and watch the right-hand column."
         takeaway={
           <>
-            <span className="text-paper">nextInterval() is why this is not Hedera&apos;s own ScheduledVault.</span> That
-            template takes one fixed interval, so the use case in its own documentation —{" "}
-            <em>schedule increasingly frequent monitoring as positions approach liquidation</em> — cannot be written in
-            it.
+            <span className="text-paper">nextInterval() is the difference.</span> Hedera&apos;s own ScheduledVault takes
+            one fixed interval — so the use case in its own docs,{" "}
+            <em>increasingly frequent monitoring as positions approach liquidation</em>, cannot be written in it.
           </>
         }
         receipts={[
@@ -123,13 +120,12 @@ const HowItWorks: NextPage = () => (
       <Act
         n="Three"
         title="It can refuse, and say why on chain."
-        lede="Before it trades, a pool TWAP and a Chainlink feed have to agree inside a tolerance you set. When they do not, nothing is sold and the reason is written down."
+        lede="A SaucerSwap TWAP and a Chainlink feed must agree inside a tolerance you set. When they do not, nothing is sold and the vault emits why."
         takeaway={
           <>
-            On <span className="text-paper">11 July 2026</span> one manipulated price took{" "}
-            <span className="text-paper">$9.05M</span> out of Bonzo Lend — roughly 40% of Hedera&apos;s TVL in a day.
-            Automation that believes a single feed is not a safety tool; it is a liquidation bot working for whoever
-            moved the price.
+            <span className="text-signal-dead">11 July 2026: one manipulated price took $9.05M out of Bonzo Lend</span>{" "}
+            — about 40% of Hedera&apos;s TVL in a day. Automation that trusts a single feed is not a safety tool. It is
+            a liquidation bot working for whoever moved the price.
           </>
         }
         receipts={[
@@ -154,12 +150,11 @@ const HowItWorks: NextPage = () => (
       <Act
         n="Four"
         title="It pays for itself, until it cannot."
-        lede="The vault is the schedule's payer, so it funds its own future gas. What it has to hold is not what a run costs — and the gap between those two is wide enough to strand a funded vault."
+        lede="The vault is the schedule's payer. Hedera tests it against the whole gas allowance, then charges only for gas burned — and those two numbers are a factor of two apart."
         takeaway={
           <>
             <span className="text-paper">The first vault this project deployed died with money in it.</span> It held
-            2.76 ℏ and a run costs 1.63 ℏ, but the network tests the payer against the full 3.27 ℏ reservation. That is
-            one of six failures written down with the command that reproduces each.
+            2.76 ℏ. A run costs 1.63 ℏ. It was refused anyway, because the payer is tested against the full 3.27 ℏ.
           </>
         }
         receipts={[
@@ -179,23 +174,18 @@ const HowItWorks: NextPage = () => (
       */}
       <section className="mt-28 border-t border-line pt-14 sm:mt-36">
         <Reveal>
-          <h2 className="display display-lit m-0 max-w-2xl text-[clamp(1.75rem,3.6vw,3rem)]">All of it, on testnet.</h2>
-          <p className="mb-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
-            Read from the deployment file, so it cannot drift from what is actually on chain.
-          </p>
+          <h2 className="display display-lit m-0 mb-10 max-w-2xl text-[clamp(1.75rem,3.6vw,3rem)]">
+            Every contract, live.
+          </h2>
         </Reveal>
         <ContractLedger />
       </section>
 
       <section className="mt-28 border-t border-line pt-14">
         <Reveal>
-          <h2 className="display display-lit m-0 max-w-2xl text-[clamp(1.75rem,3.6vw,3rem)]">
-            Then you close the tab.
-          </h2>
-          <p className="mb-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
-            After the transaction that arms it, you send nothing. Check it on the transfer list rather than the
-            transaction id — the id carries the account that created the schedule, which makes it look as though
-            somebody sent the call.
+          <h2 className="display display-lit m-0 max-w-3xl text-[clamp(2rem,5vw,4rem)]">Then you close the tab.</h2>
+          <p className="m-0 mt-7 mb-12 max-w-lg text-lg leading-relaxed text-paper-dim">
+            After the transaction that arms it, you send nothing else. Ever.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/" className="btn-signal">

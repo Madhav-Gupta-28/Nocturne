@@ -32,9 +32,10 @@ export const Proof = () => {
 
   return (
     <section className="shell pt-28 sm:pt-36">
-      <SectionHead id="proof" eyebrow="Live on Hedera testnet" title="It is already running.">
+      <SectionHead id="proof" title="It is already running.">
         <p>
-          A vault has been calling a counter on testnet for weeks. Nobody has touched it since the day it was armed.
+          A vault on Hedera testnet has been calling a counter for weeks. Nobody has touched it since the day it was
+          armed.
         </p>
       </SectionHead>
 
@@ -54,7 +55,7 @@ export const Proof = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                Read it off the chain ↗
+                See every call on HashScan ↗
               </a>
             </div>
           ) : null}

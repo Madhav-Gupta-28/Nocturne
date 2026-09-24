@@ -4,15 +4,20 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import { RainbowKitCustomConnectButton } from "~~/components/scaffold-hbar";
 import { useOutsideClick } from "~~/hooks/scaffold-hbar";
 
 /**
  * The header, kept to the three things a visitor needs.
  *
  * A header on a page like this is a tax: every element in it is paid for out of
- * the attention the opening is trying to hold. So there is a mark, the four
- * places worth going, and a wallet. Nothing else.
+ * the attention the opening is trying to hold. So there is a mark and three
+ * links, and that is all.
+ *
+ * There is deliberately no wallet here. Most people who open this are reading
+ * a template, not using a product — a connect button and a balance readout on
+ * every page makes it look like a dapp asking for something rather than a
+ * template offering something. The wallet lives where it is actually needed:
+ * on the contracts console, and inline beside the one form that writes.
  *
  * It floats over the sky rather than sitting on a bar, and only grows a ground
  * and a hairline once the page has scrolled under it — at rest there is nothing
@@ -21,9 +26,8 @@ import { useOutsideClick } from "~~/hooks/scaffold-hbar";
 
 type HeaderMenuLink = { label: string; href: string };
 
-/** The site's own pages first, then the scaffold's tools. */
+/** Three places to go. Every one of them is a page, not an anchor. */
 export const menuLinks: HeaderMenuLink[] = [
-  { label: "Proof", href: "/#proof" },
   { label: "How it works", href: "/how-it-works" },
   { label: "Docs", href: "/docs" },
   { label: "Contracts", href: "/debug" },
@@ -130,8 +134,6 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <RainbowKitCustomConnectButton />
-
           <details className="dropdown dropdown-end lg:hidden" ref={burgerMenuRef}>
             <summary className="flex h-9 w-9 cursor-pointer items-center justify-center border border-line text-paper-dim transition-colors hover:text-paper [&::-webkit-details-marker]:hidden [[open]>&]:text-paper">
               <Bars3Icon className="h-4 w-4 [[open]_&]:hidden" />

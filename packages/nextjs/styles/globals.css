@@ -230,7 +230,13 @@
 
 /* The poster sizes, cut from the viewport so they bleed at every width. */
 .display-hero {
-  font-size: clamp(2.6rem, 10.6vw, 12rem);
+  font-size: clamp(2.4rem, 9.4vw, 11rem);
+  /*
+    Looser than the rest of the display type. The headline carries a marker
+    block, and a filled rectangle is taller than the glyphs inside it — at 0.9
+    the block laps the descenders of the line above it.
+  */
+  line-height: 1.02;
 }
 
 .display-section {
@@ -250,6 +256,29 @@
 /* Figures that must line up in a column, and never reflow as they tick. */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+  The highlighter.
+
+  A line of display type on a solid block of the accent, in ink. It is the
+  selected-text treatment made permanent — which is where the idea came from:
+  drag-select the old headline and the second line became exactly this, and it
+  read better than the version that was designed.
+
+  It is spent once per page, on the half of the headline that carries the
+  claim. Two of them and it is a pattern; one of them and it is the thing your
+  eye lands on first.
+*/
+.marker {
+  background: var(--color-signal);
+  color: var(--color-ink);
+  /* Box-decoration-break keeps the block continuous across a wrap rather than
+     painting a separate rectangle per line with a gap between them. */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0.02em 0.13em 0.1em;
+  text-shadow: none;
 }
 
 /* ── texture ───────────────────────────────────────────────────────── */

@@ -1,72 +1,116 @@
 "use client";
 
-import { SectionHead } from "./SectionHead";
+import { useRef } from "react";
 import { Reveal } from "./motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 
 /**
  * The problem, before the solution.
  *
- * A landing page that opens with what a thing does is asking the reader to
- * take on faith that the thing was needed. This section is the two sentences
- * that make the rest of the page worth reading, and it is deliberately the
- * shortest section on the site: the problem is not complicated, it has just
- * never been said plainly.
+ * A landing page that opens with what a thing does asks the reader to take on
+ * faith that the thing was needed. This is the two sentences that make the rest
+ * of the page worth reading, and it is the shortest section on the site: the
+ * problem is not complicated, it has just never been said plainly.
  *
- * The two panels are the whole argument. One column is how this is done today
- * and the other is how it is done here, with the same four rows in the same
- * order, so the difference is read rather than explained.
+ * Centred, on purpose. Every other section here is left-aligned with its
+ * argument beside it — putting this one on the axis makes it read as the
+ * premise rather than as another feature, and gives the comparison underneath
+ * something to sit symmetrically beneath.
+ *
+ * The four rows are the whole pitch. Same questions, two answers, and they
+ * arrive a row at a time so the eye is walked down them rather than handed a
+ * finished table.
  */
 
 const ROWS = [
-  { label: "What calls it", today: "A server you rent", here: "The Hedera network" },
-  { label: "Who keeps it alive", today: "You, forever", here: "Nobody" },
-  { label: "Who pays", today: "Your card, monthly", here: "The vault, per run" },
-  { label: "When it dies", today: "Silently", here: "When the HBAR runs out" },
+  { ask: "What calls it", keeper: "A server you rent", here: "The Hedera network" },
+  { ask: "Who keeps it alive", keeper: "You. Forever", here: "Nobody" },
+  { ask: "Who pays", keeper: "Your card, monthly", here: "The vault itself" },
+  { ask: "How it dies", keeper: "Silently", here: "When its HBAR runs out" },
 ];
 
-export const Problem = () => (
-  <section className="shell pt-28 sm:pt-36">
-    <SectionHead eyebrow="The problem" title="A contract cannot wake itself up.">
-      <p>
-        Every repeating job on a blockchain today is really a machine someone owns, sitting in a data centre, that has
-        to stay online and keep getting paid.
-      </p>
-      <p className="text-paper">When it stops, your job stops — and nothing tells you.</p>
-    </SectionHead>
+export const Problem = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "0px 0px -20% 0px" });
+  const still = useReducedMotion();
+  const play = Boolean(still) || inView;
 
-    <Reveal>
-      <div className="lift mt-12 grid grid-cols-[minmax(0,1fr)] border border-line bg-ink-raised/40 backdrop-blur-sm sm:grid-cols-2">
-        <Column title="A keeper" note="How it is done today" rows={ROWS.map(r => [r.label, r.today] as const)} />
-        <Column title="Nocturne" note="How it is done here" rows={ROWS.map(r => [r.label, r.here] as const)} lit />
+  return (
+    <section className="shell pt-28 sm:pt-36">
+      <Reveal>
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="display display-lit mb-0 text-[clamp(2rem,5vw,4rem)]">Something has to press the button.</h2>
+          <p className="mx-auto mb-0 mt-8 max-w-xl text-balance text-lg leading-relaxed text-paper-dim">
+            On every chain, a repeating job is really a computer in a data centre.{" "}
+            <span className="text-paper">When it stops, your job stops — and nothing tells you.</span>
+          </p>
+        </div>
+      </Reveal>
+
+      <div ref={ref} className="mt-16">
+        <Reveal>
+          <div className="lift grid grid-cols-[minmax(0,1fr)] border border-line bg-ink-raised/40 backdrop-blur-sm sm:grid-cols-2">
+            <Head title="A keeper" note="Everywhere else" />
+            <Head title="Nocturne" note="Here" lit />
+
+            {ROWS.map((row, i) => (
+              <Fragment key={row.ask}>
+                <Cell ask={row.ask} answer={row.keeper} index={i} play={play} still={Boolean(still)} />
+                <Cell ask={row.ask} answer={row.here} index={i} play={play} still={Boolean(still)} lit />
+              </Fragment>
+            ))}
+          </div>
+        </Reveal>
       </div>
-    </Reveal>
-  </section>
+    </section>
+  );
+};
+
+/**
+ * Both halves of a row are siblings of the grid, not children of a wrapper.
+ *
+ * A wrapper would become the grid item and the two answers would stop lining
+ * up with each other — which is the only reason a comparison table reads at a
+ * glance. So each row emits two cells straight into the same grid.
+ */
+const Fragment = ({ children }: { key?: string; children: React.ReactNode }) => <>{children}</>;
+
+const Head = ({ title, note, lit = false }: { title: string; note: string; lit?: boolean }) => (
+  <div className={`border-b border-line px-6 py-6 ${lit ? "bg-signal-glow/50 sm:border-l" : ""}`}>
+    <p className={`display mb-0 text-2xl ${lit ? "text-signal" : "text-paper-dim"}`}>{title}</p>
+    <p className="eyebrow mb-0 mt-2">{note}</p>
+  </div>
 );
 
-const Column = ({
-  title,
-  note,
-  rows,
+const Cell = ({
+  ask,
+  answer,
+  index,
+  play,
+  still,
   lit = false,
 }: {
-  title: string;
-  note: string;
-  rows: ReadonlyArray<readonly [string, string]>;
+  ask: string;
+  answer: string;
+  index: number;
+  play: boolean;
+  still: boolean;
   lit?: boolean;
 }) => (
-  <div className={`border-line max-sm:border-t sm:[&+&]:border-l ${lit ? "bg-signal-glow/40" : ""}`}>
-    <div className="border-b border-line px-6 py-5">
-      <p className={`display m-0 text-2xl ${lit ? "text-signal" : "text-paper-dim"}`}>{title}</p>
-      <p className="eyebrow mb-0 mt-2">{note}</p>
-    </div>
-
-    <dl className="m-0 divide-y divide-line">
-      {rows.map(([label, value]) => (
-        <div key={label} className="flex items-baseline justify-between gap-6 px-6 py-4">
-          <dt className="eyebrow">{label}</dt>
-          <dd className={`m-0 text-right text-sm ${lit ? "text-paper" : "text-paper-dim"}`}>{value}</dd>
-        </div>
-      ))}
-    </dl>
-  </div>
+  <motion.div
+    initial={still ? false : { opacity: 0 }}
+    animate={play ? { opacity: 1 } : undefined}
+    transition={{ duration: 0.5, delay: 0.15 + index * 0.12 + (lit ? 0.06 : 0) }}
+    className={`flex items-baseline justify-between gap-6 border-b border-line px-6 py-5 ${
+      lit ? "bg-signal-glow/25 sm:border-l" : ""
+    }`}
+  >
+    {/*
+      The question is repeated in both halves. On a phone the grid is one
+      column, and an answer with no question above it means nothing; on a wide
+      screen the repetition is what makes the two columns scan as a pair.
+    */}
+    <span className="eyebrow">{ask}</span>
+    <span className={`text-right text-base ${lit ? "text-paper" : "text-paper-dim"}`}>{answer}</span>
+  </motion.div>
 );

@@ -41,26 +41,26 @@ const PHASES = [
   {
     n: "01",
     name: "Wake",
-    does: "The network calls the vault. Inside, the caller is the vault itself.",
-    kills: "Too little gas. The booking fails, and the receipt still says SUCCESS.",
+    does: "The network calls the vault.",
+    kills: "Too little gas — the receipt still says SUCCESS.",
   },
   {
     n: "02",
     name: "Book",
-    does: "It schedules its next wake-up before it does any work.",
-    kills: "Booking last. One bad run then ends the whole chain.",
+    does: "It schedules its next run, before any work.",
+    kills: "Booking last. One bad run ends the chain.",
   },
   {
     n: "03",
     name: "Look",
     does: "Two prices are read, and have to agree.",
-    kills: "Trusting one price. That is how Bonzo lost $9.05M in July.",
+    kills: "Trusting one price. Bonzo lost $9.05M that way.",
   },
   {
     n: "04",
     name: "Act",
-    does: "It trades, or it refuses and writes down why.",
-    kills: "Counting the gas you burn, not the gas you reserve.",
+    does: "It trades, or refuses and writes down why.",
+    kills: "Counting gas burned, not gas reserved.",
   },
 ];
 
@@ -179,10 +179,10 @@ export const RunTheNight = () => {
 
   return (
     <section ref={ref} className="shell pt-28 sm:pt-36">
-      <SectionHead id="simulation" eyebrow="Simulation · no wallet needed" title="Watch one night.">
+      <SectionHead id="simulation" title="Watch a vault run.">
         <p>
-          Four runs, played at the numbers the contracts really use. The second one refuses to trade — and the chain
-          carries on anyway.
+          Four runs, at the numbers the contracts really use. Run two refuses to trade — and the chain carries on
+          anyway, which is the part that is easy to get wrong.
         </p>
       </SectionHead>
 
@@ -195,7 +195,7 @@ export const RunTheNight = () => {
               return (
                 <li
                   key={phase.n}
-                  className="relative px-6 py-5 transition-colors duration-500"
+                  className="relative px-6 py-[1.15rem] transition-colors duration-500"
                   style={{ background: on ? "var(--color-signal-glow)" : undefined }}
                 >
                   {/* A rail that lights rather than a border that moves. */}
@@ -210,9 +210,9 @@ export const RunTheNight = () => {
                     <span className={on ? "text-paper" : "text-paper-dim"}>{phase.name}</span>
                   </p>
 
-                  <p className="mb-0 mt-3 text-sm leading-relaxed text-paper-dim">{phase.does}</p>
+                  <p className="mb-0 mt-2.5 text-[15px] leading-snug text-paper">{phase.does}</p>
 
-                  <p className="mb-0 mt-3 border-l border-signal-dead/40 pl-4 text-xs leading-relaxed text-paper-faint">
+                  <p className="mb-0 mt-2.5 text-[13px] leading-snug text-signal-dead/70">
                     <span className="eyebrow mr-2 text-signal-dead">Kills it</span>
                     {phase.kills}
                   </p>
@@ -263,7 +263,7 @@ export const RunTheNight = () => {
               </div>
             </div>
 
-            <ol ref={log} className="m-0 h-[19rem] list-none divide-y divide-line overflow-y-auto p-0 sm:h-[21rem]">
+            <ol ref={log} className="m-0 h-[17rem] list-none divide-y divide-line overflow-y-auto p-0 sm:h-[19rem]">
               <AnimatePresence initial={false}>
                 {visible.map((beat, i) => (
                   <motion.li
@@ -271,9 +271,8 @@ export const RunTheNight = () => {
                     initial={still ? false : { opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.28 }}
-                    className="grid grid-cols-[2.25rem_1fr] items-baseline gap-x-4 px-5 py-2.5 font-mono text-[13px] sm:grid-cols-[2.25rem_4.75rem_1fr_auto]"
+                    className="grid grid-cols-[1fr] items-baseline gap-x-4 px-5 py-2 font-mono text-[13.5px] sm:grid-cols-[4.5rem_1fr_auto]"
                   >
-                    <span className="text-paper-faint">{String(i + 1).padStart(2, "0")}</span>
                     <span className="hidden text-paper-faint sm:block">{beat.at}</span>
                     <span
                       className={
@@ -292,7 +291,7 @@ export const RunTheNight = () => {
               </AnimatePresence>
 
               {status === "running" ? (
-                <li className="px-5 py-2.5 font-mono text-[13px] text-signal">
+                <li className="px-5 py-2 font-mono text-[13.5px] text-signal">
                   <span className="caret">▍</span>
                 </li>
               ) : null}
@@ -317,13 +316,6 @@ export const RunTheNight = () => {
             </AnimatePresence>
           </div>
         </div>
-      </Reveal>
-
-      <Reveal delay={0.06}>
-        <p className="mb-0 mt-5 max-w-2xl text-xs leading-relaxed text-paper-faint">
-          Run two disagrees because nothing arbitrages a testnet, so the pool drifts from the feed and stays drifted.
-          The wrong place to show a sale, the right place to show a refusal.
-        </p>
       </Reveal>
     </section>
   );

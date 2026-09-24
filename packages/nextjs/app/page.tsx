@@ -12,6 +12,7 @@ import { Reveal } from "./_components/motion";
 import type { NextPage } from "next";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
+import { RainbowKitCustomConnectButton } from "~~/components/scaffold-hbar";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-hbar";
 
 /**
@@ -56,12 +57,8 @@ const Home: NextPage = () => {
         whether or not you connect, which is the point of putting it first.
       */}
       <section className="shell pt-28 sm:pt-36">
-        <SectionHead
-          id="vault"
-          eyebrow={isConnected ? "Your vault" : "Two minutes on testnet"}
-          title={vault ? "Your vault." : "Make one."}
-        >
-          <p>Pick what it should do, fund it, sign once. After that the network is the only thing that touches it.</p>
+        <SectionHead id="vault" title={vault ? "Your vault." : "Make one."}>
+          <p>Choose a job, fund it, sign once. After that the network is the only thing that touches it.</p>
         </SectionHead>
 
         <Reveal>
@@ -76,12 +73,20 @@ const Home: NextPage = () => {
   );
 };
 
+/**
+ * The only place the landing page asks for a wallet.
+ *
+ * It carries the connect button itself rather than pointing at one in the
+ * header, because there is no longer one in the header — and a prompt that
+ * says "connect" while the control to do it lives somewhere else is a small
+ * puzzle nobody should have to solve.
+ */
 const ConnectPrompt = () => (
-  <div className="lift border border-line bg-ink-raised/40 p-8 backdrop-blur-sm sm:p-10">
-    <p className="m-0 max-w-xl text-lg leading-relaxed text-paper-dim">
-      Connect a wallet to build one. Nothing above this line needed a wallet, and nothing above it changes when you
-      connect.
+  <div className="lift flex flex-wrap items-center justify-between gap-8 border border-line bg-ink-raised/40 p-8 backdrop-blur-sm sm:p-10">
+    <p className="m-0 max-w-md text-lg leading-relaxed text-paper-dim">
+      Everything above is true without a wallet. You need one only to build a vault of your own.
     </p>
+    <RainbowKitCustomConnectButton />
   </div>
 );
 
@@ -97,13 +102,16 @@ const Closer = () => (
   <section className="shell pt-28 sm:pt-36">
     <Reveal>
       <div className="border-t border-line pt-14">
-        <h2 className="display display-section display-lit m-0 max-w-3xl">
-          The whole thing is <span className="text-signal">six contracts</span> and a page of tests.
+        <h2 className="display display-lit mb-0 max-w-3xl text-[clamp(2rem,5vw,4rem)]">
+          Clone it. Point it at anything.
         </h2>
+        <p className="mb-0 mt-7 max-w-xl text-lg leading-relaxed text-paper-dim">
+          Six contracts, 123 tests, and one interface to write against.
+        </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
-          <Link href="/how-it-works" className="btn-signal">
-            How it works <span aria-hidden>→</span>
+          <Link href="/docs/quickstart" className="btn-signal">
+            Start here <span aria-hidden>→</span>
           </Link>
           <a href="https://github.com/Madhav-Gupta-28/Nocturne" target="_blank" rel="noreferrer" className="btn-line">
             Read the source ↗
