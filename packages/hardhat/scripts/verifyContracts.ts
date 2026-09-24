@@ -33,6 +33,7 @@ const CONTRACTS = [
   "ProtectiveExitStrategy",
   "DriftRebalanceStrategy",
   "NocturneFactory",
+  "PriceLens",
 ];
 
 /**
