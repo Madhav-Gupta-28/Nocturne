@@ -9,27 +9,17 @@ import type { Address } from "viem";
  * formatting the chain's units need before a person should see them.
  */
 
-/**
- * A section of the page.
- *
- * Two treatments, because a card means "this is a discrete object" and not
- * everything on this page is one. Live state a reader might act on gets the
- * raised surface; prose explaining the design gets a rule and open space, so
- * the eye can tell the two apart without reading either.
- */
+/** A raised section of the dashboard: live state a reader might act on. */
 export const Panel = ({
   title,
   subtitle,
   children,
-  quiet = false,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  /** Prose rather than state: no raised surface, just a rule above it. */
-  quiet?: boolean;
 }) => (
-  <section className={quiet ? "pt-14 rule" : "border border-line bg-ink-raised p-6 sm:p-8"}>
+  <section className="border border-line bg-ink-raised p-6 sm:p-8">
     <h2 className="eyebrow m-0">{title}</h2>
     {subtitle ? <p className="text-sm text-paper-dim mt-3 mb-6 max-w-2xl">{subtitle}</p> : <div className="mb-6" />}
     {children}

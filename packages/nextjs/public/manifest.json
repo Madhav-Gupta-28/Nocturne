@@ -1,5 +1,5 @@
 {
-  "name": "Scaffold-HBAR 2 DApp",
-  "description": "A DApp built with Scaffold-HBAR",
-  "iconPath": "logo.svg"
+  "name": "Nocturne",
+  "description": "Contracts that schedule and pay for their own execution on Hedera.",
+  "iconPath": "favicon.png"
 }

@@ -1,71 +1,52 @@
-# Hardhat package (Hedera)
+# packages/hardhat
 
-Hardhat config, contracts, deploy scripts, tests, and Hashscan verification for this monorepo.
-
-## Local development
-
-From the repo root, use the explicit `hardhat:*` scripts for this package. Inside `packages/hardhat`, use the unprefixed package-local scripts.
-
-1. **Start the local chain** (terminal 1, from repo root):
-   ```bash
-   npm run hardhat:chain
-   ```
-   This starts `hardhat node` with **Hedera testnet forking** (`HEDERA_FORKING=true` and `@hashgraph/system-contracts-forking`). JSON-RPC is served at **http://127.0.0.1:8545**.
-
-2. **Deploy to the running fork** (terminal 2):
-   ```bash
-   npm run hardhat:deploy --network localhost
-   ```
-   Use **`localhost`** so Hardhat connects to the long-running node on port 8545.
-
-   **`npm run hardhat:deploy` without `--network localhost`** uses the default network `hardhat`, which is the **in-process ephemeral** Hardhat network—**not** the same process as `npm run hardhat:chain`. For deploys against the forked node you started in step 1, always pass **`--network localhost`** while that node is running.
-
-3. **Run contract tests** (from repo root; tests use `HEDERA_FORKING=true` and can run against the fork or standalone):
-   ```bash
-   npm run hardhat:test
-   ```
-
-## Deploy and verify on Hedera testnet/mainnet
-
-You need a deployer account with HBAR on the target network. Without funds, deploy and verify will fail with "Sender account not found".
-
-1. **Generate or import an account** (from the repo root):
-   ```bash
-   npm run hardhat:account:generate
-   ```
-   or
-   ```bash
-   npm run hardhat:account:import
-   ```
-   The encrypted key is stored in `packages/hardhat/.env`.
-
-2. **Fund the account on testnet:**  
-   Use the [Hedera Portal faucet](https://portal.hedera.com/faucet) to receive testnet HBAR.
-
-3. **Deploy to Hedera testnet** (from repo root):
-   ```bash
-   npm run hardhat:deploy --network hederaTestnet
-   ```
-   or
-   ```bash
-   npm run hardhat:deploy --network hedera_testnet
-   ```
-   You will be prompted to enter the password to decrypt your deployer key.
-
-4. **Verify on Hashscan** (uses deployment JSON under `deployments/<network>/`, which includes compiler metadata and sources):
-   ```bash
-   npm run hardhat:verify:testnet   # all contracts on chain 296
-   npm run hardhat:verify:mainnet   # all contracts on chain 295
-   npm run verify:contract -w @sh/hardhat -- -- HederaToken testnet
-   npm run verify:contract -w @sh/hardhat -- -- HederaToken testnet 0xYourContractAddress
-   ```
+The contracts, their tests, and the scripts that put them on testnet. Run
+everything from the repo root unless a line says otherwise.
 
 ## Layout
 
-- `contracts/` — Solidity sources
-- `deploy/` — hardhat-deploy scripts (e.g. `00_deploy_hedera_token.ts`)
-- `scripts/` — generateAccount, importAccount, verifyHedera.js, etc.
-- `test/` — contract tests
-- `hardhat.config.ts` — networks (`hardhat`, `localhost` for RPC at 127.0.0.1:8545, `hederaTestnet`, `hederaMainnet`)
+| Path | What is in it |
+| --- | --- |
+| `contracts/` | `NocturneVault`, `NocturneFactory`, `PriceLens`, `Heartbeat` |
+| `contracts/strategies/` | `HeartbeatStrategy`, `ProtectiveExitStrategy`, `DriftRebalanceStrategy` |
+| `contracts/lib/` | `TwapLib`, `TickMath`, `PriceGuard` — the SaucerSwap TWAP and the Chainlink cross-check |
+| `contracts/test/` | Mocks (including `MockHederaScheduleService`) and the on-chain probes behind the landmine measurements |
+| `deploy/` | One deploy script for all six contracts |
+| `scripts/` | Arm, watch and verify vaults; account management; the gas-price probe |
+| `test/` | Offline suite against the mock scheduler. `test/live/` reads real testnet prices |
 
-Network and RPC URLs are in `hardhat.config.ts`. Deployer key is read from `.env` (encrypted) and decrypted at deploy time for live networks.
+## Test
+
+```bash
+npm run hardhat:test        # offline, no network, no key
+npm run hardhat:test:live   # PriceGuard against the real SaucerSwap pool and Chainlink feed
+```
+
+There is no local-node deploy step. A plain Hardhat node has no Schedule Service
+precompile at `0x16b`, so the offline suite runs the whole loop against
+`MockHederaScheduleService` instead.
+
+## Deploy to testnet
+
+```bash
+npm run hardhat:account:generate                       # encrypted key into .env
+npm run hardhat:deploy -- --network hederaTestnet      # asks for the password
+npm run hardhat:verify:sourcify -- --network hederaTestnet
+```
+
+The `--` matters: without it npm swallows `--network` and Hardhat fails with
+HH308. `npx hardhat verify` does not work on this stack — see
+[`docs/hedera-landmines.md`](../../docs/hedera-landmines.md).
+
+## Arm a vault
+
+From `packages/hardhat`:
+
+```bash
+FUEL_HBAR=12 INTERVAL=120 npx hardhat run scripts/armVault.ts --network hederaTestnet
+npx hardhat run scripts/armExitVault.ts --network hederaTestnet
+npx hardhat run scripts/armRebalanceVault.ts --network hederaTestnet
+npx hardhat run scripts/watchVault.ts --network hederaTestnet
+```
+
+Each arm script prints its knobs at the top of the file.

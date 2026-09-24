@@ -5,7 +5,7 @@ import { getDeployGasPrice } from "../utils/getDeployGasPrice";
 /**
  * Deploys the engine and the reference strategy.
  *
- * Five contracts:
+ * Six contracts:
  *
  *   Heartbeat               something for a vault to call, and the evidence it did
  *   HeartbeatStrategy       the reference INocturneStrategy implementation

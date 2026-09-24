@@ -183,7 +183,8 @@ Reproduce with `contracts/test/ScheduledSenderProbe.sol`, live at
 
 **`block.basefee` is 0.** Not a usable gas-price source. `tx.gasprice` is, and
 inside the EVM it is already tinybar per gas — the same unit as
-`address(this).balance`, no 1e10 conversion.
+`address(this).balance`, no 1e10 conversion. Reproduce with
+`npx hardhat run scripts/probeGasPrice.ts --network hederaTestnet`.
 
 **EIP-1167 clones cannot schedule.** A delegatecall frame gets a
 `delegatable_contract_id` admin key, and `scheduleCall` then fails with

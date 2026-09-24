@@ -36,9 +36,6 @@ const VAULT_ABI = runtimeContracts.NocturneVault.abi as unknown as Abi;
 const GAS_BOOKING = 2_500_000n;
 const GAS_PLAIN = 1_000_000n;
 
-/** Tinybar per HBAR. In-EVM balances are 8 decimals, not 18. */
-export const TINYBAR = 100_000_000n;
-
 /** Weibar per tinybar. The relay quotes gas prices 1e10 larger than the EVM. */
 const WEIBAR_PER_TINYBAR = 10_000_000_000n;
 

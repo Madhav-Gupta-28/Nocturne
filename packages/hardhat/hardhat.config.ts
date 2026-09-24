@@ -107,17 +107,4 @@ task("deploy").setAction(async (args, hre, runSuper) => {
   await generateRuntimeAbis(hre);
 });
 
-// Extend the verify task to show HashScan link after Sourcify verification.
-task("verify").setAction(async (args, hre, runSuper) => {
-  await runSuper(args);
-
-  const address = args.address;
-  const chainId = hre.network.config.chainId;
-
-  if (address && (chainId === 295 || chainId === 296)) {
-    const network = chainId === 295 ? "mainnet" : "testnet";
-    console.log(`\nHashScan: https://hashscan.io/${network}/contract/${address}`);
-  }
-});
-
 export default config;

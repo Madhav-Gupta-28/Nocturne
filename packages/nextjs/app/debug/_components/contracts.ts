@@ -15,7 +15,7 @@
  * the right failure for a template somebody will add their own contracts to.
  */
 
-export type ContractNote = {
+type ContractNote = {
   /** One line, for the card. */
   role: string;
   /** Two or three sentences, for the popover. */

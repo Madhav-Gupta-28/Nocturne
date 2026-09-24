@@ -27,7 +27,7 @@ import { useOutsideClick } from "~~/hooks/scaffold-hbar";
 type HeaderMenuLink = { label: string; href: string };
 
 /** Three places to go. Every one of them is a page, not an anchor. */
-export const menuLinks: HeaderMenuLink[] = [
+const menuLinks: HeaderMenuLink[] = [
   { label: "How it works", href: "/how-it-works" },
   { label: "Docs", href: "/docs" },
   { label: "Contracts", href: "/debug" },
@@ -67,7 +67,7 @@ const Wordmark = () => (
   </Link>
 );
 
-export const HeaderMenuLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
+const HeaderMenuLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
   const pathname = usePathname();
 
   return (

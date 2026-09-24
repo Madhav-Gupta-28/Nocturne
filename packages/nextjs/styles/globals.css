@@ -243,16 +243,6 @@
   font-size: clamp(2rem, 5vw, 4rem);
 }
 
-/* A short accent rule above a section heading. Does the work of a number. */
-.rule::before {
-  content: "";
-  display: block;
-  width: 56px;
-  height: 2px;
-  background: var(--color-signal);
-  margin-bottom: 26px;
-}
-
 /* Figures that must line up in a column, and never reflow as they tick. */
 .tabular {
   font-variant-numeric: tabular-nums;
@@ -345,17 +335,6 @@
   background: radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(5, 4, 9, 0.6) 100%);
 }
 
-/*
-  The graph paper an instrument is read on. Used on panels that hold data, never
-  on prose, and faint enough that it never competes with a figure sitting on it.
-*/
-.graph {
-  background-image:
-    linear-gradient(to right, var(--color-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-line) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
 /* The wash behind the opening, so the headline sits in light rather than on black. */
 .glowfield {
   position: relative;
@@ -410,12 +389,6 @@
   text-shadow:
     0 0 70px rgba(233, 232, 242, 0.13),
     0 0 160px rgba(233, 232, 242, 0.06);
-}
-
-.display-lit-signal {
-  text-shadow:
-    0 0 55px rgba(129, 108, 213, 0.3),
-    0 0 140px rgba(129, 108, 213, 0.16);
 }
 
 /* ── the documentation surface ─────────────────────────────────────── */
