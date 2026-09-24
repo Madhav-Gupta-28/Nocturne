@@ -227,6 +227,26 @@
   text-underline-offset: 2px;
 }
 
+/*
+  The faucet button comes from the scaffold's component package, which paints it
+  as a filled primary. In the footer that makes the one accent on the site into
+  a solid pill sitting next to four quiet links, which is the wrong order of
+  importance — getting testnet HBAR is useful, not the point of the page. The
+  markup belongs to the package, so it is re-dressed here rather than forked.
+*/
+footer .btn-primary {
+  background: transparent;
+  border-color: var(--color-line);
+  color: var(--color-paper-dim);
+  font-weight: 400;
+}
+
+footer .btn-primary:hover {
+  background: transparent;
+  border-color: var(--color-line-bright);
+  color: var(--color-paper);
+}
+
 .link:hover {
   color: var(--color-signal);
 }
