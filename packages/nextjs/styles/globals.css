@@ -502,6 +502,90 @@ footer .btn-primary:hover {
   color: var(--color-paper);
 }
 
+/* ── the scaffold's debug console ──────────────────────────────────── */
+
+/*
+  Re-dressing, not forking.
+
+  `@scaffold-hbar-ui/debug-contracts` ships its own compiled Tailwind with its
+  own tokens, which is why its panels arrive as glassy 22px-radius cards in
+  colours from a different palette. The markup belongs to the package — forking
+  the component to change corner radii would mean maintaining a copy of
+  somebody else's UI forever, and losing every fix they make to it.
+
+  So the page keeps the package's component and overrides the handful of
+  properties that make it look foreign. Scoped under `.debug-shell` so nothing
+  here can reach the rest of the site.
+*/
+.debug-shell :is(div, button, input, select, span, h2, h3) {
+  border-radius: 0 !important;
+}
+
+/* Every raised surface it paints, flattened onto our own two greys. */
+.debug-shell :is(.bg-base-100, .bg-base-200, .bg-base-300, .bg-secondary) {
+  background-color: var(--color-ink-raised) !important;
+}
+
+.debug-shell :is(.shadow-lg, .shadow-md, .shadow-sui-primary-subtle) {
+  box-shadow: none !important;
+}
+
+/*
+  The package centres its panel in a `max-w-7xl` of its own, which on this
+  page leaves it inset from the margin every other section sits on. Let it
+  fill the shell instead, so the console lines up with the cards above it.
+*/
+.debug-shell > div {
+  max-width: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/*
+  The package draws its panels with a shadow and no border, which on a dark
+  ground leaves them with no edge at all once the shadow is removed.
+*/
+.debug-shell .rounded-3xl,
+.debug-shell .rounded-2xl,
+.debug-shell .rounded-\[22px\] {
+  border: 1px solid var(--color-line);
+}
+
+/* Inputs read as inputs: a hairline box, and the accent when focused. */
+.debug-shell input,
+.debug-shell select,
+.debug-shell textarea {
+  background-color: var(--color-ink-sunken) !important;
+  border: 1px solid var(--color-line-bright) !important;
+  color: var(--color-paper) !important;
+}
+
+.debug-shell input:focus,
+.debug-shell textarea:focus {
+  border-color: var(--color-signal) !important;
+  outline: none;
+}
+
+/* Its buttons, on our own two treatments rather than DaisyUI's pills. */
+.debug-shell .btn {
+  background-color: transparent !important;
+  border: 1px solid var(--color-line-bright) !important;
+  color: var(--color-paper-dim) !important;
+  font-weight: 400;
+}
+
+.debug-shell .btn:hover {
+  border-color: var(--color-paper) !important;
+  color: var(--color-paper) !important;
+}
+
+.debug-shell .btn-primary,
+.debug-shell .btn-accent {
+  background-color: var(--color-signal) !important;
+  border-color: var(--color-signal) !important;
+  color: var(--color-ink-sunken) !important;
+}
+
 /* ── motion ────────────────────────────────────────────────────────── */
 
 @keyframes rise {

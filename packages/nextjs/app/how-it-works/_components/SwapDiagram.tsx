@@ -114,7 +114,7 @@ export const SwapDiagram = () => {
         <div className="px-5 py-6">
           <p className="eyebrow m-0">INocturneStrategy</p>
 
-          <ul className="m-0 mt-4 list-none space-y-3 p-0 font-mono text-[13px]">
+          <ul className="mb-0 mt-4 list-none space-y-3 p-0 font-mono text-[13px]">
             <li className="text-paper">
               plan<span className="text-paper-faint">(config) → Action[]</span>
             </li>
@@ -128,7 +128,7 @@ export const SwapDiagram = () => {
 
           <div className="mt-6 border-t border-line pt-5">
             <p className="eyebrow m-0">NocturneVault.sol</p>
-            <p className="m-0 mt-3 text-sm leading-relaxed text-paper-dim">
+            <p className="mb-0 mt-3 text-sm leading-relaxed text-paper-dim">
               Holds the funds, books the schedule, checks the plan against an allow-list, and pays its own fee. The same
               file for every strategy above.
             </p>
@@ -162,6 +162,6 @@ export const SwapDiagram = () => {
 const Out = ({ label, value, lit = false }: { label: string; value: string; lit?: boolean }) => (
   <div className="px-5 py-5">
     <dt className="eyebrow">{label}</dt>
-    <dd className={`m-0 mt-2 text-base leading-snug ${lit ? "text-signal" : "text-paper"}`}>{value}</dd>
+    <dd className={`mb-0 mt-2 text-base leading-snug ${lit ? "text-signal" : "text-paper"}`}>{value}</dd>
   </div>
 );

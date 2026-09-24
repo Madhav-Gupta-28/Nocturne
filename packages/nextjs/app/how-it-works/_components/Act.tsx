@@ -48,8 +48,8 @@ export const Act = ({
   <section className="mt-28 border-t border-line pt-14 sm:mt-36">
     <Reveal>
       <p className="eyebrow m-0">{n}</p>
-      <h2 className="display display-lit m-0 mt-5 max-w-3xl text-[clamp(1.75rem,3.6vw,3rem)]">{title}</h2>
-      <p className="m-0 mt-5 max-w-2xl text-lg leading-relaxed text-paper-dim">{lede}</p>
+      <h2 className="display display-lit mb-0 mt-5 max-w-3xl text-[clamp(1.75rem,3.6vw,3rem)]">{title}</h2>
+      <p className="mb-0 mt-5 max-w-2xl text-lg leading-relaxed text-paper-dim">{lede}</p>
     </Reveal>
 
     <Reveal delay={0.06}>
@@ -57,11 +57,11 @@ export const Act = ({
     </Reveal>
 
     <Reveal delay={0.1}>
-      <p className="m-0 mt-8 max-w-3xl text-base leading-relaxed text-paper-dim sm:text-lg">{takeaway}</p>
+      <p className="mb-0 mt-8 max-w-3xl text-base leading-relaxed text-paper-dim sm:text-lg">{takeaway}</p>
     </Reveal>
 
     <Reveal delay={0.14}>
-      <dl className="m-0 mt-10 grid grid-cols-[minmax(0,1fr)] divide-line border border-line sm:grid-cols-3 sm:divide-x max-sm:divide-y">
+      <dl className="mb-0 mt-10 grid grid-cols-[minmax(0,1fr)] divide-line border border-line sm:grid-cols-3 sm:divide-x max-sm:divide-y">
         {receipts.map(r => (
           <a
             key={r.kind}
@@ -71,7 +71,7 @@ export const Act = ({
             className="group px-5 py-4 transition-colors hover:bg-signal-glow/40"
           >
             <dt className="eyebrow">{r.kind}</dt>
-            <dd className="m-0 mt-2 text-sm text-paper transition-colors group-hover:text-signal">
+            <dd className="mb-0 mt-2 text-sm text-paper transition-colors group-hover:text-signal">
               {r.what} <span aria-hidden>↗</span>
             </dd>
           </a>

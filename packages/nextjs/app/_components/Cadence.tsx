@@ -384,7 +384,7 @@ export const Cadence = () => {
               />
               {b.name}
             </dt>
-            <dd className="tabular m-0 mt-2 font-mono text-lg text-paper">every {b.label}</dd>
+            <dd className="tabular mb-0 mt-2 font-mono text-lg text-paper">every {b.label}</dd>
           </div>
         ))}
       </dl>

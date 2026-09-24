@@ -210,9 +210,9 @@ export const RunTheNight = () => {
                     <span className={on ? "text-paper" : "text-paper-dim"}>{phase.name}</span>
                   </p>
 
-                  <p className="m-0 mt-3 text-sm leading-relaxed text-paper-dim">{phase.does}</p>
+                  <p className="mb-0 mt-3 text-sm leading-relaxed text-paper-dim">{phase.does}</p>
 
-                  <p className="m-0 mt-3 border-l border-signal-dead/40 pl-4 text-xs leading-relaxed text-paper-faint">
+                  <p className="mb-0 mt-3 border-l border-signal-dead/40 pl-4 text-xs leading-relaxed text-paper-faint">
                     <span className="eyebrow mr-2 text-signal-dead">Kills it</span>
                     {phase.kills}
                   </p>
@@ -320,7 +320,7 @@ export const RunTheNight = () => {
       </Reveal>
 
       <Reveal delay={0.06}>
-        <p className="m-0 mt-5 max-w-2xl text-xs leading-relaxed text-paper-faint">
+        <p className="mb-0 mt-5 max-w-2xl text-xs leading-relaxed text-paper-faint">
           Run two disagrees because nothing arbitrages a testnet, so the pool drifts from the feed and stays drifted.
           The wrong place to show a sale, the right place to show a refusal.
         </p>
@@ -332,7 +332,7 @@ export const RunTheNight = () => {
 const Receipt = ({ label, value, lit = false }: { label: string; value: string; lit?: boolean }) => (
   <div className="px-5 py-4">
     <dt className="eyebrow">{label}</dt>
-    <dd className={`tabular m-0 mt-2 font-mono text-2xl leading-none ${lit ? "text-signal" : "text-paper"}`}>
+    <dd className={`tabular mb-0 mt-2 font-mono text-2xl leading-none ${lit ? "text-signal" : "text-paper"}`}>
       {value}
     </dd>
   </div>

@@ -57,7 +57,7 @@ const Column = ({
   <div className={`border-line max-sm:border-t sm:[&+&]:border-l ${lit ? "bg-signal-glow/40" : ""}`}>
     <div className="border-b border-line px-6 py-5">
       <p className={`display m-0 text-2xl ${lit ? "text-signal" : "text-paper-dim"}`}>{title}</p>
-      <p className="eyebrow m-0 mt-2">{note}</p>
+      <p className="eyebrow mb-0 mt-2">{note}</p>
     </div>
 
     <dl className="m-0 divide-y divide-line">

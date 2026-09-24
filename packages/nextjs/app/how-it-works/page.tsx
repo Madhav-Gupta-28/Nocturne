@@ -31,12 +31,12 @@ const HowItWorks: NextPage = () => (
     <div className="shell">
       <header className="glowfield pt-16 pb-4 sm:pt-24">
         <p className="eyebrow m-0">How it works</p>
-        <h1 className="display display-lit m-0 mt-7 text-[clamp(2.2rem,6.4vw,5.5rem)]">
+        <h1 className="display display-lit mb-0 mt-7 text-[clamp(2.2rem,6.4vw,5.5rem)]">
           Four pictures.
           <br />
           <span className="text-signal display-lit-signal">That is the whole template.</span>
         </h1>
-        <p className="m-0 mt-9 max-w-2xl text-lg leading-relaxed text-paper-dim">
+        <p className="mb-0 mt-9 max-w-2xl text-lg leading-relaxed text-paper-dim">
           A contract that calls itself, an interface you swap, a check it can fail, and a fee it pays out of its own
           balance.
         </p>
@@ -44,7 +44,7 @@ const HowItWorks: NextPage = () => (
         {/* The primitives, named up front. A reviewer scoring ecosystem depth
             should not have to hunt for which parts of Hedera this actually
             uses. */}
-        <ul className="m-0 mt-10 flex list-none flex-wrap gap-3 p-0">
+        <ul className="mb-0 mt-10 flex list-none flex-wrap gap-3 p-0">
           {[
             ["schedule", "Schedule Service · HIP-1215"],
             ["hold", "HTS · association + allowance"],
@@ -180,7 +180,7 @@ const HowItWorks: NextPage = () => (
       <section className="mt-28 border-t border-line pt-14 sm:mt-36">
         <Reveal>
           <h2 className="display display-lit m-0 max-w-2xl text-[clamp(1.75rem,3.6vw,3rem)]">All of it, on testnet.</h2>
-          <p className="m-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
+          <p className="mb-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
             Read from the deployment file, so it cannot drift from what is actually on chain.
           </p>
         </Reveal>
@@ -192,7 +192,7 @@ const HowItWorks: NextPage = () => (
           <h2 className="display display-lit m-0 max-w-2xl text-[clamp(1.75rem,3.6vw,3rem)]">
             Then you close the tab.
           </h2>
-          <p className="m-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
+          <p className="mb-0 mt-5 mb-10 max-w-2xl leading-relaxed text-paper-dim">
             After the transaction that arms it, you send nothing. Check it on the transfer list rather than the
             transaction id — the id carries the account that created the schedule, which makes it look as though
             somebody sent the call.
