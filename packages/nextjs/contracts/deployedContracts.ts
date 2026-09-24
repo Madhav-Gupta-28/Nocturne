@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-hbar/contract";
 const deployedContracts = {
   296: {
     DriftRebalanceStrategy: {
-      address: "0x312cB4dE71515b32571e9d6a9a27B6241FAB16b4",
+      address: "0xfFFc7Da411a899e8c76fc4546D63e8e38Fc55D64",
       abi: [
         {
           inputs: [
@@ -324,7 +324,7 @@ const deployedContracts = {
         plan: "contracts/interfaces/INocturneStrategy.sol",
         validateConfig: "contracts/interfaces/INocturneStrategy.sol",
       },
-      deployedOnBlock: 40892392,
+      deployedOnBlock: 40910344,
     },
     Heartbeat: {
       address: "0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b",
@@ -557,7 +557,7 @@ const deployedContracts = {
       deployedOnBlock: 40892384,
     },
     NocturneFactory: {
-      address: "0x851d40D35D1F5F8220d3632cE7438801bE658923",
+      address: "0xc0f202Ac01475AFBD07e09643d56bdacC9294B78",
       abi: [
         {
           inputs: [],
@@ -720,6 +720,35 @@ const deployedContracts = {
               name: "owner",
               type: "address",
             },
+            {
+              internalType: "uint256",
+              name: "offset",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "limit",
+              type: "uint256",
+            },
+          ],
+          name: "vaultsOf",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "page",
+              type: "address[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
           ],
           name: "vaultsOf",
           outputs: [
@@ -734,10 +763,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 40908951,
+      deployedOnBlock: 40910348,
     },
     PriceLens: {
-      address: "0x69bBf55bB272fe356D4251eeD8915d5963989B9D",
+      address: "0x7F017Bd04879389b2A9CEeD5941EeE75aD28cCdb",
       abi: [
         {
           inputs: [
@@ -901,10 +930,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 40909002,
+      deployedOnBlock: 40910353,
     },
     ProtectiveExitStrategy: {
-      address: "0x669862bBc4BBD814c3733587539230084dAf0ad6",
+      address: "0x699Ec374cb2b6BaBb809cB70E58018E5f6be3E59",
       abi: [
         {
           inputs: [
@@ -1164,7 +1193,7 @@ const deployedContracts = {
         plan: "contracts/interfaces/INocturneStrategy.sol",
         validateConfig: "contracts/interfaces/INocturneStrategy.sol",
       },
-      deployedOnBlock: 40892388,
+      deployedOnBlock: 40910339,
     },
   },
 } as const;

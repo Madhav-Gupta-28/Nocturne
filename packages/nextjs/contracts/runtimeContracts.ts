@@ -258,6 +258,19 @@ const runtimeContracts = {
         anonymous: false,
         inputs: [
           {
+            indexed: false,
+            internalType: "uint64",
+            name: "epoch",
+            type: "uint64",
+          },
+        ],
+        name: "GrantsCleared",
+        type: "event",
+      },
+      {
+        anonymous: false,
+        inputs: [
+          {
             indexed: true,
             internalType: "address",
             name: "from",
@@ -741,6 +754,19 @@ const runtimeContracts = {
             internalType: "uint256",
             name: "",
             type: "uint256",
+          },
+        ],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "grantEpoch",
+        outputs: [
+          {
+            internalType: "uint64",
+            name: "",
+            type: "uint64",
           },
         ],
         stateMutability: "view",
