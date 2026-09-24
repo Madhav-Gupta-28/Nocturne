@@ -157,7 +157,18 @@ contract NocturneVault is Ownable, ReentrancyGuard {
      *      The owner sets this, and a plan proposing any call outside it is
      *      rejected whole rather than part-executed.
      */
-    mapping(address target => mapping(bytes4 selector => bool)) public allowedCall;
+    mapping(uint64 epoch => mapping(address target => mapping(bytes4 selector => bool))) internal _allowedCall;
+
+    /**
+     * @notice Which generation of grants is currently in force.
+     * @dev Bumped by `setStrategy`, which retires every grant at once.
+     *
+     *      A mapping cannot be iterated, so there is no way to walk the
+     *      allow-list and clear it. Keying it on a counter gives the same effect
+     *      in constant gas: raise the counter and every previous grant becomes
+     *      unreachable without touching a single entry.
+     */
+    uint64 public grantEpoch;
 
     // ------------------------------------------------------------------
     // Events
@@ -166,6 +177,7 @@ contract NocturneVault is Ownable, ReentrancyGuard {
     event StrategySet(address indexed strategy);
     event Configured(bytes config);
     event CallAllowed(address indexed target, bytes4 indexed selector, bool allowed);
+    event GrantsCleared(uint64 epoch);
     event Armed(uint256 firstRunAt, address schedule);
     event Disarmed();
 
@@ -224,6 +236,14 @@ contract NocturneVault is Ownable, ReentrancyGuard {
         armed = false;
         strategy = INocturneStrategy(strategy_);
         delete config;
+
+        // Retire every allow-list grant along with the strategy they were made
+        // for. An owner who permits `approve` on a token so *this* strategy can
+        // swap has not consented to whatever the next one might do with it, and
+        // leaving the grants standing would quietly say otherwise.
+        ++grantEpoch;
+        emit GrantsCleared(grantEpoch);
+
         emit StrategySet(strategy_);
     }
 
@@ -249,8 +269,15 @@ contract NocturneVault is Ownable, ReentrancyGuard {
      */
     function setAllowedCall(address target, bytes4 selector, bool allowed) external onlyOwner {
         if (target == address(0)) revert ZeroAddress();
-        allowedCall[target][selector] = allowed;
+        _allowedCall[grantEpoch][target][selector] = allowed;
         emit CallAllowed(target, selector, allowed);
+    }
+
+    /// @notice Whether a plan may call `selector` on `target` right now.
+    /// @dev Reads the current epoch, so grants made for a replaced strategy
+    ///      answer false without having been individually revoked.
+    function allowedCall(address target, bytes4 selector) public view returns (bool) {
+        return _allowedCall[grantEpoch][target][selector];
     }
 
     /**
@@ -512,7 +539,7 @@ contract NocturneVault is Ownable, ReentrancyGuard {
                 (bytes4(data[2]) >> 16) |
                 (bytes4(data[3]) >> 24);
 
-            if (!allowedCall[actions[i].target][selector]) {
+            if (!allowedCall(actions[i].target, selector)) {
                 emit PlanRejected(run, actions[i].target);
                 return false;
             }

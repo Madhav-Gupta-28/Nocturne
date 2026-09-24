@@ -393,6 +393,23 @@ describe("NocturneVault", () => {
       expect(await token.allowance(await vault.getAddress(), stranger.address)).to.equal(1_000n);
     });
 
+    it("retires every grant when the strategy is replaced", async () => {
+      // An owner who allowed `approve` on a token so *this* strategy could swap
+      // has not consented to whatever the next strategy might do with it.
+      const { vault, sink, strategy } = await withToken();
+      const sinkAddr = await sink.getAddress();
+      const ping = sink.interface.getFunction("ping")!.selector;
+
+      await vault.setAllowedCall(sinkAddr, ping, true);
+      expect(await vault.allowedCall(sinkAddr, ping)).to.equal(true);
+
+      const epoch = await vault.grantEpoch();
+      await expect(vault.setStrategy(await strategy.getAddress())).to.emit(vault, "GrantsCleared");
+
+      expect(await vault.grantEpoch()).to.equal(epoch + 1n);
+      expect(await vault.allowedCall(sinkAddr, ping)).to.equal(false);
+    });
+
     it("refuses an action carrying HBAR, even to an allowed call", async () => {
       // The allow-list bounds where a plan may reach and what it may call. It
       // says nothing about how much HBAR rides along, and `_execute` forwards
