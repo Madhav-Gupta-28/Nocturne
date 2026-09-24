@@ -22,7 +22,9 @@ way that looks like a failure. All five are documented with reproductions in
 **Allow calls, not contracts.** `setAllowedCall(target, selector, allowed)` is
 keyed on the function. Permitting an address wholesale would let a strategy call
 anything on it — allowing a token for `approve` would equally allow `transfer`.
-Actions with fewer than four bytes of calldata are always refused.
+Actions with fewer than four bytes of calldata are always refused, and so are
+actions carrying HBAR — a plan may never move value, only tokens it has been
+allowed to call.
 
 **Never lower `MIN_SCHEDULE_GAS`.** Booking a schedule costs ~1.4M gas on its
 own, and a self-rescheduling entry point measured 1,501,968. Give it less and it

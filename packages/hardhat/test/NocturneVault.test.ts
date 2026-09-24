@@ -393,6 +393,32 @@ describe("NocturneVault", () => {
       expect(await token.allowance(await vault.getAddress(), stranger.address)).to.equal(1_000n);
     });
 
+    it("refuses an action carrying HBAR, even to an allowed call", async () => {
+      // The allow-list bounds where a plan may reach and what it may call. It
+      // says nothing about how much HBAR rides along, and `_execute` forwards
+      // whatever the strategy asked for. A payable target would happily absorb
+      // the vault's entire balance.
+      //
+      // That also contradicts the runway arithmetic, which assumes the balance
+      // is spent on gas and nothing else. Refusing value outright makes "a plan
+      // can never move HBAR out of a vault" an invariant rather than a hope,
+      // and costs nothing: every strategy here plans `value: 0`.
+      const { vault, strategy, hss, sink } = await withToken();
+      const sinkAddr = await sink.getAddress();
+      await vault.setAllowedCall(sinkAddr, sink.interface.getFunction("ping")!.selector, true);
+
+      const before = await ethers.provider.getBalance(sinkAddr);
+      await strategy.setActions([
+        { target: sinkAddr, value: ONE_HBAR, data: sink.interface.encodeFunctionData("ping") },
+      ]);
+      await vault.arm();
+      await time.increaseTo((await vault.nextRunAt()) + 1n);
+      await expect(hss.fireLatest()).to.emit(vault, "PlanRejected");
+
+      expect(await ethers.provider.getBalance(sinkAddr)).to.equal(before);
+      expect(await sink.pings()).to.equal(0n);
+    });
+
     it("refuses an action carrying no selector at all", async () => {
       // A bare value transfer has no function to allow, so there is nothing the
       // owner could have consented to. Rejecting it also closes the plainest

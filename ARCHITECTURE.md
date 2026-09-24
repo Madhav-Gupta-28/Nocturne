@@ -1085,6 +1085,8 @@ Mirrors Hedera's own `MockHederaScheduleService` approach, plus what it misses.
 - hostile strategy proposing `transfer(attacker, balance)` on a token whose
   `approve` is allowed → rejected, because consent is per selector
 - action with no selector at all (a bare value transfer) → rejected
+- action carrying HBAR to an otherwise-allowed call → rejected; a plan may never
+  move HBAR, which is what keeps `runway()` meaningful
 - TWAP window unmet → refuses rather than falling back to spot
 - one source stale, other fine → refuses (does not single-source)
 - divergence exactly at tolerance → refuses (boundary is closed)
@@ -1165,6 +1167,15 @@ Steps 1–4 are the template. 5–7 are most of the score.
   is no function for the owner to have consented to, and it is also the plainest
   way to move HBAR out of a vault. Three tests in `NocturneVault.test.ts` pin the
   refusal, the permitted call, and the empty-calldata case.
+
+  Reviewing that fix turned up a second gap in the same struct: `value` rides
+  alongside `target` and `data`, and `_execute` forwarded whatever the strategy
+  asked for, so a hostile plan could hand the vault's whole balance to an
+  allow-listed payable target. It also contradicted §7.2 — `runway()` divides
+  the balance by the cost of a run, which only means anything while gas is the
+  sole thing that balance pays for. **A plan may now never carry HBAR.** Every
+  shipped strategy plans `value: 0`, so the bound costs nothing and turns an
+  assumption into an invariant.
 - **SETTLED — rate limit.** The belief that one run per `MIN_INTERVAL` made
   `executeScheduled` spam pointless was **wrong**, and measuring it found a real
   griefing vector. An uninvited caller inside the `CLOCK_SKEW` window advances

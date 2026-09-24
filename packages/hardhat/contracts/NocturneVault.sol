@@ -463,6 +463,23 @@ contract NocturneVault is Ownable, ReentrancyGuard {
      */
     function _callsAllowed(INocturneStrategy.Action[] memory actions, uint64 run) private returns (bool) {
         for (uint256 i; i < actions.length; ++i) {
+            // A plan may never move HBAR. The allow-list bounds where an action
+            // reaches and what it calls, but `value` rides alongside both, and a
+            // payable target would absorb whatever it was handed.
+            //
+            // Refusing it outright also keeps the runway arithmetic honest:
+            // `runway()` divides the balance by the cost of a run, which is only
+            // meaningful while gas is the sole thing that balance pays for.
+            //
+            // Costs nothing today — every strategy here plans `value: 0`. A
+            // strategy that genuinely needs the vault to spend HBAR should be
+            // given a function to call that pulls it, so the vault stays the
+            // party that decides.
+            if (actions[i].value != 0) {
+                emit PlanRejected(run, actions[i].target);
+                return false;
+            }
+
             bytes memory data = actions[i].data;
             if (data.length < 4) {
                 emit PlanRejected(run, actions[i].target);
