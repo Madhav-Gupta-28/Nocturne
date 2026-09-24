@@ -12,7 +12,15 @@ import remarkGfm from "remark-gfm";
  */
 export const Markdown = ({ children }: { children: string }) => (
   <article
-    className="prose prose-invert max-w-none
+    /*
+      A measure, not a column width. These documents are read start to finish,
+      and a line of 110 characters loses the reader on the return sweep — the
+      eye has to find which of two near-identical lines it just left. Tables and
+      fenced blocks are allowed past it, because a column of measurements that
+      wraps is worse than one that scrolls.
+    */
+    className="prose prose-invert max-w-[74ch]
+      prose-pre:max-w-none [&_.overflow-x-auto]:max-w-none
       prose-headings:font-display prose-headings:font-normal prose-headings:uppercase prose-headings:leading-[0.95]
       prose-h1:text-[2.75rem] sm:prose-h1:text-[3.5rem] prose-h1:mb-8
       prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-5 prose-h2:pt-9 prose-h2:border-t prose-h2:border-line

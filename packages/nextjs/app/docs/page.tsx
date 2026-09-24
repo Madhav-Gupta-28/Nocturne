@@ -12,11 +12,11 @@ export const metadata = { title: "Docs" };
  * document even though the design document is six times the size.
  */
 const DocsIndex: NextPage = () => (
-  <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
-    <div className="w-full max-w-4xl">
-      <header className="night pt-20 pb-16 sm:pt-28">
+  <div className="flex w-full grow flex-col pb-28">
+    <div className="shell">
+      <header className="glowfield pt-14 pb-16 sm:pt-20">
         <p className="eyebrow m-0">Docs</p>
-        <h1 className="display text-[3rem] sm:text-[5rem] mt-7 mb-0 max-w-4xl">
+        <h1 className="display mt-8 mb-0 text-[clamp(2.2rem,7vw,6.5rem)]">
           Everything here was <span className="text-signal">measured.</span>
         </h1>
         <p className="mt-7 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">

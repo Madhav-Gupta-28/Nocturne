@@ -16,16 +16,16 @@ export const metadata = { title: "How it works" };
  * does not happen.
  */
 const HowItWorks: NextPage = () => (
-  <div className="flex flex-col items-center grow w-full px-5 sm:px-8 pb-32">
-    <div className="w-full max-w-5xl">
-      <header className="night pt-20 pb-16 sm:pt-28">
+  <div className="flex w-full grow flex-col pb-28">
+    <div className="shell">
+      <header className="glowfield pt-14 pb-16 sm:pt-20">
         <p className="eyebrow m-0">How it works</p>
-        <h1 className="display text-[2.5rem] sm:text-[4.25rem] mt-7 mb-0 max-w-4xl">
+        <h1 className="display mt-8 mb-0 text-[clamp(2.2rem,6.4vw,6rem)]">
           A contract cannot wake up.
           <br />
           <span className="text-signal">On Hedera it no longer has to.</span>
         </h1>
-        <p className="mt-7 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
+        <p className="mt-10 mb-0 max-w-2xl text-lg leading-relaxed text-paper-dim">
           Every piece of on-chain automation in production is a contract plus an off-chain process that pokes it — a
           keeper, a cron job, a funded relayer with an uptime problem. HIP-1215 lets a contract schedule its own next
           call from inside the EVM, and the consensus nodes execute it.
@@ -102,8 +102,8 @@ const HowItWorks: NextPage = () => (
         </Aside>
       </Move>
 
-      <section className="pt-14 mt-20 rule">
-        <h2 className="font-display text-3xl sm:text-4xl leading-tight m-0 max-w-2xl">Then you close the tab.</h2>
+      <section className="mt-24 border-t border-line pt-14">
+        <h2 className="display m-0 max-w-2xl text-[clamp(1.6rem,3.2vw,2.75rem)]">Then you close the tab.</h2>
         <p className="mt-5 mb-8 max-w-2xl text-paper-dim leading-relaxed">
           After the transaction that arms it, the owner sends nothing. Every execution afterwards is the network calling
           the vault, and the vault paying its own fee. The way to check that is the transfer list — not the transaction
@@ -118,15 +118,20 @@ const HowItWorks: NextPage = () => (
 );
 
 const Move = ({ n, title, lede, children }: { n: string; title: string; lede: string; children: React.ReactNode }) => (
-  <section className="pt-14 mt-20 rule first-of-type:mt-0">
-    <div className="grid lg:grid-cols-[4rem_1fr] gap-x-8">
-      <span className="eyebrow pt-2 self-start">{n}</span>
+  <section className="mt-24 border-t border-line pt-14">
+    {/*
+      The number and the claim on the left, the argument on the right, the
+      drawing under both. Same split the landing page uses, so a reader who
+      arrives here from it does not have to learn a second layout.
+    */}
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-x-16 gap-y-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div>
-        <h2 className="display text-[1.75rem] sm:text-[2.5rem] m-0 max-w-3xl">{title}</h2>
-        <p className="mt-5 mb-10 max-w-2xl text-paper-dim leading-relaxed">{lede}</p>
-        {children}
+        <p className="eyebrow m-0 mb-5">{n}</p>
+        <h2 className="display m-0 text-[clamp(1.6rem,3.2vw,2.75rem)]">{title}</h2>
       </div>
+      <p className="m-0 max-w-xl leading-relaxed text-paper-dim lg:pt-8">{lede}</p>
     </div>
+    <div className="mt-12">{children}</div>
   </section>
 );
 

@@ -58,8 +58,15 @@ export const Hero = () => {
         transition={{ duration: 1.1, delay: 0.45, ease: EASE }}
       />
 
-      <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
-        <motion.div variants={fadeUp} custom={5} initial={still ? false : "rest"} animate="play">
+      {/*
+        `minmax(0, …)` on every track, at every width, including the single
+        column. An `auto` track is allowed to size itself to its content's
+        max-content, and the content here is a 70-character shell command that
+        never wraps — which drags the whole column, and the paragraph beside it,
+        past the edge of a phone.
+      */}
+      <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+        <motion.div className="min-w-0" variants={fadeUp} custom={5} initial={still ? false : "rest"} animate="play">
           <p className="m-0 max-w-xl text-lg leading-relaxed text-paper-dim sm:text-xl">
             A vault that books its own next execution with the Hedera Schedule Service. No keeper, no bot, no cron job
             on somebody&apos;s laptop —{" "}
@@ -76,7 +83,7 @@ export const Hero = () => {
           </div>
         </motion.div>
 
-        <motion.div variants={fadeUp} custom={7} initial={still ? false : "rest"} animate="play">
+        <motion.div className="min-w-0" variants={fadeUp} custom={7} initial={still ? false : "rest"} animate="play">
           <CommandCard />
         </motion.div>
       </div>

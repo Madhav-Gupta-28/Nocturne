@@ -177,7 +177,7 @@ export const RunTheNight = () => {
       </SectionHead>
 
       <Reveal>
-        <div className="mt-12 grid border border-line bg-ink-raised/40 backdrop-blur-sm lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+        <div className="mt-12 grid grid-cols-[minmax(0,1fr)] border border-line bg-ink-raised/40 backdrop-blur-sm lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           {/* The four phases, and the four ways each one dies quietly. */}
           <ol className="m-0 list-none divide-y divide-line border-b border-line p-0 lg:border-b-0 lg:border-r">
             {PHASES.map((phase, i) => {

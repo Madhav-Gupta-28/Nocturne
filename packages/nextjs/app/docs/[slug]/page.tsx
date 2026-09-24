@@ -23,8 +23,8 @@ const DocPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const { doc, markdown } = found;
 
   return (
-    <div className="w-full px-5 sm:px-8 pb-32">
-      <div className="mx-auto w-full max-w-6xl grid lg:grid-cols-[15rem_1fr] gap-x-14 pt-14">
+    <div className="w-full pb-28">
+      <div className="shell grid gap-x-16 pt-14 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <Sidebar />
 
         <main className="min-w-0">
