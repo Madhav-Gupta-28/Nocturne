@@ -1,0 +1,39 @@
+{
+  "name": "nocturne-dca-static",
+  "description": "DcaStrategy and its tests exist where AGENTS.md puts strategies, implement the interface with the guard and the empty-vault rule, and the README lists it as shipped. No env files.",
+  "jsonAssertions": [
+    { "file": "package.json", "path": "name", "equals": "nocturne" }
+  ],
+  "fileAssertions": {
+    "required": [
+      "README.md",
+      "AGENTS.md",
+      ".harness/spec.yaml",
+      ".harness/prd.md",
+      "packages/hardhat/contracts/strategies/DcaStrategy.sol",
+      "packages/hardhat/test/DcaStrategy.test.ts"
+    ],
+    "forbidden": [".env", "packages/nextjs/.env", "packages/hardhat/.env"]
+  },
+  "textAssertions": [
+    {
+      "file": "packages/hardhat/contracts/strategies/DcaStrategy.sol",
+      "contains": [
+        "contract DcaStrategy is INocturneStrategy",
+        "PriceGuard.read",
+        "exactInputSingle",
+        "amountOutMinimum",
+        "60 days",
+        "function encodeConfig"
+      ]
+    },
+    {
+      "file": "packages/hardhat/test/DcaStrategy.test.ts",
+      "contains": ["DcaStrategy", "installMockScheduleService", "fireLatest"]
+    },
+    {
+      "file": "README.md",
+      "contains": ["DcaStrategy"]
+    }
+  ]
+}

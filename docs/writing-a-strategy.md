@@ -257,7 +257,28 @@ three lines.
 
 ---
 
-## 07 · Test it offline
+## 07 · Stay inside the gas budget
+
+Every run is booked with `MIN_SCHEDULE_GAS`, 3,000,000 gas, and that is all
+your plan gets. Measured on testnet:
+
+| Run | Gas used | Share of the budget |
+| --- | --- | --- |
+| A check that holds | 1,535,860 | 51% |
+| A refusal, sources disagree | 1,663,853 | 55% |
+| An approve and one SaucerSwap swap | 2,419,009 | 81% |
+
+One swap leaves about 580k of headroom. Plan for **under 2.5M** per run. An
+action that runs out of gas fails on its own and the vault logs `ActionFailed`
+with the 1/64 of gas the EVM holds back for it. But if what is left is too
+little to finish the run, the whole transaction reverts, taking the successor
+it booked at the start with it, and the chain stops. So do not put two swaps in
+one plan. Split the work across runs; a short `nextInterval` is what that is
+for.
+
+---
+
+## 08 · Test it offline
 
 You do not need a network, and you should not use one for this. The repository
 ships `MockHederaScheduleService`, so the whole loop runs in Hardhat.
@@ -292,7 +313,7 @@ rejected plans and running out of fuel.
 
 ---
 
-## 08 · Ship it
+## 09 · Ship it
 
 Add your contract to the deploy script, then:
 

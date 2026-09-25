@@ -10,6 +10,18 @@ import { useTargetNetwork } from "~~/hooks/scaffold-hbar/useTargetNetwork";
 import { notification } from "~~/utils/scaffold-hbar";
 import { useAllContracts } from "~~/utils/scaffold-hbar/contractsData";
 
+/** The testnet evidence, one click each. */
+const EXPLORE = [
+  {
+    label: "The factory",
+    what: "Every vault it has built",
+    path: "contract/0xc0f202Ac01475AFBD07e09643d56bdacC9294B78",
+  },
+  { label: "On duty now", what: "The DAI depeg guard, running", path: "contract/0.0.10710268" },
+  { label: "It refused", what: "WHBAR, sources 22x apart", path: "transaction/1790319391.014683746" },
+  { label: "It sold", what: "1 DAI for 1.001757 USDC", path: "transaction/1790319308.034520104" },
+];
+
 const BlockExplorer: NextPage = () => {
   const { targetNetwork } = useTargetNetwork();
   const isLocalNetwork = targetNetwork.id === hardhat.id;
@@ -67,34 +79,36 @@ const BlockExplorer: NextPage = () => {
   const hasContracts = contractAddresses.size > 0;
   const hasTransactions = filteredBlocks.some(block => block.transactions.length > 0);
 
+  /*
+    Off a local chain this explorer has nothing to show, and HashScan already
+    does the job properly. So rather than an error, point at the things on it
+    worth looking at.
+  */
   if (!isLocalNetwork) {
+    const scan = targetNetwork.blockExplorers?.default.url ?? "https://hashscan.io/testnet";
     return (
-      <div className="container mx-auto my-10">
-        <div className="flex justify-center p-8">
-          <div className="max-w-xl text-center text-base-content/80">
-            <p className="font-bold mb-2">
-              <code className="italic bg-base-300 text-base font-bold">targetNetwork</code> is not localhost
-            </p>
-            <p className="mb-2">
-              You are on <code className="italic bg-base-300 text-base font-bold">{targetNetwork.name}</code>. This
-              block explorer is only for <code className="italic bg-base-300 text-base font-bold">localhost</code>.
-            </p>
-            {targetNetwork.blockExplorers?.default && (
-              <p>
-                You can use{" "}
-                <a
-                  className="text-accent underline"
-                  href={targetNetwork.blockExplorers.default.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {targetNetwork.blockExplorers.default.name}
-                </a>{" "}
-                instead.
-              </p>
-            )}
-          </div>
-        </div>
+      <div className="shell w-full pb-28 pt-16 sm:pt-24">
+        <h1 className="display display-lit m-0 text-[clamp(2.2rem,6vw,4.5rem)]">
+          On {targetNetwork.name}, <span className="marker">use HashScan.</span>
+        </h1>
+        <p className="mb-0 mt-8 max-w-xl text-lg leading-relaxed text-paper-dim">
+          This explorer is for a local chain. Everything Nocturne has done on testnet is on HashScan.
+        </p>
+        <ul className="m-0 mt-12 grid list-none grid-cols-[minmax(0,1fr)] gap-px border border-line bg-line p-0 sm:grid-cols-2">
+          {EXPLORE.map(e => (
+            <li key={e.label}>
+              <a
+                href={`${scan}/${e.path}`}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex h-full flex-col bg-ink-raised/80 px-6 py-5 transition-colors hover:bg-signal-glow/40"
+              >
+                <span className="eyebrow">{e.label}</span>
+                <span className="mt-2 text-paper transition-colors group-hover:text-signal">{e.what} ↗</span>
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     );
   }

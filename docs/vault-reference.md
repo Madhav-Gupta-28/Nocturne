@@ -166,6 +166,12 @@ nothing on chain — no swap, no transfer, no balance moves — so this event is
 only trace that it looked and decided not to. It carries the strategy's own
 words and two supporting numbers.
 
+It is emitted for **every empty plan**, including a healthy one. A protective
+exit above its floor logs `Refused(run, "holding", price, floor)`, and
+`refusalCount` counts it. Read the reason, not the event name: `holding`,
+`balanced` and `nothing held` are a vault doing its job; `sources disagree` and
+`feed stale` are the guard stopping a trade.
+
 `ScheduleFailed` carries a raw Hedera response code because
 **`scheduleCall` never reverts**. It returns a zero address and a non-22 code,
 which is trivially easy to ignore — so the vault checks it and emits.

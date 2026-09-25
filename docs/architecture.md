@@ -85,7 +85,7 @@ Three consequences fall out of it:
 | `Heartbeat` | A counter a vault can call, and the evidence that it did |
 | `HeartbeatStrategy` | Fixed cadence. The reference implementation, 69 lines |
 | `ProtectiveExitStrategy` | Sells to a floor, refuses when sources disagree |
-| `DriftRebalanceStrategy` | Holds a ratio, tightens as it drifts |
+| `DriftRebalanceStrategy` | Holds a ratio, tightens as it drifts. Values asset B at $1, so pair it with a USD stablecoin |
 | `PriceLens` | Stateless view over `PriceGuard`, so a frontend sees what a vault sees |
 
 `PriceGuard` is a library, not a contract. The two-source check is compiled into

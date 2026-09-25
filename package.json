@@ -36,12 +36,17 @@
     "next:serve": "npm run serve -w @sh/nextjs --",
     "next:start": "npm run start -w @sh/nextjs --",
     "hardhat:test:live": "npm run test:live -w @sh/hardhat --",
-    "hardhat:verify:sourcify": "npm run verify:sourcify -w @sh/hardhat --"
+    "hardhat:verify:sourcify": "npm run verify:sourcify -w @sh/hardhat --",
+    "harness:doctor": "hedera-harness doctor .harness/spec.yaml",
+    "harness:validate": "hedera-harness validate .harness/spec.yaml",
+    "harness:run": "hedera-harness run .harness/spec.yaml"
   },
   "packageManager": "npm@10.0.0",
   "devDependencies": {
+    "hedera-harness": "^1.2.2",
     "husky": "^9.1.6",
-    "lint-staged": "^15.2.10"
+    "lint-staged": "^15.2.10",
+    "playwright": "^1.63.0"
   },
   "engines": {
     "node": ">=20.18.3"

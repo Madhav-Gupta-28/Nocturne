@@ -1,0 +1,26 @@
+name: nocturne-smoke
+server:
+  command: npm run next:dev
+  url: http://localhost:3000
+  timeoutMs: 180000
+defaults:
+  timeoutMs: 60000
+  hydrationTimeoutMs: 60000
+  # Wallet libraries in the scaffold shell log unrelated console errors.
+  failOnConsoleError: false
+routes:
+  - name: home
+    path: /
+  - name: how-it-works
+    path: /how-it-works
+  - name: quickstart
+    path: /docs/quickstart
+  - name: write-a-strategy
+    path: /docs/writing-a-strategy
+  - name: contracts
+    path: /debug
+forbidden:
+  visibleText:
+    - Application error
+    - Unhandled Runtime Error
+    - Build Error

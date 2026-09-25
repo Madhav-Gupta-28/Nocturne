@@ -1,0 +1,29 @@
+schemaVersion: 2
+
+name: nocturne-dca-strategy
+description: >-
+  Add DcaStrategy, a fourth INocturneStrategy that buys a fixed amount of an
+  asset with USDC on SaucerSwap V2 every interval, guarded by PriceGuard, with
+  offline tests through a real NocturneVault. Follow AGENTS.md; the vault and
+  the existing strategies do not change.
+
+agent: claude
+maxAttempts: 3
+
+# Is the template healthy before the agent touches it?
+baseline:
+  commands:
+    - name: install
+      command: npm install
+      timeoutMs: 600000
+    - name: contracts-test
+      command: npm run hardhat:test
+      timeoutMs: 300000
+    - name: build
+      command: npm run next:build
+      timeoutMs: 600000
+
+validators:
+  static: .harness/validators/static.json
+  commands: .harness/validators/commands.json
+  playwright: .harness/validators/playwright-smoke.yaml

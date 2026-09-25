@@ -67,7 +67,7 @@ Remove either one and the exit strategy can't run.
 
 | | SaucerSwap V2 | Chainlink HBAR/USD |
 | --- | --- | --- |
-| Read | 60-second TWAP from the pool's `observe`, via [`TwapLib`](packages/hardhat/contracts/lib/TwapLib.sol) + [`TickMath`](packages/hardhat/contracts/lib/TickMath.sol) | `latestRoundData`, with staleness and decimals checked |
+| Read | 30-minute TWAP from the pool's `observe`, via [`TwapLib`](packages/hardhat/contracts/lib/TwapLib.sol) + [`TickMath`](packages/hardhat/contracts/lib/TickMath.sol) | `latestRoundData`, with staleness and decimals checked |
 | Decides | Whether the floor has broken | Whether the pool price can be believed |
 | Acts | The swap itself: `exactInputSingle` on the V2 router, with a minimum output | The minimum output, when it's the lower price |
 
@@ -140,6 +140,24 @@ interface INocturneStrategy {
 ---
 
 ## How it works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant HSS as Hedera Schedule Service (0x16b)
+    participant V as NocturneVault
+    participant S as Strategy (view only)
+    participant P as SaucerSwap V2 + Chainlink
+    HSS->>V: executeScheduled(), paid from the vault's balance
+    V->>S: nextInterval(config)
+    V->>HSS: scheduleCall(this, now + interval): book the next run first
+    V->>S: plan(config)
+    S->>P: 30-min TWAP and feed, must agree within 2%
+    S-->>V: Action[] (empty = refuse, with a reason)
+    V->>P: approve + swap, if every call is on the allow-list
+```
+
+![One night of a vault, played out: it holds, refuses when the sources disagree, then sells below its floor](docs/images/run.gif)
 
 **It books the next run before doing any work.** Each run schedules its
 successor first, then plans. A strategy that reverts costs one run, not the
@@ -250,6 +268,10 @@ npx hardhat run scripts/armExitVault.ts --network hederaTestnet   # the refusal 
 npx hardhat run scripts/watchVault.ts --network hederaTestnet     # reads only
 ```
 
+**Extend it with an agent.** The [Hedera Harness recipe](.harness/README.md)
+asks a coding agent to add a DCA strategy and grades the result:
+`npm run harness:validate` (no agent) or `npm run harness:run`.
+
 **Budget against the reserve, not the fee.** A run needs 3.27 HBAR in the vault
 to be accepted and is charged about 1.63, so 12 HBAR buys six runs, not seven.
 Keep ~3 HBAR in the owner account too, because arming reserves gas of its own.
@@ -279,7 +301,7 @@ All Sourcify-verified, so HashScan shows source.
 | --- | --- |
 | **Ecosystem integration** | SaucerSwap V2 (TWAP + router swap) and Chainlink HBAR/USD decide every trade. [Load-bearing](#why-saucerswap-and-chainlink-are-load-bearing), [on-chain proof](#proof-on-testnet), `test/live/`. |
 | **Documentation** | This README, seven docs pages served in the app at `/docs` ([`docs/`](docs)), [`ARCHITECTURE.md`](ARCHITECTURE.md), [`AGENTS.md`](AGENTS.md) for coding agents. |
-| **Code quality** | 127 offline tests + 5 live, CI on Node 20 and 22, zero lint warnings, every contract Sourcify-verified. |
+| **Code quality** | 127 offline tests + 5 live, CI on Node 20 and 22, zero lint warnings, every contract Sourcify-verified, and a [Hedera Harness recipe](.harness/README.md) verified both ways. |
 | **Hedera service depth** | [Depth over breadth](#depth-over-breadth): the Schedule Service is the engine, with [six measured failure modes](docs/hedera-landmines.md). Plus the Token Service and Mirror Node. |
 
 ---

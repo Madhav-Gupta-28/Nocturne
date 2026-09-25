@@ -23,16 +23,49 @@ import { useVaultRead, useVaultWrite } from "~~/hooks/useNocturneVault";
  * panel picks up wherever the chain actually is.
  */
 
-// Verified on testnet — see ARCHITECTURE.md §3.5.
-const WHBAR_TOKEN = "0x0000000000000000000000000000000000003aD2" as Address; // HTS, 8 dp
+// Verified on testnet — see ARCHITECTURE.md §3.5 and §3.6.
 const WHBAR_CONTRACT = "0x0000000000000000000000000000000000003aD1" as Address; // wrapper
 const USDC = "0x0000000000000000000000000000000000001549" as Address; // HTS, 6 dp
 const ROUTER = "0x0000000000000000000000000000000000159398" as Address; // V2 SwapRouter
-const POOL = "0x914B98992d7eD602D1f5d9084ECe8160Fc0e741a" as Address;
-const HBAR_USD = "0x59bC155EB6c6C415fE43255aF66EcF0523c92B4a" as Address;
-
-const WHBAR_DECIMALS = 8;
 const USDC_DECIMALS = 6;
+
+/**
+ * The two markets a vault can protect, with the settings the demo scripts use.
+ *
+ * They differ in one way that matters: whether the pool agrees with Chainlink.
+ * The USDC/DAI pool tracks DAI/USD to a fraction of a percent, so a vault there
+ * sells when its floor breaks. The USDC/WHBAR pool sits ~22x from HBAR/USD
+ * because nothing arbitrages a testnet, so a vault there refuses. Same code,
+ * same 2% tolerance; the market decides.
+ */
+const MARKETS = {
+  DAI: {
+    token: "0x0000000000000000000000000000000000001599" as Address, // HTS, 8 dp
+    decimals: 8,
+    pool: "0xb431866114b634f611774ec0d094bf11cb91c7e4" as Address, // USDC/DAI 0.05%
+    fee: 500,
+    feed: "0xdA2aBF7C90aDC73CDF5cA8d720B87bD5F5863389" as Address, // Chainlink DAI/USD
+    maxFeedAge: 90_000n, // longer than the feed's 24h heartbeat, which lands up to 36s late
+    floor: "1.001",
+    position: "1",
+    expect: "The pool agrees with Chainlink, so with a floor above today's price the first run sells.",
+    howToGet: "Buy DAI on SaucerSwap, or run scripts/armExitVault.ts with PRESET=sell, which buys it for you.",
+  },
+  WHBAR: {
+    token: "0x0000000000000000000000000000000000003aD2" as Address, // HTS, 8 dp
+    decimals: 8,
+    pool: "0x914B98992d7eD602D1f5d9084ECe8160Fc0e741a" as Address, // USDC/WHBAR 0.30%
+    fee: 3000,
+    feed: "0x59bC155EB6c6C415fE43255aF66EcF0523c92B4a" as Address, // Chainlink HBAR/USD
+    maxFeedAge: 86_400n, // HBAR/USD also updates on deviation
+    floor: "0.10",
+    position: "0.1",
+    expect: "The pool is ~22x from Chainlink on testnet, so the first run refuses. Refusing is the feature.",
+    howToGet: `Wrap HBAR by calling deposit() on ${WHBAR_CONTRACT}, after associating WHBAR with your account.`,
+  },
+} as const;
+
+type MarketName = keyof typeof MARKETS;
 
 const APPROVE = toFunctionSelector("function approve(address,uint256)");
 const EXACT_INPUT_SINGLE = toFunctionSelector(
@@ -54,16 +87,24 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
   const { send, isPending } = useVaultWrite(vault);
   const { data: exitStrategy } = useDeployedContractInfo({ contractName: "ProtectiveExitStrategy" });
 
-  const [position, setPosition] = useState("0.1");
-  const [floor, setFloor] = useState("0.05");
+  const [market, setMarket] = useState<MarketName>("DAI");
+  const m = MARKETS[market];
+  const [position, setPosition] = useState<string>(m.position);
+  const [floor, setFloor] = useState<string>(m.floor);
+
+  const choose = (name: MarketName) => {
+    setMarket(name);
+    setPosition(MARKETS[name].position);
+    setFloor(MARKETS[name].floor);
+  };
 
   // Each of these is the chain's own answer to "has this step happened yet".
-  const whbarAllowed = useVaultRead(vault, "allowedCall", [WHBAR_TOKEN, APPROVE]);
+  const tokenAllowed = useVaultRead(vault, "allowedCall", [m.token, APPROVE]);
   const routerAllowed = useVaultRead(vault, "allowedCall", [ROUTER, EXACT_INPUT_SINGLE]);
   const config = useVaultRead(vault, "config");
   const held = useReadContract({
     chainId,
-    address: WHBAR_TOKEN,
+    address: m.token,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: [vault],
@@ -72,10 +113,10 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
 
   const hasPosition = ((held.data as bigint | undefined) ?? 0n) > 0n;
   const configured = ((config.data as string | undefined) ?? "0x").length > 2;
-  const allowed = Boolean(whbarAllowed.data) && Boolean(routerAllowed.data);
+  const allowed = Boolean(tokenAllowed.data) && Boolean(routerAllowed.data);
 
   const refresh = async () => {
-    await Promise.all([whbarAllowed.refetch(), routerAllowed.refetch(), config.refetch(), held.refetch()]);
+    await Promise.all([tokenAllowed.refetch(), routerAllowed.refetch(), config.refetch(), held.refetch()]);
     await onDone();
   };
 
@@ -84,15 +125,33 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
       title="Set up a protective exit"
       subtitle="Seven transactions against live SaucerSwap and Chainlink. Each step checks the chain, so you can stop and come back."
     >
+      <div className="mb-6 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Market">
+        <span className="eyebrow mr-2">Market</span>
+        {(Object.keys(MARKETS) as MarketName[]).map(name => (
+          <button
+            key={name}
+            type="button"
+            role="radio"
+            aria-checked={market === name}
+            onClick={() => choose(name)}
+            className={`eyebrow cursor-pointer border px-3 py-1.5 transition-colors ${
+              market === name ? "border-signal text-signal" : "border-line text-paper-dim hover:text-paper"
+            }`}
+          >
+            {name} / USDC
+          </button>
+        ))}
+      </div>
+
       <ol className="flex flex-col gap-4 m-0 p-0 list-none">
         <Step
           n={1}
-          title="Let the vault hold WHBAR and USDC"
+          title={`Let the vault hold ${market} and USDC`}
           detail="Hedera will not let an account receive a token it has not associated. Doing this after the swap would fail at delivery, once the approve had already landed. Safe to repeat — the vault records the response code either way."
           busy={isPending}
           action="Associate both"
           onClick={async () => {
-            await send({ functionName: "associate", args: [WHBAR_TOKEN] });
+            await send({ functionName: "associate", args: [m.token] });
             await send({ functionName: "associate", args: [USDC] });
             await refresh();
           }}
@@ -101,15 +160,15 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
         <Step
           n={2}
           title="Give it something to protect"
-          detail="You need WHBAR in your own wallet first — wrap it below, then deposit."
+          detail={`You need ${market} in your own wallet first. ${m.howToGet}`}
           done={hasPosition}
           busy={isPending}
           action="Deposit"
-          input={{ value: position, onChange: setPosition, suffix: "WHBAR" }}
+          input={{ value: position, onChange: setPosition, suffix: market }}
           onClick={async () => {
             await send({
               functionName: "depositToken",
-              args: [WHBAR_TOKEN, parseUnits(position || "0", WHBAR_DECIMALS)],
+              args: [m.token, parseUnits(position || "0", m.decimals)],
             });
             await refresh();
           }}
@@ -118,12 +177,12 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
         <Step
           n={3}
           title="Allow exactly two calls"
-          detail="approve() on WHBAR and exactInputSingle() on the router. Allowing the token wholesale would also permit transfer(attacker, balance) — the same grant."
+          detail={`approve() on ${market} and exactInputSingle() on the router. Allowing the token wholesale would also permit transfer(attacker, balance), the same grant.`}
           done={allowed}
           busy={isPending}
           action="Allow both"
           onClick={async () => {
-            await send({ functionName: "setAllowedCall", args: [WHBAR_TOKEN, APPROVE, true] });
+            await send({ functionName: "setAllowedCall", args: [m.token, APPROVE, true] });
             await send({ functionName: "setAllowedCall", args: [ROUTER, EXACT_INPUT_SINGLE, true] });
             await refresh();
           }}
@@ -138,7 +197,10 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
           action="Configure"
           input={{ value: floor, onChange: setFloor, suffix: "USDC floor" }}
           onClick={async () => {
-            await send({ functionName: "configure", args: [encodeExitConfig(vault, parseEther(floor || "0"))] });
+            await send({
+              functionName: "configure",
+              args: [encodeExitConfig(vault, market, parseEther(floor || "0"))],
+            });
             await refresh();
           }}
         />
@@ -157,17 +219,8 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
         >
           {isPending ? "Working…" : "Arm it"}
         </button>
-        <span className="text-sm opacity-60 max-w-md">
-          After this the network calls it. Expect the first run to <strong>refuse</strong> — the two sources are far
-          apart on testnet, and refusing is the feature.
-        </span>
+        <span className="text-sm opacity-60 max-w-md">After this the network calls it. {m.expect}</span>
       </div>
-
-      <p className="text-xs opacity-50 mt-4 mb-0">
-        No WHBAR yet? Wrap some by sending HBAR to <code className="text-xs">{WHBAR_CONTRACT}</code> via its{" "}
-        <code className="text-xs">deposit()</code> function, then associate WHBAR with your own account. The script at{" "}
-        <code className="text-xs">scripts/armExitVault.ts</code> does all of this in one command.
-      </p>
     </Panel>
   );
 };
@@ -232,29 +285,30 @@ const Step = ({
  * visible here: nine fields, then the nested `PriceGuard.Sources`. Both structs
  * are entirely static, so this is a flat tuple encode.
  */
-function encodeExitConfig(vault: Address, floor1e18: bigint) {
+function encodeExitConfig(vault: Address, market: MarketName, floor1e18: bigint) {
+  const m = MARKETS[market];
   return encodeAbiParameters(
     parseAbiParameters(
       "address,address,address,address,uint24,uint256,uint256,uint8,uint8,(address,uint32,address,uint256,uint256,bool,uint8,uint8)",
     ),
     [
       vault,
-      WHBAR_TOKEN,
+      m.token,
       USDC,
       ROUTER,
-      3000,
+      m.fee,
       floor1e18,
-      500n, // 5% slippage on the swap's minimum output
-      WHBAR_DECIMALS,
+      100n, // 1% slippage on the swap's minimum output
+      m.decimals,
       USDC_DECIMALS,
       [
-        POOL,
-        60, // 60-second TWAP window
-        HBAR_USD,
-        86_400n, // generous: HBAR/USD updates on deviation as well as heartbeat
-        200n, // 2% divergence tolerance — testnet will fail this, by design
-        false, // WHBAR is token1 on this pool
-        WHBAR_DECIMALS,
+        m.pool,
+        1800, // 30-minute TWAP, so one trade cannot move the reading
+        m.feed,
+        m.maxFeedAge,
+        200n, // 2% divergence tolerance, the stock setting
+        false, // USDC is token0 on both pools, so the asset is token1
+        m.decimals,
         USDC_DECIMALS,
       ],
     ],

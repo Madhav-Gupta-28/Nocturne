@@ -56,6 +56,15 @@ So:
   HBAR in the sender's wallet and can leave an owner unable to arm a vault they
   just funded.
 
+**Keep a run under 2.5M gas.** Every run is booked with 3M. An approve plus one
+SaucerSwap swap measured 2,419,009. Two swaps in one plan can exhaust it, and a
+run that reverts takes the successor it booked with it. Split work across runs.
+
+**Return a long interval when there is nothing to do.** `ProtectiveExitStrategy`
+returns 60 days once the position is gone; before that it re-checked every
+minute below a floor it had already left, until the fuel ran out. A strategy's
+idle answer is a cost decision.
+
 **Units.** Inside the EVM, HBAR is **tinybar** (8 decimals) and so is
 `tx.gasprice`; over JSON-RPC both are **weibar** (18 decimals), exactly 1e10
 larger. `block.basefee` is `0` on Hedera — never use it.
@@ -73,6 +82,7 @@ in production.
 | `NocturneVault.sol` | The engine. Read `executeScheduled` and `_bookNext` first. |
 | `NocturneFactory.sol` | One vault per owner, real deploys. |
 | `interfaces/INocturneStrategy.sol` | `plan`, `nextInterval`, `validateConfig`, `explain`. |
+| `examples/TopUpStrategy.sol` | The worked example from the docs. Tested, not deployed. |
 | `strategies/HeartbeatStrategy.sol` | Reference implementation — start here. |
 | `strategies/ProtectiveExitStrategy.sol` | A floor: one-way, terminal. |
 | `strategies/DriftRebalanceStrategy.sol` | A target: two-way, repeating. |
@@ -122,9 +132,18 @@ Arm a vault and then leave it alone:
 
 ```bash
 cd packages/hardhat
-FUEL_HBAR=12 INTERVAL=120 npx hardhat run scripts/armVault.ts --network hederaTestnet
+FUEL_HBAR=12 INTERVAL=120 npx hardhat run scripts/armVault.ts --network hederaTestnet   # heartbeat
+PRESET=refuse npx hardhat run scripts/armExitVault.ts --network hederaTestnet          # WHBAR, sources 22x apart
+PRESET=sell   npx hardhat run scripts/armExitVault.ts --network hederaTestnet          # DAI, sells below its peg
+PRESET=guard  npx hardhat run scripts/armExitVault.ts --network hederaTestnet          # DAI depeg guard, 6h cadence
+npx hardhat run scripts/armRebalanceVault.ts --network hederaTestnet                   # DAI/USDC, 50% target
 npx hardhat run scripts/watchVault.ts --network hederaTestnet
 ```
+
+All of them use the stock 2% divergence tolerance. The USDC/WHBAR pool is ~22x
+from Chainlink on testnet and the USDC/DAI pool is on its peg, so the market,
+not a setting, decides whether a vault refuses. Shared addresses and the DAI
+purchase live in `scripts/lib/testnetTokens.ts`.
 
 ---
 
@@ -154,8 +173,10 @@ relay's view of the Schedule Service at `0x16b`, a system contract it does not
 model, and reports failure for a call that succeeds on chain.
 
 Components: `HederaAddress`, `BlockieAvatar`,
-`RainbowKitCustomConnectButton`. Prefer DaisyUI classes over raw Tailwind where a
-DaisyUI component exists.
+`RainbowKitCustomConnectButton`. The site has its own design tokens in
+`styles/globals.css` (`btn-signal`, `btn-line`, `eyebrow`, `lift`, `marker`,
+`display`, colours `ink`, `paper`, `signal`); use those rather than DaisyUI
+components, which only survive in scaffold pages.
 
 ### After deploy
 

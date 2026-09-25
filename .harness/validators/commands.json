@@ -1,0 +1,50 @@
+{
+  "name": "nocturne-dca-commands",
+  "description": "Every gate CI runs, on the contracts and the app. Nothing here needs secrets or the network beyond installing packages.",
+  "requiresNoSecrets": true,
+  "forbiddenCommands": ["yarn install", "yarn add", "pnpm install", "pnpm add"],
+  "commands": [
+    {
+      "name": "install",
+      "command": "npm install",
+      "timeoutMs": 600000,
+      "purpose": "Install workspace dependencies."
+    },
+    {
+      "name": "compile",
+      "command": "npm run hardhat:compile",
+      "timeoutMs": 300000,
+      "purpose": "The new strategy compiles."
+    },
+    {
+      "name": "contracts-test",
+      "command": "npm run hardhat:test",
+      "timeoutMs": 300000,
+      "purpose": "The whole offline suite, including the new DcaStrategy tests."
+    },
+    {
+      "name": "contracts-lint",
+      "command": "npm run hardhat:lint -- --max-warnings=0",
+      "timeoutMs": 180000,
+      "purpose": "Lint scripts and tests."
+    },
+    {
+      "name": "app-lint",
+      "command": "npm run next:lint -- --max-warnings=0",
+      "timeoutMs": 180000,
+      "purpose": "Lint the app."
+    },
+    {
+      "name": "app-types",
+      "command": "npm run next:check-types",
+      "timeoutMs": 180000,
+      "purpose": "Strict type check of the app."
+    },
+    {
+      "name": "build",
+      "command": "npm run next:build",
+      "timeoutMs": 600000,
+      "purpose": "Production build of the app."
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { ethers, deployments, network } from "hardhat";
 import type { NocturneVault, ProtectiveExitStrategy } from "../typechain-types";
+import { PAIRS, ROUTER, USDC, USDC_DECIMALS, acquire } from "./lib/testnetTokens";
 
 /**
  * Puts a real protective exit on testnet, end to end.
@@ -36,52 +37,6 @@ import type { NocturneVault, ProtectiveExitStrategy } from "../typechain-types";
  * disarms by design, so re-arming is not optional.
  */
 
-// Verified on testnet — see ARCHITECTURE.md §3.5 and §3.6.
-const WHBAR_TOKEN = "0x0000000000000000000000000000000000003aD2"; // HTS, 8 dp
-const WHBAR_CONTRACT = "0x0000000000000000000000000000000000003aD1"; // wrapper, deposit()
-const USDC = "0x0000000000000000000000000000000000001549"; // HTS, 6 dp
-const DAI = "0x0000000000000000000000000000000000001599"; // HTS, 8 dp
-const ROUTER = "0x0000000000000000000000000000000000159398"; // V2 SwapRouter (has deadline)
-
-/** HTS precompile. Association is required before an account may hold a token. */
-const HTS = "0x0000000000000000000000000000000000000167";
-
-type Pair = {
-  label: string;
-  asset: string;
-  assetDecimals: number;
-  pool: string;
-  fee: number;
-  feed: string;
-  /**
-   * Longer than the feed's heartbeat, or the vault refuses "feed stale" for a
-   * stretch of every cycle. DAI/USD updates every 24h and was measured landing
-   * up to 36s late, so 24h exactly would not do.
-   */
-  maxFeedAge: bigint;
-};
-
-const PAIRS = {
-  whbar: {
-    label: "WHBAR",
-    asset: WHBAR_TOKEN,
-    assetDecimals: 8,
-    pool: "0x914B98992d7eD602D1f5d9084ECe8160Fc0e741a", // USDC/WHBAR 0.30%
-    fee: 3000,
-    feed: "0x59bC155EB6c6C415fE43255aF66EcF0523c92B4a", // Chainlink HBAR/USD
-    maxFeedAge: 86_400n, // HBAR/USD also updates on deviation
-  },
-  dai: {
-    label: "DAI",
-    asset: DAI,
-    assetDecimals: 8,
-    pool: "0xb431866114b634f611774ec0d094bf11cb91c7e4", // USDC/DAI 0.05%
-    fee: 500,
-    feed: "0xdA2aBF7C90aDC73CDF5cA8d720B87bD5F5863389", // Chainlink DAI/USD
-    maxFeedAge: 90_000n,
-  },
-} satisfies Record<string, Pair>;
-
 const PRESETS = {
   refuse: { pair: PAIRS.whbar, floor: "0.10", position: "0.1", fuel: "7" },
   sell: { pair: PAIRS.dai, floor: "1.001", position: "1", fuel: "7" },
@@ -101,8 +56,6 @@ const MAX_DIVERGENCE_BPS = 200n;
 
 /** Thirty minutes of pool history, so one trade cannot move the reading. */
 const TWAP_WINDOW = 1800;
-
-const USDC_DECIMALS = 6;
 
 /** An existing vault to retune, instead of creating one. */
 const EXISTING = process.env.VAULT;
@@ -140,7 +93,9 @@ async function build(): Promise<string> {
   const strategyAddr = (await deployments.get("ProtectiveExitStrategy")).address;
 
   const position = ethers.parseUnits(POSITION, pair.assetDecimals);
-  await acquire(pair, position);
+  // One HBAR buys about two dollars of stablecoin on the drifted pool, which
+  // covers a position of up to that size.
+  await acquire(pair, position, POSITION);
 
   console.log(`\ncreating a vault with ${FUEL_HBAR} HBAR of fuel...`);
   await (await factory.createVault(strategyAddr, { value: ethers.parseEther(FUEL_HBAR), gasLimit: 4_000_000 })).wait();
@@ -178,89 +133,6 @@ async function build(): Promise<string> {
   }
 
   return vaultAddr;
-}
-
-/**
- * Get the owner enough of the asset to hand the vault.
- *
- * WHBAR is wrapped from HBAR. DAI has no faucet, so it is bought: HBAR is
- * wrapped, sold for USDC on the WHBAR/USDC pool, and the USDC sold for DAI.
- * The first leg rides the testnet pool's inflated WHBAR price, which makes the
- * stablecoin cheap to come by — the same drift the refuse preset refuses.
- */
-async function acquire(p: Pair, amount: bigint) {
-  const [owner] = await ethers.getSigners();
-  const hts = await ethers.getContractAt("IHederaTokenService", HTS);
-  const wanted = p.asset === WHBAR_TOKEN ? [WHBAR_TOKEN] : [WHBAR_TOKEN, USDC, p.asset];
-
-  // An account created from an EVM key has no automatic association slots.
-  for (const token of wanted) {
-    await tolerate(hts.associateToken(owner.address, token, { gasLimit: 800_000 }), "already associated");
-  }
-
-  const asset = await ethers.getContractAt("IERC20", p.asset);
-  const held = await asset.balanceOf(owner.address);
-  if (held >= amount) return console.log(`owner holds ${ethers.formatUnits(held, p.assetDecimals)} ${p.label}`);
-
-  const whbar = await ethers.getContractAt("IERC20", WHBAR_TOKEN);
-  const wrapper = new ethers.Contract(WHBAR_CONTRACT, ["function deposit() payable"], owner);
-  const router = await ethers.getContractAt("ISwapRouter", ROUTER);
-  const deadline = () => BigInt(Math.floor(Date.now() / 1000) + 300);
-
-  if (p.asset === WHBAR_TOKEN) {
-    console.log(`wrapping ${POSITION} HBAR into WHBAR...`);
-    // Weibar over JSON-RPC; the relay divides by 1e10 on the way in.
-    await (await wrapper.deposit({ value: ethers.parseEther(POSITION), gasLimit: 800_000 })).wait();
-    return;
-  }
-
-  // One WHBAR buys roughly two USDC on the drifted pool. Wrap enough for the
-  // whole position at half that rate, and sell all of it.
-  const whbarIn = ethers.parseUnits(POSITION, 8);
-  console.log(`wrapping ${POSITION} HBAR and selling it for USDC...`);
-  await (await wrapper.deposit({ value: ethers.parseEther(POSITION), gasLimit: 800_000 })).wait();
-  await (await whbar.approve(ROUTER, whbarIn, { gasLimit: 800_000 })).wait();
-  await (
-    await router.exactInputSingle(
-      {
-        tokenIn: WHBAR_TOKEN,
-        tokenOut: USDC,
-        fee: 3000,
-        recipient: owner.address,
-        deadline: deadline(),
-        amountIn: whbarIn,
-        amountOutMinimum: 1n,
-        sqrtPriceLimitX96: 0n,
-      },
-      { gasLimit: 2_000_000 },
-    )
-  ).wait();
-
-  const usdc = await ethers.getContractAt("IERC20", USDC);
-  const usdcIn = await usdc.balanceOf(owner.address);
-  // DAI sits within a fraction of a percent of USDC; demand at least 98%.
-  const minOut = (usdcIn * 98n * 10n ** BigInt(p.assetDecimals - USDC_DECIMALS)) / 100n;
-  console.log(`selling ${ethers.formatUnits(usdcIn, USDC_DECIMALS)} USDC for ${p.label}...`);
-  await (await usdc.approve(ROUTER, usdcIn, { gasLimit: 800_000 })).wait();
-  await (
-    await router.exactInputSingle(
-      {
-        tokenIn: USDC,
-        tokenOut: p.asset,
-        fee: p.fee,
-        recipient: owner.address,
-        deadline: deadline(),
-        amountIn: usdcIn,
-        amountOutMinimum: minOut,
-        sqrtPriceLimitX96: 0n,
-      },
-      { gasLimit: 2_000_000 },
-    )
-  ).wait();
-
-  const now = await asset.balanceOf(owner.address);
-  console.log(`owner holds ${ethers.formatUnits(now, p.assetDecimals)} ${p.label}`);
-  if (now < amount) throw new Error(`still short of ${POSITION} ${p.label}`);
 }
 
 /** Picks up a vault that already has its tokens, position and allow-list. */
@@ -331,15 +203,6 @@ async function arm(vault: NocturneVault, vaultAddr: string) {
   console.log(`vault   https://hashscan.io/testnet/contract/${vaultAddr}`);
   console.log(`mirror  https://testnet.mirrornode.hedera.com/api/v1/contracts/${vaultAddr}/results/logs`);
   console.log(`\nSend nothing else. The next call comes from the network.`);
-}
-
-/** Runs a transaction, tolerating one specific already-done failure. */
-async function tolerate(pending: Promise<{ wait: () => Promise<unknown> }>, benign: string) {
-  try {
-    await (await pending).wait();
-  } catch (e) {
-    console.log(`  (${benign}? continuing — ${((e as Error).message ?? "").slice(0, 80)})`);
-  }
 }
 
 main().catch(e => {
