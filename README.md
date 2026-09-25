@@ -6,7 +6,7 @@ A Scaffold-HBAR template for on-chain jobs with no keeper. A vault books its own
 next run through the Hedera Schedule Service, pays for it from its own balance,
 and won't trade unless SaucerSwap and Chainlink agree on the price.
 
-**Live: [nocturne-hbar.vercel.app](https://nocturne-hbar.vercel.app)** · [Docs](https://nocturne-hbar.vercel.app/docs/quickstart) · [How it works](https://nocturne-hbar.vercel.app/how-it-works)
+**Live: [hedera-nocturne.vercel.app](https://hedera-nocturne.vercel.app)** · [Docs](https://hedera-nocturne.vercel.app/docs/quickstart) · [How it works](https://hedera-nocturne.vercel.app/how-it-works)
 
 [![CI](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml)
 &nbsp;MIT · Hedera testnet · 127 offline tests + 5 live
