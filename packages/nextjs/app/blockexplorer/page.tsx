@@ -20,6 +20,16 @@ const EXPLORE = [
   { label: "On duty now", what: "The DAI depeg guard, running", path: "contract/0.0.10710268" },
   { label: "It refused", what: "WHBAR, sources 22x apart", path: "transaction/1790319391.014683746" },
   { label: "It sold", what: "1 DAI for 1.001757 USDC", path: "transaction/1790319308.034520104" },
+  {
+    label: "It rebalanced",
+    what: "0.5 DAI for 0.500878 USDC, back to 50/50",
+    path: "transaction/1790351600.061675104",
+  },
+  {
+    label: "It kept time",
+    what: "The Heartbeat counter, beaten by vaults",
+    path: "contract/0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b",
+  },
 ];
 
 const BlockExplorer: NextPage = () => {

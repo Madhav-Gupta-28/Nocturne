@@ -42,8 +42,13 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
 
   const { data: exitStrategy } = useDeployedContractInfo({ contractName: "ProtectiveExitStrategy" });
   const { data: running } = useVaultRead(vault, "strategy");
-  const isExit =
-    !!running && !!exitStrategy?.address && String(running).toLowerCase() === exitStrategy.address.toLowerCase();
+  const { data: heartbeatStrategy } = useDeployedContractInfo({ contractName: "HeartbeatStrategy" });
+  const runs = (s?: { address?: string }) =>
+    !!running && !!s?.address && String(running).toLowerCase() === s.address.toLowerCase();
+  const isExit = runs(exitStrategy);
+  const kind = isExit ? "exit" : runs(heartbeatStrategy) ? "heartbeat" : "other";
+  const { data: storedConfig } = useVaultRead(vault, "config");
+  const configured = ((storedConfig as string | undefined) ?? "0x").length > 2;
 
   const secondsToGo = status ? Number(status.nextRunAt) - now : 0;
   const overdue = !!status?.armed && secondsToGo < -OVERDUE_GRACE;
@@ -88,7 +93,9 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
             read from the vault rather than remembered from how it was made. An
             armed vault of any kind can be disarmed; setting one up is per
             strategy, and the exit strategy has its own panel below. */}
-        {status?.armed || !isExit ? <Controls vault={vault} armed={status?.armed ?? false} onDone={refetch} /> : null}
+        {status?.armed || !isExit ? (
+          <Controls vault={vault} armed={status?.armed ?? false} kind={kind} configured={configured} onDone={refetch} />
+        ) : null}
 
         <Fuel vault={vault} fuel={fuelTinybar} onDone={refetch} />
         <Tokens vault={vault} />
@@ -266,7 +273,19 @@ const Overdue = ({ vault, onDone }: { vault: Address; onDone: () => Promise<void
  * validated. Doing it in the UI rather than hiding it in a script is the point —
  * a template is read for how it works.
  */
-const Controls = ({ vault, armed, onDone }: { vault: Address; armed: boolean; onDone: () => Promise<void> }) => {
+const Controls = ({
+  vault,
+  armed,
+  kind,
+  configured,
+  onDone,
+}: {
+  vault: Address;
+  armed: boolean;
+  kind: "heartbeat" | "exit" | "other";
+  configured: boolean;
+  onDone: () => Promise<void>;
+}) => {
   const [interval, setIntervalSeconds] = useState("120");
   const { data: heartbeat } = useDeployedContractInfo({ contractName: "Heartbeat" });
   const { send, isPending } = useVaultWrite(vault);
@@ -291,6 +310,33 @@ const Controls = ({ vault, armed, onDone }: { vault: Address; armed: boolean; on
           Disarming deletes the pending schedule. The HBAR stays in the vault until you withdraw it.
         </span>
       </div>
+    );
+  }
+
+  /*
+    A strategy this page has no setup form for — the rebalancer, or one you
+    wrote — is configured by script. If it has a config, re-arming it is one
+    call; the heartbeat form below would send the wrong config to it.
+  */
+  if (kind !== "heartbeat") {
+    return configured ? (
+      <div className="flex flex-wrap items-center gap-4 mt-8">
+        <button
+          className="btn btn-primary"
+          disabled={isPending}
+          onClick={async () => {
+            await send({ functionName: "arm", books: true });
+            await onDone();
+          }}
+        >
+          {isPending ? "Working…" : "Arm it"}
+        </button>
+        <span className="text-sm opacity-60">Re-arms with the config already stored in the vault.</span>
+      </div>
+    ) : (
+      <p className="text-sm opacity-60 mt-8 mb-0">
+        This strategy is set up by script. See <code>scripts/armRebalanceVault.ts</code>.
+      </p>
     );
   }
 

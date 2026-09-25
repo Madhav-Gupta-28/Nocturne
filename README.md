@@ -19,9 +19,10 @@ npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
 
 ## Proof, on testnet
 
-Two vaults, same code, same stock 2% tolerance. One held WHBAR against a pool
-that has drifted 22x from the real price; the other held DAI against a pool on
-its peg. Nobody sent any of their runs. The network did, and each vault paid.
+Same engine, same stock 2% tolerance. One exit vault held WHBAR against a pool
+that has drifted 22x from the real price; another held DAI against a pool on
+its peg; a rebalancing vault held a DAI/USDC pair. Nobody sent any of their
+runs. The network did, and each vault paid.
 
 ![The refusal and the sale](docs/images/proof.jpg)
 
@@ -29,6 +30,7 @@ its peg. Nobody sent any of their runs. The network did, and each vault paid.
 | --- | --- | --- | --- | --- | --- |
 | WHBAR [`0.0.10710164`](https://hashscan.io/testnet/contract/0.0.10710164) | $2.0382 | $0.0920 | **Refused.** 22x apart. Kept all 0.1 WHBAR. | 1.81 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790319391.014683746) |
 | DAI [`0.0.10710193`](https://hashscan.io/testnet/contract/0.0.10710193) | $1.0023 | $0.9999 | **Sold.** 0.24% apart: approve + swap, 1 DAI → 1.001757 USDC. | 2.64 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790319308.034520104) |
+| DAI/USDC [`0.0.10716165`](https://hashscan.io/testnet/contract/0.0.10716165) | $1.0023 | $0.9999 | **Rebalanced.** `DriftRebalanceStrategy` held 100% DAI against a 50% target: sold 0.5 DAI → 0.500878 USDC. | 2.66 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790351600.061675104) |
 
 The DAI vault's next run found nothing left to protect and booked its next check
 60 days out, rather than checking every minute until its fuel ran out.
