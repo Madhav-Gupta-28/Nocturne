@@ -67,14 +67,6 @@ export function useRunsFor(tinybar: bigint | undefined): number | undefined {
   return Number((tinybar - reserve) / charge + 1n);
 }
 
-export type VaultStatus = {
-  armed: boolean;
-  runs: bigint;
-  refusals: bigint;
-  nextRunAt: bigint;
-  runsLeft: bigint;
-};
-
 /**
  * One `view` on a vault, by name.
  *
