@@ -19,34 +19,36 @@ npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
 
 ## Proof, on testnet
 
-One vault held 0.1 WHBAR against the live SaucerSwap V2 pool and the live
-Chainlink HBAR/USD feed. Nobody sent any of its runs. The network did, and the
-vault paid.
+Two vaults, same code, same stock 2% tolerance. One held WHBAR against a pool
+that has drifted 22x from the real price; the other held DAI against a pool on
+its peg. Nobody sent any of their runs. The network did, and each vault paid.
 
-![The refusal and the swap](docs/images/proof.jpg)
+![The refusal and the sale](docs/images/proof.jpg)
 
-| Run | What happened | Fee, paid by the vault | Transaction |
-| --- | --- | --- | --- |
-| 1 | **Refused.** Pool $2.0503, Chainlink $0.0915, 22.4× apart. Sold nothing. | 1.78 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790220055.062657433) |
-| 2 | **Sold.** Tolerance widened on purpose: approve + swap, 0.1 WHBAR → 0.204405 USDC. | 2.62 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790220899.081501493) |
-| 3 | **Refused**, "nothing held". It does not sell twice. | — | [vault](https://hashscan.io/testnet/contract/0.0.10690925) |
+| Vault | SaucerSwap | Chainlink | What happened | Fee, paid by the vault | Transaction |
+| --- | --- | --- | --- | --- | --- |
+| WHBAR [`0.0.10710164`](https://hashscan.io/testnet/contract/0.0.10710164) | $2.0382 | $0.0920 | **Refused.** 22x apart. Kept all 0.1 WHBAR. | 1.81 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790319391.014683746) |
+| DAI [`0.0.10710193`](https://hashscan.io/testnet/contract/0.0.10710193) | $1.0023 | $0.9999 | **Sold.** 0.24% apart: approve + swap, 1 DAI → 1.001757 USDC. | 2.64 HBAR | [HashScan](https://hashscan.io/testnet/transaction/1790319308.034520104) |
 
-The 22× gap is a testnet artefact: nothing arbitrages a testnet pool. That makes
-it a poor place to show a realistic sale, so run 2 uses an absurd tolerance to
-prove the swap path on chain. And it's the perfect place to show a refusal.
+The DAI vault's next run found nothing left to protect and booked its next check
+60 days out, rather than checking every minute until its fuel ran out.
+
+A third vault is **still running**: a DAI depeg guard at
+[`0.0.10710268`](https://hashscan.io/testnet/contract/0.0.10710268), floor $0.85,
+checking every six hours and paying for each check itself.
 
 ### Check it yourself
 
-Who paid for the swap? The mirror node says the vault, and only the vault:
+Who paid for the sale? The mirror node says the vault, and only the vault:
 
 ```bash
-curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?timestamp=1790220899.081501493" \
+curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?timestamp=1790319308.034520104" \
   | jq '.transactions[] | {scheduled, result, paid_by: [.transfers[] | select(.amount < 0)]}'
 ```
 
 ```json
 { "scheduled": true, "result": "SUCCESS",
-  "paid_by": [{ "account": "0.0.10690925", "amount": -262493037 }] }
+  "paid_by": [{ "account": "0.0.10710193", "amount": -263671981 }] }
 ```
 
 **Read the transfer list, not the transaction id.** A scheduled transaction's id
@@ -263,14 +265,11 @@ All Sourcify-verified, so HashScan shows source.
 | Contract | Address |
 | --- | --- |
 | NocturneFactory | [`0xc0f202Ac01475AFBD07e09643d56bdacC9294B78`](https://hashscan.io/testnet/contract/0xc0f202Ac01475AFBD07e09643d56bdacC9294B78) |
-| ProtectiveExitStrategy | [`0x699Ec374cb2b6BaBb809cB70E58018E5f6be3E59`](https://hashscan.io/testnet/contract/0x699Ec374cb2b6BaBb809cB70E58018E5f6be3E59) |
+| ProtectiveExitStrategy | [`0x942bBa07CfC2FAf1dD000C73FF04ccAabC61dBfd`](https://hashscan.io/testnet/contract/0x942bBa07CfC2FAf1dD000C73FF04ccAabC61dBfd) |
 | DriftRebalanceStrategy | [`0xfFFc7Da411a899e8c76fc4546D63e8e38Fc55D64`](https://hashscan.io/testnet/contract/0xfFFc7Da411a899e8c76fc4546D63e8e38Fc55D64) |
 | HeartbeatStrategy | [`0xA5638e6682e2FDCC89CEE92Ffc9EC98F3D602428`](https://hashscan.io/testnet/contract/0xA5638e6682e2FDCC89CEE92Ffc9EC98F3D602428) |
 | PriceLens | [`0x7F017Bd04879389b2A9CEeD5941EeE75aD28cCdb`](https://hashscan.io/testnet/contract/0x7F017Bd04879389b2A9CEeD5941EeE75aD28cCdb) |
 | Heartbeat | [`0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b`](https://hashscan.io/testnet/contract/0x8b63C92F7d906862922D060C7Ffc294d8a43ec0b) |
-
-The exit vault `0.0.10690925` above was built by an earlier deployment of the
-same contracts.
 
 ---
 

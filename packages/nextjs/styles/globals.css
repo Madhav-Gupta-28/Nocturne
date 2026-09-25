@@ -272,7 +272,9 @@
   line-height: 0.92;
   background: var(--color-signal);
   color: var(--color-ink);
-  padding: 0.08em 0.13em 0.02em;
+  /* A generous block, like a highlighter pass, rather than a tight label. */
+  padding: 0.22em 0.13em 0.34em;
+  margin-top: 0.04em;
   text-shadow: none;
 }
 

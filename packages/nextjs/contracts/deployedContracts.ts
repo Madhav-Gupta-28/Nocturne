@@ -933,7 +933,7 @@ const deployedContracts = {
       deployedOnBlock: 40910353,
     },
     ProtectiveExitStrategy: {
-      address: "0x699Ec374cb2b6BaBb809cB70E58018E5f6be3E59",
+      address: "0x942bBa07CfC2FAf1dD000C73FF04ccAabC61dBfd",
       abi: [
         {
           inputs: [
@@ -1193,7 +1193,7 @@ const deployedContracts = {
         plan: "contracts/interfaces/INocturneStrategy.sol",
         validateConfig: "contracts/interfaces/INocturneStrategy.sol",
       },
-      deployedOnBlock: 40910339,
+      deployedOnBlock: 40956642,
     },
   },
 } as const;

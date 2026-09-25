@@ -29,6 +29,8 @@ type Run = {
   asset: string;
   refused: boolean;
   verdict: string;
+  /** What happened to the position, as the mirror node recorded it. */
+  result: string;
   pool: number;
   feed: number;
   apart: string;
@@ -41,26 +43,28 @@ const RUNS: Run[] = [
     asset: "WHBAR",
     refused: true,
     verdict: "Refused to sell",
-    pool: 2.0374,
-    feed: 0.0924,
+    result: "Kept all 0.1 WHBAR",
+    pool: 2.0382,
+    feed: 0.092,
     apart: "22× apart",
-    fee: "—",
-    tx: "",
+    fee: "1.81",
+    tx: "1790319391.014683746",
   },
   {
     asset: "DAI",
     refused: false,
     verdict: "Sold 1 DAI",
+    result: "For 1.001757 USDC",
     pool: 1.0023,
     feed: 0.9999,
     apart: "0.24% apart",
-    fee: "—",
-    tx: "",
+    fee: "2.64",
+    tx: "1790319308.034520104",
   },
 ];
 
 /** The DAI depeg guard left running: floor $0.85, checked every six hours. */
-const ON_DUTY = "" as Address;
+const ON_DUTY: Address = "0xaFa895f727Fb0287fCB3E08DD9dA13287356837f";
 
 export const Proof = () => (
   <section className="shell pt-28 sm:pt-36">
@@ -79,11 +83,9 @@ export const Proof = () => (
       ))}
     </div>
 
-    {ON_DUTY ? (
-      <Reveal>
-        <OnDuty vault={ON_DUTY} />
-      </Reveal>
-    ) : null}
+    <Reveal>
+      <OnDuty vault={ON_DUTY} />
+    </Reveal>
   </section>
 );
 
@@ -108,6 +110,7 @@ const RunCard = ({ run }: { run: Run }) => {
         </div>
 
         <p className={`display m-0 mt-5 text-[clamp(1.9rem,3.4vw,2.75rem)] leading-none ${tone}`}>{run.verdict}</p>
+        <p className="mb-0 mt-3 font-mono text-sm text-paper-dim">{run.result}</p>
 
         <dl className="m-0 mt-8 space-y-4">
           {[
