@@ -64,14 +64,14 @@ export const DOCS: Doc[] = [
   {
     slug: "architecture",
     title: "Architecture",
-    blurb: "Six contracts, the loop, what the vault refuses, and what is deliberately absent.",
+    blurb: "Seven contracts, the loop, what the vault refuses, and what is deliberately absent.",
     file: "docs/architecture.md",
     minutes: 5,
   },
   {
     slug: "landmines",
     title: "Six silent failures",
-    blurb: "Every one measured on testnet, with the command that reproduces it. None report an error.",
+    blurb: "Every one measured on testnet, with the command that reproduces it. None reach the owner.",
     file: "docs/hedera-landmines.md",
     minutes: 9,
   },

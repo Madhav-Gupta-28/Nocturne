@@ -1,11 +1,20 @@
 # Six silent failures
 
 Six ways a self-rescheduling contract dies on Hedera. Every one was measured on
-testnet with the command shown. **None of them report an error** — the
-transaction succeeds, the explorer is green, and the automation is simply never
-called again.
+testnet with the command shown. **None of them reach the owner.** Each either
+reports SUCCESS, or fails inside a scheduled run that nobody is watching. Either
+way, the automation is simply never called again.
 
 None of this is in Hedera's documentation.
+
+| # | What goes wrong | What you see | Nocturne's guard |
+| --- | --- | --- | --- |
+| 1 | 1M gas for a call that reschedules itself | SUCCESS, then nothing, ever | `MIN_SCHEDULE_GAS = 3M` |
+| 2 | Scheduled calls see a clock ~2s early | A deadline check reverts | `CLOCK_SKEW = 10s` |
+| 3 | A second booking in one transaction | The whole run fails | One `_bookNext` per run |
+| 4 | A schedule more than 62 days out | Refused by response code, no revert | `MAX_INTERVAL = 60 days` |
+| 5 | Payer checked against gas reserved | Dies with 2.76 HBAR still in it | `runway()` counts the reserve |
+| 6 | Balance read during a run | Looks 3.27 HBAR poorer than it is | Nothing acts on it mid-run |
 
 ---
 
@@ -24,7 +33,7 @@ Two contracts, identical but for that number:
 | Scheduled gas | Fired | Booked a successor |
 | --- | --- | --- |
 | `1,000,000` | yes | **no** — dead after one run |
-| `3,000,000` | yes | yes — still running |
+| `3,000,000` | yes | yes, 25 times |
 
 ```
 17:45  ticks=1  rc=22    scheduled 0xA2Ca8d

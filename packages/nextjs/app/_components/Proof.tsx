@@ -1,132 +1,142 @@
 "use client";
 
+import { useRef } from "react";
 import { SectionHead } from "./SectionHead";
-import { TwoSources } from "./TwoSources";
-import { Reveal } from "./motion";
+import { EASE, Reveal } from "./motion";
+import { formatDuration, useNow } from "./ui";
+import { motion, useInView, useReducedMotion } from "framer-motion";
+import type { Address } from "viem";
+import { useVaultStatus } from "~~/hooks/useNocturneVault";
 
 /**
- * Two runs of one vault, both sent by the network, both on the record.
+ * Same code, same 2% rule, two markets — and one vault still on duty.
  *
- * The claim is not that a contract can call itself — a counter proves that and
- * nobody cares. It is that a contract can be trusted to act on money with
- * nobody watching, and the only honest evidence for that is the pair: it
- * declined when its two price sources disagreed, and it traded when told the
- * gap was acceptable. Either half alone proves nothing. A vault that only ever
- * refuses might be broken; one that only ever trades might not be checking.
+ * The claim is not that a contract can call itself. It is that one can be
+ * trusted to act on money with nobody watching, and the honest evidence is a
+ * pair: it refused a market whose price was wrong, and sold into one whose
+ * price was right. Either half alone proves nothing.
  *
- * Every figure below was read back from the mirror node, not remembered. The
- * evidence is on testnet whichever network the site is pointed at, so the
- * links are too.
+ * The gap is drawn, not described. Two bars per market, to scale: on WHBAR one
+ * bar is twenty-two times the other; on DAI they are the same length. A reader
+ * sees why the vault decided what it did before reading a word.
+ *
+ * Every figure in `RUNS` was read back from the mirror node after the fact.
  */
 
 const HASHSCAN = "https://hashscan.io/testnet";
 
-const VAULT = "0.0.10690925";
+type Run = {
+  asset: string;
+  refused: boolean;
+  verdict: string;
+  pool: number;
+  feed: number;
+  apart: string;
+  fee: string;
+  tx: string;
+};
 
-const RUNS = [
+const RUNS: Run[] = [
   {
-    run: 1,
-    verdict: "Refused",
-    headline: "Sources disagree",
-    rows: [
-      ["SaucerSwap TWAP", "$2.0503"],
-      ["Chainlink", "$0.0915"],
-      ["Apart", "22.4×"],
-    ],
-    outcome: "Sold nothing. Wrote down why.",
-    fee: "1.78",
-    tx: "1790220055.062657433",
+    asset: "WHBAR",
+    refused: true,
+    verdict: "Refused to sell",
+    pool: 2.0374,
+    feed: 0.0924,
+    apart: "22× apart",
+    fee: "—",
+    tx: "",
   },
   {
-    run: 2,
-    verdict: "Executed",
-    headline: "0.1 WHBAR → 0.204405 USDC",
-    rows: [
-      ["Actions", "approve, swap"],
-      ["Venue", "SaucerSwap V2"],
-      ["Tolerance", "widened on purpose"],
-    ],
-    outcome: "Swapped through the router, inside the scheduled call.",
-    fee: "2.62",
-    tx: "1790220899.081501493",
+    asset: "DAI",
+    refused: false,
+    verdict: "Sold 1 DAI",
+    pool: 1.0023,
+    feed: 0.9999,
+    apart: "0.24% apart",
+    fee: "—",
+    tx: "",
   },
-] as const;
+];
+
+/** The DAI depeg guard left running: floor $0.85, checked every six hours. */
+const ON_DUTY = "" as Address;
 
 export const Proof = () => (
   <section className="shell pt-28 sm:pt-36">
-    <SectionHead id="proof" title="It said no. Then it sold.">
+    <SectionHead id="proof" title="Same rule. Two markets.">
       <p>
-        A vault on Hedera testnet held 0.1 WHBAR against the live SaucerSwap pool and the live Chainlink feed. Nobody
-        sent either of these transactions. The vault paid for both.
+        Two vaults on testnet, same code, both told to stay within 2%.{" "}
+        <span className="text-paper">One refused. One sold. Nobody sent either run.</span>
       </p>
     </SectionHead>
 
     <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-2">
       {RUNS.map((r, i) => (
-        <Reveal key={r.run} delay={i * 0.08}>
-          <Run {...r} />
+        <Reveal key={r.asset} delay={i * 0.08}>
+          <RunCard run={r} />
         </Reveal>
       ))}
     </div>
 
-    <Reveal>
-      <p className="mb-0 mt-6 text-sm leading-relaxed text-paper-faint">
-        Run 3 refused too — <span className="text-paper-dim">nothing held</span>. It does not sell twice.{" "}
-        <a className="link text-paper-dim" href={`${HASHSCAN}/contract/${VAULT}`} target="_blank" rel="noreferrer">
-          The whole vault on HashScan ↗
-        </a>
-      </p>
-    </Reveal>
-
-    {/*
-      The same two sources, read now, in your browser. The runs above are
-      history; this is what a vault armed today would see.
-    */}
-    <Reveal>
-      <p className="eyebrow mb-5 mt-16">Live · what the guard sees right now</p>
-      <TwoSources />
-    </Reveal>
+    {ON_DUTY ? (
+      <Reveal>
+        <OnDuty vault={ON_DUTY} />
+      </Reveal>
+    ) : null}
   </section>
 );
 
-type RunProps = (typeof RUNS)[number];
-
-const Run = ({ run, verdict, headline, rows, outcome, fee, tx }: RunProps) => {
-  const refused = verdict === "Refused";
+const RunCard = ({ run }: { run: Run }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "0px 0px -15% 0px" });
+  const still = useReducedMotion();
+  const top = Math.max(run.pool, run.feed);
+  const tone = run.refused ? "text-signal-dead" : "text-signal";
 
   return (
     <article
+      ref={ref}
       className={`lift flex h-full flex-col border bg-ink-raised/40 backdrop-blur-sm ${
-        refused ? "border-line" : "border-signal/40"
+        run.refused ? "border-line" : "border-signal/40"
       }`}
     >
-      <header className="flex items-center justify-between border-b border-line px-6 py-4">
-        <span className="eyebrow">Run {run}</span>
-        <span className={`eyebrow ${refused ? "text-signal-dead" : "text-signal"}`}>{verdict}</span>
-      </header>
+      <div className="flex grow flex-col p-6 sm:p-8">
+        <div className="flex items-center justify-between">
+          <span className="eyebrow">{run.asset}</span>
+          <span className={`eyebrow ${tone}`}>{run.apart}</span>
+        </div>
 
-      <div className="flex grow flex-col px-6 py-7">
-        <p className="m-0 font-mono text-2xl leading-tight text-paper sm:text-[1.7rem]">{headline}</p>
+        <p className={`display m-0 mt-5 text-[clamp(1.9rem,3.4vw,2.75rem)] leading-none ${tone}`}>{run.verdict}</p>
 
-        <dl className="m-0 mt-7 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2.5 text-sm">
-          {rows.map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="text-paper-faint">{k}</dt>
-              <dd className="tabular m-0 text-right font-mono text-paper-dim">{v}</dd>
+        <dl className="m-0 mt-8 space-y-4">
+          {[
+            ["SaucerSwap", run.pool],
+            ["Chainlink", run.feed],
+          ].map(([name, price], i) => (
+            <div key={name as string}>
+              <div className="flex items-baseline justify-between">
+                <dt className="text-sm text-paper-dim">{name}</dt>
+                <dd className="tabular m-0 font-mono text-sm text-paper">${(price as number).toFixed(4)}</dd>
+              </div>
+              <div className="mt-2 h-2 bg-ink-sunken">
+                <motion.div
+                  className={`h-full ${run.refused ? (i === 0 ? "bg-signal-dead" : "bg-paper-faint") : "bg-signal"}`}
+                  initial={still ? false : { width: 0 }}
+                  animate={inView || still ? { width: `${((price as number) / top) * 100}%` } : undefined}
+                  transition={{ duration: 1.1, delay: 0.15 + i * 0.12, ease: EASE }}
+                />
+              </div>
             </div>
           ))}
         </dl>
-
-        <p className="mb-0 mt-7 text-sm leading-relaxed text-paper-dim">{outcome}</p>
       </div>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4">
-        <span className="eyebrow">
-          Fee {fee} HBAR · paid by the vault · <span className="text-paper">sent by a human: 0</span>
-        </span>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4 sm:px-8">
+        <span className="eyebrow">Fee {run.fee} HBAR, paid by the vault</span>
         <a
           className="eyebrow transition-colors hover:text-paper"
-          href={`${HASHSCAN}/transaction/${tx}`}
+          href={`${HASHSCAN}/transaction/${run.tx}`}
           target="_blank"
           rel="noreferrer"
         >
@@ -136,3 +146,42 @@ const Run = ({ run, verdict, headline, rows, outcome, fee, tx }: RunProps) => {
     </article>
   );
 };
+
+/**
+ * The vault that is still working, read live.
+ *
+ * The cards above are history. This is a vault a reader can watch: the
+ * countdown moves in the browser, the run count moves when the network calls
+ * it, and nothing here is cached.
+ */
+const OnDuty = ({ vault }: { vault: Address }) => {
+  const now = useNow();
+  const { status, decision } = useVaultStatus(vault);
+  const due = status ? Number(status.nextRunAt) - now : undefined;
+
+  return (
+    <a
+      href={`${HASHSCAN}/contract/${vault}`}
+      target="_blank"
+      rel="noreferrer"
+      className="lift group mt-6 flex flex-wrap items-center gap-x-10 gap-y-4 border border-signal/40 bg-ink-raised/40 px-6 py-5 backdrop-blur-sm transition-colors hover:bg-signal-glow/30 sm:px-8"
+    >
+      <span className="eyebrow flex items-center gap-2.5 text-signal">
+        <span className="alive inline-block h-1.5 w-1.5 rounded-full bg-signal" aria-hidden />
+        On duty now
+      </span>
+      <Stat label="DAI depeg guard" value={decision ?? "—"} />
+      <Stat label="Runs so far" value={status ? status.runs.toString() : "—"} />
+      <Stat label="Next check" value={due === undefined ? "—" : formatDuration(due)} />
+      <Stat label="Sent by a human" value="0" />
+      <span className="eyebrow ml-auto transition-colors group-hover:text-paper">HashScan ↗</span>
+    </a>
+  );
+};
+
+const Stat = ({ label, value }: { label: string; value: string }) => (
+  <span className="flex flex-col">
+    <span className="tabular font-mono text-lg leading-none text-paper">{value}</span>
+    <span className="eyebrow mt-1.5">{label}</span>
+  </span>
+);

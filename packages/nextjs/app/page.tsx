@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { CreateVault } from "./_components/CreateVault";
+import { Depth } from "./_components/Depth";
 import { Hero } from "./_components/Hero";
 import { Problem } from "./_components/Problem";
 import { Proof } from "./_components/Proof";
 import { RunTheNight } from "./_components/RunTheNight";
 import { SectionHead } from "./_components/SectionHead";
+import { Unlocks } from "./_components/Unlocks";
 import { VaultDashboard } from "./_components/VaultDashboard";
 import { Reveal } from "./_components/motion";
 import type { NextPage } from "next";
@@ -16,19 +17,14 @@ import { RainbowKitCustomConnectButton } from "~~/components/scaffold-hbar";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-hbar";
 
 /**
- * One page, five sections, one claim: you set it once and it keeps running.
+ * One page, one claim: you set it once and it keeps running.
  *
- * It is ordered as an argument and nothing is on it twice. The opening says
- * what you get; `Problem` says why that was hard; `Proof` shows a real vault
- * refusing a trade and then making one, with the live price reading beside it;
- * `RunTheNight` plays the mechanism, because the ordering inside a run is
- * something you watch rather than something you read; and only then does the
- * page ask for a wallet.
+ * Ordered as an argument, nothing on it twice. What you get; why that needed a
+ * bot until now; two real vaults deciding with nobody watching; the mechanism,
+ * played; why it is built deep on one service; how far it goes; and only then
+ * a wallet, for somebody who wants one of their own.
  *
- * Everything that answers a second question — the cadence diagram, the fuel
- * arithmetic, the deployed addresses — lives on `/how-it-works`. It is all good
- * material and none of it belongs in front of somebody who is still deciding
- * whether to care.
+ * The diagrams live on `/how-it-works` and the addresses on `/debug`.
  */
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -52,6 +48,8 @@ const Home: NextPage = () => {
       <Problem />
       <Proof />
       <RunTheNight />
+      <Depth />
+      <Unlocks />
 
       {/*
         The wallet is asked for last, and only here. Everything above is true
@@ -68,8 +66,6 @@ const Home: NextPage = () => {
           </div>
         </Reveal>
       </section>
-
-      <Closer />
     </div>
   );
 };
@@ -89,38 +85,6 @@ const ConnectPrompt = () => (
     </p>
     <RainbowKitCustomConnectButton />
   </div>
-);
-
-/**
- * The way out.
- *
- * A landing page that ends at the bottom of its last panel leaves the reader
- * with nowhere to go. This is one line and two links: the deeper page for
- * somebody who is now interested, and the source for somebody who is not going
- * to believe any of it until they have read it.
- */
-const Closer = () => (
-  <section className="shell pt-28 sm:pt-36">
-    <Reveal>
-      <div className="border-t border-line pt-14">
-        <h2 className="display display-lit mb-0 max-w-3xl text-[clamp(2rem,5vw,4rem)]">
-          Clone it. Point it at anything.
-        </h2>
-        <p className="mb-0 mt-7 max-w-xl text-lg leading-relaxed text-paper-dim">
-          Six contracts, 123 tests, and one interface to write against.
-        </p>
-
-        <div className="mt-10 flex flex-wrap items-center gap-3">
-          <Link href="/docs/quickstart" className="btn-signal">
-            Start here <span aria-hidden>→</span>
-          </Link>
-          <a href="https://github.com/Madhav-Gupta-28/Nocturne" target="_blank" rel="noreferrer" className="btn-line">
-            Read the source ↗
-          </a>
-        </div>
-      </div>
-    </Reveal>
-  </section>
 );
 
 export default Home;

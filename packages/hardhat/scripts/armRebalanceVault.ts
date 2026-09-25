@@ -14,10 +14,10 @@ import { ethers, deployments, network } from "hardhat";
  * whichever direction restores the ratio and keeps doing it — the same engine,
  * the same four interface functions, a completely different shape of decision.
  *
- * **Expect it to refuse**, for the same reason the exit strategy does: the pool
- * prices WHBAR near $2.04 and Chainlink says $0.09, so `PriceGuard` declines.
- * `TOLERATE_DIVERGENCE=1` widens the tolerance absurdly to prove the trading
- * path, exactly as in `armExitVault.ts`.
+ * **Expect it to refuse**, for the same reason the exit strategy's `refuse`
+ * preset does: the pool prices WHBAR near $2.04 and Chainlink says $0.09, so
+ * `PriceGuard` declines at the stock 2% tolerance. The trading path is proven
+ * against a healthy pool by `armExitVault.ts` with `PRESET=sell`.
  */
 
 // Verified on testnet — see ARCHITECTURE.md §3.5.
@@ -39,8 +39,8 @@ const POSITION_WHBAR = process.env.POSITION_WHBAR ?? "0.1";
 const TARGET_BPS_A = 5000;
 const BAND_BPS = Number(process.env.BAND_BPS ?? 100);
 
-const TOLERATE = process.env.TOLERATE_DIVERGENCE === "1";
-const MAX_DIVERGENCE_BPS = TOLERATE ? 10_000_000n : 200n;
+/** The stock tolerance. Nothing here widens it. */
+const MAX_DIVERGENCE_BPS = 200n;
 
 const hbar = (t: bigint) => (Number(t) / 1e8).toFixed(4);
 
@@ -48,9 +48,6 @@ async function main() {
   const [owner] = await ethers.getSigners();
   console.log(`network  ${network.name}`);
   console.log(`owner    ${owner.address}`);
-  if (TOLERATE) {
-    console.log(`\n!! TOLERATE_DIVERGENCE=1 — tolerance is absurd on purpose, to prove the trade path.\n`);
-  }
 
   const strategyAddr = (await deployments.get("DriftRebalanceStrategy")).address;
   const factory = await ethers.getContractAt("NocturneFactory", (await deployments.get("NocturneFactory")).address);

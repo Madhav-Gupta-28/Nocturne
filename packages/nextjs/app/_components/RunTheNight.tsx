@@ -14,16 +14,9 @@ import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-mot
  * you read. So the page plays a vault's night at four runs a few seconds long
  * and lets you watch the chain lay itself.
  *
- * It is a browser simulation and says so. Nothing here signs, submits, or needs
- * a wallet. The figures are the contract's real constants, though, which is why
- * the fuel arithmetic comes out at numbers that look strange: a vault reserves
- * the whole 3,000,000 gas allowance at 109 tinybar and is charged for the
- * 1,500,000 it burns, and the gap between those two is what killed the first
- * vault this project ever deployed.
- *
- * Each phase is paired with what kills it. That pairing is the project: all
- * four failures report SUCCESS, so none of them look like failures until the
- * automation has been dead for a week.
+ * It is a browser simulation. Nothing here signs, submits, or needs a wallet.
+ * The prices are illustrative; the cadence and the fuel arithmetic are the
+ * contracts' own.
  */
 
 type Beat = {
@@ -38,62 +31,40 @@ type Beat = {
 };
 
 const PHASES = [
-  {
-    n: "01",
-    name: "Wake",
-    does: "The network calls the vault.",
-    kills: "Too little gas — the receipt still says SUCCESS.",
-  },
-  {
-    n: "02",
-    name: "Book",
-    does: "It schedules its next run, before any work.",
-    kills: "Booking last. One bad run ends the chain.",
-  },
-  {
-    n: "03",
-    name: "Look",
-    does: "Two prices are read, and have to agree.",
-    kills: "Trusting one price. Bonzo lost $9.05M that way.",
-  },
-  {
-    n: "04",
-    name: "Act",
-    does: "It trades, or refuses and writes down why.",
-    kills: "Counting gas burned, not gas reserved.",
-  },
+  { n: "01", name: "Wake", does: "The network calls the vault." },
+  { n: "02", name: "Book", does: "It books the next run first." },
+  { n: "03", name: "Look", does: "Two prices have to agree." },
+  { n: "04", name: "Act", does: "It trades, or refuses and says why." },
 ];
 
+/*
+  One vault protecting 1,000 WHBAR with a floor of $0.0780, over one night.
+
+  The prices are illustrative, the arithmetic is not. Each run reserves 3.27 ℏ
+  and is charged 1.63 ℏ, the vault started with 12 ℏ, and runway is the
+  contract's own formula: (balance - reserve) / charge + 1. The intervals are
+  ProtectiveExitStrategy's bands: six hours when calm, five minutes when the
+  sources disagree, a minute below the floor.
+*/
 const SCRIPT: Beat[] = [
-  { phase: 0, at: "22:00:02", text: "woke on a schedule the network fired", tone: "signal" },
-  { phase: 0, at: "22:00:02", text: "msg.sender == address(this)", value: "self" },
-  { phase: 1, at: "22:00:02", text: "booked run 14 — before any work", value: "04:00:02" },
-  { phase: 2, at: "22:00:03", text: "SaucerSwap · 60s TWAP", value: "$0.0921" },
-  { phase: 2, at: "22:00:03", text: "Chainlink · 296s old", value: "$0.0918" },
-  { phase: 2, at: "22:00:03", text: "0.33% apart · tolerance 2%", value: "agree" },
-  { phase: 3, at: "22:00:03", text: "above floor 0.0840 — held", value: "no trade" },
-  { phase: 3, at: "22:00:03", text: "runway", value: "4 runs · 8.71 ℏ" },
+  { phase: 0, at: "22:00:02", text: "woke — the network fired the schedule", tone: "signal" },
+  { phase: 1, at: "22:00:02", text: "booked run 2, before any work", value: "04:00:02" },
+  { phase: 2, at: "22:00:03", text: "SaucerSwap $0.0921 · Chainlink $0.0918", value: "agree" },
+  { phase: 3, at: "22:00:03", text: "18% above the $0.0780 floor — hold", value: "no trade" },
+  { phase: 3, at: "22:00:03", text: "runway", value: "5 runs" },
 
-  { phase: 0, at: "04:00:01", text: "woke — 6h later, nobody sent it", tone: "signal" },
-  { phase: 1, at: "04:00:01", text: "booked run 15", value: "05:00:01" },
-  { phase: 2, at: "04:00:02", text: "SaucerSwap · 60s TWAP", value: "$2.0503" },
-  { phase: 2, at: "04:00:02", text: "Chainlink · 302s old", value: "$0.0915" },
-  { phase: 2, at: "04:00:02", text: "2141% apart · tolerance 2%", value: "disagree", tone: "dead" },
-  {
-    phase: 3,
-    at: "04:00:02",
-    text: 'Refused(1, "sources disagree") — written on chain',
-    value: "no trade",
-    tone: "dead",
-  },
-  { phase: 3, at: "04:00:02", text: "the chain continues anyway", value: "3 runs left" },
+  { phase: 0, at: "04:00:02", text: "woke — six hours later, nobody sent it", tone: "signal" },
+  { phase: 1, at: "04:00:02", text: "booked run 3", value: "04:05:02" },
+  { phase: 2, at: "04:00:03", text: "SaucerSwap $0.0610 · Chainlink $0.0902", value: "48% apart", tone: "dead" },
+  { phase: 3, at: "04:00:03", text: 'Refused("sources disagree")', value: "no trade", tone: "dead" },
+  { phase: 3, at: "04:00:03", text: "look again in five minutes", value: "4 runs" },
 
-  { phase: 0, at: "05:00:00", text: "woke — the interval tightened", tone: "signal" },
-  { phase: 1, at: "05:00:00", text: "booked run 16", value: "05:05:00" },
-  { phase: 2, at: "05:00:01", text: "both sources agree", value: "$0.0836" },
-  { phase: 3, at: "05:00:01", text: "below floor 0.0840 — selling", value: "execute", tone: "signal" },
-  { phase: 3, at: "05:00:04", text: "swapped 0.1 WHBAR", value: "0.204405 USDC", tone: "signal" },
-  { phase: 3, at: "05:00:04", text: "runway", value: "2 runs · 5.44 ℏ" },
+  { phase: 0, at: "04:05:02", text: "woke — the interval tightened", tone: "signal" },
+  { phase: 1, at: "04:05:02", text: "booked run 4", value: "04:06:02" },
+  { phase: 2, at: "04:05:03", text: "SaucerSwap $0.0772 · Chainlink $0.0769", value: "agree" },
+  { phase: 3, at: "04:05:03", text: "below the floor — selling", value: "execute", tone: "signal" },
+  { phase: 3, at: "04:05:05", text: "swapped 1,000 WHBAR", value: "76.97 USDC", tone: "signal" },
+  { phase: 3, at: "04:05:05", text: "runway", value: "3 runs" },
 ];
 
 type Status = "idle" | "running" | "settled";
@@ -180,15 +151,12 @@ export const RunTheNight = () => {
   return (
     <section ref={ref} className="shell pt-28 sm:pt-36">
       <SectionHead id="simulation" title="Watch a vault run.">
-        <p>
-          Four runs, at the numbers the contracts really use. Run two refuses to trade — and the chain carries on
-          anyway, which is the part that is easy to get wrong.
-        </p>
+        <p>One night, three runs, nobody watching. The second one refuses to trade, and the vault carries on anyway.</p>
       </SectionHead>
 
       <Reveal>
         <div className="lift mt-12 grid grid-cols-[minmax(0,1fr)] border border-line bg-ink-raised/40 backdrop-blur-sm lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-          {/* The four phases, and the four ways each one dies quietly. */}
+          {/* The four phases, lit in turn as the transcript reaches them. */}
           <ol className="m-0 list-none divide-y divide-line border-b border-line p-0 lg:border-b-0 lg:border-r">
             {PHASES.map((phase, i) => {
               const on = activePhase === i;
@@ -211,11 +179,6 @@ export const RunTheNight = () => {
                   </p>
 
                   <p className="mb-0 mt-2.5 text-[15px] leading-snug text-paper">{phase.does}</p>
-
-                  <p className="mb-0 mt-2.5 text-[13px] leading-snug text-signal-dead/70">
-                    <span className="eyebrow mr-2 text-signal-dead">Kills it</span>
-                    {phase.kills}
-                  </p>
                 </li>
               );
             })}
@@ -307,10 +270,10 @@ export const RunTheNight = () => {
                   transition={{ duration: 0.45 }}
                   className="m-0 grid grid-cols-2 divide-x divide-line border-t border-line sm:grid-cols-4"
                 >
-                  <Receipt label="Runs" value="4" />
+                  <Receipt label="Runs" value="3" />
                   <Receipt label="Refused" value="1" />
                   <Receipt label="Owner sent" value="0" />
-                  <Receipt label="Runway left" value="2" lit />
+                  <Receipt label="Runway left" value="3" lit />
                 </motion.dl>
               ) : null}
             </AnimatePresence>

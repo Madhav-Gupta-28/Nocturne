@@ -33,6 +33,7 @@ describe("ProtectiveExitStrategy", () => {
   const WATCHFUL = 3600n;
   const CLOSE = 300n;
   const IMMINENT = 60n;
+  const EMPTY = 60n * 24n * 3600n;
 
   async function deployFixture() {
     const [owner] = await ethers.getSigners();
@@ -256,6 +257,17 @@ describe("ProtectiveExitStrategy", () => {
       expect(previous).to.equal(IMMINENT);
     });
 
+    it("stops paying for checks once there is nothing left to protect", async () => {
+      // After an exit the price is still below the floor. Without this the
+      // vault would book a run every sixty seconds until its fuel ran out.
+      const { strategy, vault, asset, pool, feed, config } = await loadFixture(deployFixture);
+      await setPrices(pool, feed, 1.5, 1.5);
+      await vault.withdrawToken(await asset.getAddress(), HELD);
+
+      expect(await strategy.nextInterval(await config())).to.equal(EMPTY);
+      expect((await strategy.cadence(await config()))[1]).to.equal(EMPTY);
+    });
+
     it("looks again soon when the sources disagree, rather than sleeping", async () => {
       // A divergence is information: something is moving or something is
       // broken, and neither answer is "sleep for six hours".
@@ -341,8 +353,15 @@ describe("ProtectiveExitStrategy", () => {
     expect(await asset.balanceOf(await vault.getAddress())).to.equal(0n);
     expect(await quote.balanceOf(await vault.getAddress())).to.be.greaterThan(0n);
 
-    // And it is still armed, still booked, ready for whatever comes next.
+    // The successor was booked before the swap, while there was still a
+    // position, so one more check follows. It finds nothing held and parks
+    // the vault instead of checking every minute below a floor it has left.
+    await time.increaseTo((await vault.nextRunAt()) + 1n);
+    await feed.setUpdatedAt(await time.latest());
+    await expect(hss.fireLatest()).to.emit(vault, "Refused").withArgs(3n, "nothing held", 0n, 0n);
+
     expect(await hss.pendingCount()).to.equal(1n);
+    expect((await vault.nextRunAt()) - BigInt(await time.latest())).to.be.closeTo(EMPTY, 10n);
   });
 
   it("refuses forever when maxFeedAge is shorter than the feed's own heartbeat", async () => {

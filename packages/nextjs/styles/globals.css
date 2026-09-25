@@ -261,13 +261,18 @@
   eye lands on first.
 */
 .marker {
+  /*
+    A box of its own, not an inline background. An inline background paints the
+    font's whole content area, about 1.3em on this face, inside a line box of
+    ~1em — so the block bled up over the line above it. As an inline-block it
+    takes the height it paints, and the line makes room.
+  */
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0.92;
   background: var(--color-signal);
   color: var(--color-ink);
-  /* Box-decoration-break keeps the block continuous across a wrap rather than
-     painting a separate rectangle per line with a gap between them. */
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-  padding: 0.02em 0.13em 0.1em;
+  padding: 0.08em 0.13em 0.02em;
   text-shadow: none;
 }
 
@@ -336,6 +341,16 @@
 }
 
 /* The wash behind the opening, so the headline sits in light rather than on black. */
+/*
+  Glows are allowed to spill past their section, never past the page. `clip`
+  rather than `hidden`, because hidden makes the body a scroll container and
+  that quietly breaks the sticky header.
+*/
+html,
+body {
+  overflow-x: clip;
+}
+
 .glowfield {
   position: relative;
   isolation: isolate;
@@ -592,6 +607,46 @@ footer .btn-primary:hover {
   properties that make it look foreign. Scoped under `.debug-shell` so nothing
   here can reach the rest of the site.
 */
+/*
+  The package paints with its own `--color-sui-*` variables, so the cleanest
+  way to re-dress it is to redefine those, here, for this subtree only.
+*/
+.debug-shell {
+  --color-sui-base-100: var(--color-ink-raised);
+  --color-sui-primary-subtle: var(--color-ink-raised);
+  --color-sui-primary: var(--color-signal);
+  --color-sui-primary-content: var(--color-paper);
+  --color-sui-primary-neutral: var(--color-paper-dim);
+  --color-sui-base-content: var(--color-paper);
+  --color-sui-accent: var(--color-signal);
+  --color-sui-neutral: var(--color-ink-raised);
+  --color-sui-neutral-content: var(--color-paper);
+  --color-sui-input-background: var(--color-ink-sunken);
+  --color-sui-input-border: var(--color-line-bright);
+  --color-sui-input-text: var(--color-paper);
+  --color-sui-input-placeholder: var(--color-paper-faint);
+}
+
+.debug-shell .btn-dc {
+  background-color: transparent;
+  border: 1px solid var(--color-line-bright);
+  color: var(--color-paper-dim);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  box-shadow: none;
+}
+
+.debug-shell .btn-dc:hover {
+  border-color: var(--color-signal);
+  color: var(--color-signal);
+}
+
+.debug-shell .btn-dc-primary {
+  background-color: var(--color-signal);
+  border-color: var(--color-signal);
+  color: var(--color-ink-sunken);
+}
+
 .debug-shell :is(div, button, input, select, span, h2, h3) {
   border-radius: 0 !important;
 }

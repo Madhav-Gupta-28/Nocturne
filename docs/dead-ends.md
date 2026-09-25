@@ -20,11 +20,12 @@ Three independent paths were tried, and all three are closed:
 | Testnet pool A | `paused() == true`, error `64` = `LP_IS_PAUSED` |
 | Testnet pool B | `CALLER_NOT_AUTHORIZED` — an allowlist; a plain EOA fails identically at ~221k gas |
 
-Bonzo paused after the **11 July 2026** oracle exploit and has not reopened.
+Bonzo paused after the **11 July 2026** oracle exploit, and was still paused when
+this was tried.
 
 The important part is not that it was unavailable. It is what the design was
-about to do. Bonzo's health factor is derived from the same oracle that was
-manipulated to take $9.05M out of it. Automating a response to that number would
+about to do. Bonzo's health factor is priced by the same oracle provider whose
+verifier was fooled into the $9.05M loss. Automating a response to that number would
 have meant automating the exact failure that broke Hedera's DeFi — selling into a
 price an attacker chose, faster and more reliably than a human would have.
 
@@ -37,7 +38,7 @@ contribution than the integration would have been.
 ## EIP-1167 clones for the vaults
 
 A factory that clones is the obvious design. Each vault costs a few tens of
-thousands of gas instead of 2.6M, which on a per-user contract matters.
+thousands of gas instead of 2.2M, which on a per-user contract matters.
 
 It does not work, and it does not fail where you would look. The clone deploys.
 The clone can call `scheduleCall`. The schedule is created and returns success
@@ -119,5 +120,6 @@ already wrote.
 **Patching a library to chase a phantom.** On Node 25, `globalThis.localStorage`
 is `{}`, so a `typeof !== "undefined"` guard passes and the next call fails. Time
 was spent patching `burner-connector` imports before the error text was read
-properly — *"is not a function"*, not *"is not defined"*. All of it was reverted
-and Node 22 installed instead.
+properly: *"is not a function"*, not *"is not defined"*. All of it was reverted.
+The real fix is two lines in `packages/nextjs/node-compat.cjs`, which removes
+the stub before Next.js starts.

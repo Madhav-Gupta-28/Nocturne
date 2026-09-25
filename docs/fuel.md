@@ -17,7 +17,9 @@ There are two numbers, and they are not the same number.
 | | HBAR | Where it comes from |
 | --- | --- | --- |
 | **Reserved per run** | `3.27 HBAR` | 3,000,000 gas × 109 tinybar |
-| **Actually charged** | `1.63 HBAR` | about 1.43M gas burned |
+| **Actually charged** | `1.63 HBAR` | 1,495,298 gas burned (measured) |
+
+<!-- figure: fuel -->
 
 The network takes the payer's ability to cover the **whole gas allowance** as a
 precondition before it will run a scheduled call — then charges only for the gas
@@ -70,7 +72,8 @@ const [armed, runs, refusals, nextAt, runsRemaining] = await vault.status();
 ## 03 · How much to put in
 
 Multiply the runs you want by the charge, then add the reserve so the last one
-is still allowed to happen.
+is still allowed to happen. This carries one run of margin, since the exact
+minimum is `3.27 + (runs − 1) × 1.63`.
 
 ```
 fuel = runs × 1.63 + 3.27   HBAR
@@ -80,16 +83,16 @@ fuel = runs × 1.63 + 3.27   HBAR
 | --- | --- |
 | 5 | 12 HBAR |
 | 10 | 20 HBAR |
-| 24 (one a day, for a day at hourly) | 43 HBAR |
-| 100 | 166 HBAR |
+| 24 (hourly, for a day) | 43 HBAR |
+| 100 | 167 HBAR |
 
-At a two-hour cadence, **a vault running for a month needs about 600 HBAR**.
+At a two-hour cadence, **a vault running for a month needs about 590 HBAR**.
 That is the real cost of unattended automation on Hedera today, and it is worth
 knowing before you design a cadence rather than after.
 
 This is exactly why `nextInterval` belongs on the strategy — see
 [write a strategy](/docs/writing-a-strategy). A fixed hourly cadence costs about
-38 HBAR a day whether or not anything is happening.
+39 HBAR a day whether or not anything is happening.
 
 ---
 
@@ -150,8 +153,8 @@ vault.depositHbar{ value: amount }();          // payable, open to anyone
 vault.withdrawHbar(tinybar);                   // onlyOwner
 ```
 
-The vault emits `FuelLow(balance, runsRemaining)` once the runway falls to
-`FUEL_WARN_RUNS`, which is **5**. That event is the thing to alert on. There is
+The vault emits `FuelLow(balance, runsRemaining)` on every run once the runway
+is at or below `FUEL_WARN_RUNS`, which is **5**. That event is the thing to alert on. There is
 no other warning, and by the time the runway is zero the chain has already
 stopped.
 

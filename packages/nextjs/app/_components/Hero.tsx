@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { EASE, fadeUp, lineVariants } from "./motion";
 import { motion, useReducedMotion } from "framer-motion";
 import { Starfield } from "~~/components/Starfield";
@@ -14,8 +15,9 @@ import { Starfield } from "~~/components/Starfield";
  * describes the whole product in words that need no vocabulary beyond the name
  * of the chain.
  *
- * There is one call to action. A second button beside it only ever splits the
- * click, and everything a curious reader wants is reachable from the header.
+ * There is one call to action, and it goes to the docs: this is a template, so
+ * the thing a visitor came to do is build with it. The command beside it is
+ * the other half of the same action.
  */
 
 // The `--` is load-bearing. Without it `--template` is consumed by npm, never
@@ -41,9 +43,7 @@ export const Hero = () => {
           product in six words, before anybody has read a paragraph.
         */}
         <h1 className="display display-hero m-0 text-left">
-          <Line index={0} className="display-lit">
-            Cron for contracts.
-          </Line>
+          <Line index={0}>Cron for contracts.</Line>
           <Line index={1}>
             <span className="marker">No server.</span>
           </Line>
@@ -58,16 +58,20 @@ export const Hero = () => {
 
         <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20">
           <motion.div className="min-w-0" variants={fadeUp} custom={5} initial={still ? false : "rest"} animate="play">
+            {/*
+              "Pays for it" is not decoration. Somebody has to pay every run's
+              fee; if it is not the contract, it is a funded bot — which is the
+              server this line says you no longer need.
+            */}
             <p className="m-0 max-w-xl text-lg leading-relaxed text-paper-dim sm:text-xl">
-              A repeating on-chain job needs a machine you own, pay for and keep online. Nocturne gives the contract two
-              things instead:{" "}
-              <span className="text-paper">a way to book its own next run, and the money to pay for it.</span>
+              Your contract books its own next run on Hedera and pays for it.{" "}
+              <span className="text-paper">Nothing to host. Nothing to keep online.</span>
             </p>
 
             <div className="mt-10">
-              <a href="#vault" className="btn-signal">
-                Create a vault <span aria-hidden>→</span>
-              </a>
+              <Link href="/docs/quickstart" className="btn-signal">
+                Get started <span aria-hidden>→</span>
+              </Link>
             </div>
           </motion.div>
 
@@ -162,6 +166,9 @@ const CommandCard = () => {
           </code>
         </pre>
       </figure>
+      <p className="mb-0 mt-3 text-xs text-paper-faint">
+        The bare <code className="text-paper-dim">--</code> is intentional: it hands the flag to the CLI.
+      </p>
     </div>
   );
 };

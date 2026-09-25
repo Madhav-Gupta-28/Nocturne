@@ -1,8 +1,45 @@
 import { Children, isValidElement } from "react";
 import { slugify } from "../_lib/documents";
 import { CodeBlock } from "./CodeBlock";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { FuelDiagram } from "~~/app/how-it-works/_components/FuelDiagram";
+import { GateDiagram } from "~~/app/how-it-works/_components/GateDiagram";
+import { LoopDiagram } from "~~/app/how-it-works/_components/LoopDiagram";
+import { SwapDiagram } from "~~/app/how-it-works/_components/SwapDiagram";
+
+/**
+ * The drawings from /how-it-works, placed in a document with a comment:
+ *
+ *   <!-- figure: loop -->
+ *
+ * A comment, because the same markdown is read on GitHub, where it renders as
+ * nothing at all instead of as a stray token. The plugin below swaps each one
+ * for an element the renderer maps to the drawing.
+ */
+const FIGURES: Record<string, React.ComponentType> = {
+  loop: LoopDiagram,
+  gate: GateDiagram,
+  fuel: FuelDiagram,
+  swap: SwapDiagram,
+};
+
+type MdNode = { type: string; value?: string; children?: MdNode[]; data?: Record<string, unknown> };
+
+const remarkFigures = () => (tree: MdNode) => {
+  const walk = (node: MdNode) => {
+    if (!node.children) return;
+    node.children = node.children.map(child => {
+      const name = child.type === "html" ? /<!--\s*figure:\s*(\w+)\s*-->/.exec(child.value ?? "")?.[1] : undefined;
+      if (name && FIGURES[name]) {
+        return { type: "docFigure", children: [], data: { hName: "doc-figure", hProperties: { name } } };
+      }
+      walk(child);
+      return child;
+    });
+  };
+  walk(tree);
+};
 
 /**
  * Markdown, set for reading rather than for looking like a README.
@@ -140,8 +177,18 @@ export const Markdown = ({ children }: { children: string }) => {
       prose-hr:border-transparent prose-hr:my-4"
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkFigures]}
         components={{
+          ...({
+            "doc-figure": ({ name }: { name: string }) => {
+              const Figure = FIGURES[name];
+              return (
+                <figure className="not-prose lift my-10 overflow-hidden border border-line bg-ink-raised/40">
+                  <Figure />
+                </figure>
+              );
+            },
+          } as Components),
           h2: Section,
           h3: Sub,
 
@@ -153,11 +200,24 @@ export const Markdown = ({ children }: { children: string }) => {
           an aside and gets skipped; set as a panel with a marked edge it reads
           as the thing to slow down for.
         */
-          blockquote: ({ children }) => (
-            <div className="my-8 border border-signal-dim/60 bg-signal-glow/30 px-6 py-1 [&>p]:text-paper-dim [&_strong]:text-paper">
-              {children}
-            </div>
-          ),
+          /*
+            Two kinds, told apart by their first words. A note that opens with
+            "Nocturne:" is how this template handles the problem above it, and
+            gets the accent. Everything else is a warning, and gets the colour
+            the site reserves for things that fail.
+          */
+          blockquote: ({ children }) => {
+            const fix = textOf(children).trimStart().startsWith("Nocturne:");
+            return (
+              <div
+                className={`my-8 border-l-2 px-6 py-1 [&>p]:text-paper-dim [&_strong]:text-paper ${
+                  fix ? "border-signal bg-signal-glow/30" : "border-signal-dead bg-signal-dead/[0.07]"
+                }`}
+              >
+                {children}
+              </div>
+            );
+          },
 
           // Tables of measurements are the point of these documents and are often
           // wider than a phone. Scroll the table, never the page.

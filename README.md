@@ -7,7 +7,7 @@ next run through the Hedera Schedule Service, pays for it from its own balance,
 and won't trade unless SaucerSwap and Chainlink agree on the price.
 
 [![CI](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml)
-&nbsp;MIT · Hedera testnet · 123 offline tests + 5 live
+&nbsp;MIT · Hedera testnet · 127 offline tests + 5 live
 
 ```bash
 npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
@@ -84,6 +84,56 @@ Why two sources: on 11 July 2026 a single manipulated oracle price took
 [$9.05M out of Bonzo Lend](https://www.coindesk.com/web3/2026/07/11/lending-protocol-bonzo-loses-77-of-value-locked-as-usd9-million-oracle-exploit-rattles-hedera),
 77% of its TVL. An automated seller that trusts one feed is a liquidation bot
 working for whoever moved the price.
+
+---
+
+## Depth over breadth
+
+You could call five Hedera services once each and list them all. Nocturne builds
+on one, the Schedule Service, and pushes it until it breaks. Everything else is
+there because the engine needs it.
+
+| Service | What it does here | How deep |
+| --- | --- | --- |
+| **Schedule Service** | The engine. Each run books the next from inside the contract: `scheduleCall`, `hasScheduleCapacity`, `deleteSchedule`. | [Six silent failures](docs/hedera-landmines.md), measured |
+| SaucerSwap V2 | 30-minute TWAP from the pool, and the swap itself through the router. | `TickMath` written from scratch, MIT |
+| Chainlink | The second opinion. No trade unless it agrees with the pool. | Staleness set per feed heartbeat |
+| Token Service | The vault associates itself with HTS tokens and holds them. | Association before custody |
+| Mirror Node | Where the proof lives: the transfer list shows the vault paid. | Transfer list, not tx id |
+
+Counting services measures surface area. The question for a template is
+whether the thing it's built on still works at 4am with nobody watching. That
+takes knowing how it fails.
+
+---
+
+## How big this gets
+
+Chainlink Automation, the keeper network other EVM chains rent,
+[isn't available on Hedera](https://docs.chain.link/chainlink-automation/overview/supported-networks).
+The Schedule Service makes automation native. Nocturne makes it a template:
+the vault, the fuel accounting and the price guard are written, so a new job is
+one file implementing four functions.
+
+```solidity
+interface INocturneStrategy {
+    function plan(bytes calldata config) external view returns (Action[] memory);
+    function nextInterval(bytes calldata config) external view returns (uint256);
+    function validateConfig(bytes calldata config) external view returns (bool);
+    function explain(bytes calldata config) external view returns (string memory, uint256, uint256);
+}
+```
+
+| Job | Status |
+| --- | --- |
+| Stop-loss and depeg guards | **Ships today** (`ProtectiveExitStrategy`) |
+| Portfolio rebalancing | **Ships today** (`DriftRebalanceStrategy`) |
+| Heartbeats | **Ships today** (`HeartbeatStrategy`) |
+| Dollar-cost averaging | One file away |
+| Loan protection before liquidation | One file away |
+| Vesting and payroll | One file away |
+| LP fee compounding | One file away |
+| AI agents that must act later | One file away |
 
 ---
 
@@ -182,7 +232,7 @@ the deployer key, and a script writes it for you.
 ### Run it
 
 ```bash
-npm run hardhat:test                                   # 123 tests, no network
+npm run hardhat:test                                   # 127 tests, no network
 npm run hardhat:account:generate                       # then fund it at the faucet
 npm run hardhat:deploy -- --network hederaTestnet      # six contracts
 npm run hardhat:verify:sourcify -- --network hederaTestnet
@@ -230,8 +280,8 @@ same contracts.
 | --- | --- |
 | **Ecosystem integration** | SaucerSwap V2 (TWAP + router swap) and Chainlink HBAR/USD decide every trade. [Load-bearing](#why-saucerswap-and-chainlink-are-load-bearing), [on-chain proof](#proof-on-testnet), `test/live/`. |
 | **Documentation** | This README, seven docs pages served in the app at `/docs` ([`docs/`](docs)), [`ARCHITECTURE.md`](ARCHITECTURE.md), [`AGENTS.md`](AGENTS.md) for coding agents. |
-| **Code quality** | 123 offline tests + 5 live, CI on Node 20 and 22, zero lint warnings, every contract Sourcify-verified. |
-| **Hedera service depth** | Schedule Service (`scheduleCall`, `hasScheduleCapacity`, `deleteSchedule`), Token Service (`associateToken`), Mirror Node, and [six measured failure modes](docs/hedera-landmines.md). |
+| **Code quality** | 127 offline tests + 5 live, CI on Node 20 and 22, zero lint warnings, every contract Sourcify-verified. |
+| **Hedera service depth** | [Depth over breadth](#depth-over-breadth): the Schedule Service is the engine, with [six measured failure modes](docs/hedera-landmines.md). Plus the Token Service and Mirror Node. |
 
 ---
 

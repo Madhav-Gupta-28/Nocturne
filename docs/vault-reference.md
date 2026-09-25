@@ -14,10 +14,11 @@ configuration.
 | Constant | Value | Why |
 | --- | --- | --- |
 | `MIN_SCHEDULE_GAS` | `3_000_000` | A self-rescheduling entry point needs ~1.5M. At 1M the inner `scheduleCall` runs out and **the outer call still reports SUCCESS**. |
-| `GAS_PER_RUN` | `1_500_000` | What a run actually burns, used for runway arithmetic. |
+| `GAS_PER_RUN` | `1_500_000` | What a run actually burns (1,495,298 measured), used for runway arithmetic. |
 | `MIN_INTERVAL` | `60` | Seconds. The floor a strategy's answer is clamped to. |
 | `MAX_INTERVAL` | `60 days` | The ceiling. Hedera refuses schedules beyond 62 days. |
 | `CLOCK_SKEW` | `10` | Seconds of tolerance. **A scheduled call arrives with `block.timestamp` about 2s early.** |
+| `TINYBAR_PER_RUN` | `160_000_000` | 1.6 HBAR, a run's observed cost. For context only; runway uses the two views below. |
 | `FALLBACK_GAS_PRICE` | `109` | Tinybar per gas, for chains where `tx.gasprice` is zero. |
 | `FUEL_WARN_RUNS` | `5` | Runway at which `FuelLow` is emitted. |
 
@@ -27,9 +28,11 @@ configuration.
 
 ### `setStrategy(address) onlyOwner`
 
-Points the vault at a strategy. **Clears every allow-list grant** by bumping an
-internal `grantEpoch`, so permissions made for the old strategy cannot be
-inherited by the new one. Emits `StrategySet` and `GrantsCleared`.
+Points the vault at a different strategy. The factory already set one at
+creation, so you only need this to change it. It **starts from nothing**: it
+disarms, releases the pending schedule, deletes the config, and clears every
+allow-list grant by bumping `grantEpoch`, so nothing made for the old strategy
+carries over. Emits `GrantsCleared` and `StrategySet`.
 
 ### `configure(bytes) onlyOwner`
 
@@ -66,13 +69,13 @@ Required before any token transfer in.
 
 | Function | Who may call it |
 | --- | --- |
-| `depositHbar() payable` | **Anyone.** Adds fuel. |
+| `depositHbar() payable` | **Anyone.** Adds fuel. A plain HBAR transfer works too. |
 | `depositToken(address, uint256) onlyOwner` | Pulls tokens in. Associate first. |
 | `withdrawHbar(uint256 tinybar) onlyOwner` | Takes HBAR out. |
 | `withdrawToken(address, uint256) onlyOwner` | Takes tokens out. |
 
 Deposits are open so a third party can keep a public vault alive. Withdrawals
-never are.
+never are, and they always go to the owner.
 
 Amounts are **tinybar**, 8 decimals — not wei. See
 [fuel and runway](/docs/fuel#05--tinybar-weibar-and-a-silent-overspend).
@@ -84,8 +87,8 @@ Amounts are **tinybar**, 8 decimals — not wei. See
 ### `arm() onlyOwner`
 
 Books the first execution and sets `armed = true`. Reverts with `AlreadyArmed`
-if it is already running, and `NotConfigured` if `config` is empty — so the
-order is always `setStrategy` → `configure` → `setAllowedCall` → `arm`.
+if it is already running, and `NotConfigured` if `config` is empty. So the order
+is `configure` and `setAllowedCall`, in either order, then `arm`.
 
 > Send this with a **gas limit of at least 2,500,000**. `scheduleCall` alone
 > costs about 1.4M, and a 4M limit makes the network reserve ~4.6 HBAR from the
@@ -110,8 +113,9 @@ The ordering inside it is the whole design:
    a manual revival, so the orphan booking would otherwise fire and waste a run.
 4. `++runCount`
 5. **Book the successor.** Before any work.
-6. `try strategy.plan(config)` — check against the allow-list, then execute.
-7. Emit `FuelLow` if the runway has fallen to `FUEL_WARN_RUNS`.
+6. `try strategy.plan(config)`. An empty plan emits `Refused`; a plan with a
+   call off the allow-list emits `PlanRejected`; otherwise it executes.
+7. Emit `FuelLow` if the runway is at or below `FUEL_WARN_RUNS`.
 
 Step 5 before step 6 is not a detail. If planning reverted and took the booking
 with it, the chain would end there — silently, with a transaction that reported
@@ -131,7 +135,10 @@ success.
 | `status()` | `(armed, runs, refusals, nextAt, runsRemaining)` — everything a UI needs in one call |
 | `runway()` | Executions the current balance can still pay for |
 | `reservePerRun()` | Tinybar the balance must clear for the next run to be accepted |
-| `chargePerRun()` | Tinybar a run is actually charged — under half the reserve |
+| `chargePerRun()` | Tinybar a run is actually charged, about half the reserve |
+| `runCount()`, `refusalCount()` | Runs so far, and how many of them declined |
+| `nextRunAt()`, `lastRunAt()` | Unix seconds |
+| `nextSchedule()` | The pending schedule's address, for HashScan |
 | `fuel()` | Balance in tinybar |
 | `preview()` | `strategy.explain(config)` — what it would say right now, running nothing |
 
@@ -139,7 +146,8 @@ success.
 
 ## 06 · Events
 
-The ones worth indexing:
+The ones worth indexing. The rest (`Armed`, `Configured`, `CallAllowed`,
+deposits and withdrawals) record setup and funding.
 
 ```solidity
 event Executed(uint64 indexed run, uint256 actions, uint256 nextAt);
@@ -185,12 +193,16 @@ error InsufficientBalance();
 ```solidity
 function createVault(address strategy) external payable returns (address vault);
 function latestVaultOf(address owner) external view returns (address);
+function vaultOf(address owner, uint256 index) external view returns (address);
+function vaultCount(address owner) external view returns (uint256);
 function vaultsOf(address owner) external view returns (address[] memory);
 function vaultsOf(address owner, uint256 offset, uint256 limit) external view returns (address[] memory);
+function totalVaults() external view returns (uint256);
+function allVaults(uint256 offset, uint256 limit) external view returns (address[] memory);
 ```
 
-Attach the fuel to `createVault` and the vault is funded at birth. Ownership is
-transferred to `msg.sender` before the call returns.
+Attach the fuel to `createVault` and the vault is funded at birth. The caller is
+the vault's owner from its constructor onward, and the strategy is already set.
 
 > **Vaults are deployed with `new`, not cloned.** EIP-1167 minimal proxies break
 > HSS scheduling: a delegatecall frame gets a `delegatable_contract_id` admin

@@ -17,9 +17,9 @@ import { useInView, useReducedMotion } from "framer-motion";
  * one. The path not taken stays drawn, greyed, with a bar across it: what makes
  * a gate a gate is that the other way exists and is shut.
  *
- * Both scenarios are real. The agreeing pair is roughly what mainnet reads; the
- * disagreeing pair is what testnet reads right now, because nothing arbitrages
- * a testnet so the pool drifts from the feed and stays drifted.
+ * Both scenarios are real testnet readings. The USDC/DAI pool tracks Chainlink's
+ * DAI/USD to a fraction of a percent; the USDC/WHBAR pool sits ~22x from
+ * HBAR/USD, because nothing arbitrages a testnet so it drifted and stayed there.
  */
 
 const W = 1200;
@@ -27,6 +27,7 @@ const H = 330;
 
 type Scene = {
   key: string;
+  feedName: string;
   twap: string;
   feed: string;
   gap: string;
@@ -37,19 +38,21 @@ type Scene = {
 const SCENES: Scene[] = [
   {
     key: "agree",
-    twap: "$0.0921",
-    feed: "$0.0918",
-    gap: "0.33%",
+    feedName: "DAI/USD",
+    twap: "$1.0023",
+    feed: "$0.9999",
+    gap: "0.24%",
     agree: true,
-    note: "inside the 2% tolerance",
+    note: "DAI",
   },
   {
     key: "disagree",
-    twap: "$2.0503",
-    feed: "$0.0915",
-    gap: "2140%",
+    feedName: "HBAR/USD",
+    twap: "$2.0374",
+    feed: "$0.0924",
+    gap: "22×",
     agree: false,
-    note: "testnet, right now",
+    note: "WHBAR",
   },
 ];
 
@@ -69,7 +72,7 @@ export const GateDiagram = () => {
   const inView = useInView(host, { once: false, margin: "0px 0px -15% 0px" });
   const still = useReducedMotion();
 
-  const [i, setI] = useState(1); // testnet's answer, which is the interesting one
+  const [i, setI] = useState(1); // the refusal first: it is the case nobody else draws
   const [pinned, setPinned] = useState(false);
 
   useEffect(() => {
@@ -103,8 +106,8 @@ export const GateDiagram = () => {
         </defs>
 
         {/* ── the two sources ───────────────────────────────────────── */}
-        <Source y={TOP_Y} label="SAUCERSWAP · 60s TWAP" value={scene.twap} />
-        <Source y={BOT_Y} label="CHAINLINK · HBAR/USD" value={scene.feed} />
+        <Source y={TOP_Y} label="SAUCERSWAP · 30-MIN TWAP" value={scene.twap} />
+        <Source y={BOT_Y} label={`CHAINLINK · ${scene.feedName}`} value={scene.feed} />
 
         {/* Both feed the same comparator. Drawn as one joint so the point —
             that neither source decides alone — is structural. */}
@@ -168,7 +171,7 @@ export const GateDiagram = () => {
         </g>
 
         {/* ── the two exits ─────────────────────────────────────────── */}
-        <Branch y={TOP_Y} live={open} label="It swaps" sub="approve, then sell to the floor" tone="signal" />
+        <Branch y={TOP_Y} live={open} label="It swaps" sub="approve, then swap" tone="signal" />
         <Branch y={BOT_Y} live={!open} label="It refuses" sub='Refused(run, "sources disagree")' tone="dead" />
       </svg>
 
@@ -191,7 +194,7 @@ export const GateDiagram = () => {
                 : "border-line text-paper-dim hover:border-line-bright hover:text-paper"
             }`}
           >
-            {s.agree ? "They agree" : "They disagree"} · {s.note}
+            {s.note} · {s.agree ? "they agree" : "they disagree"}
           </button>
         ))}
       </div>

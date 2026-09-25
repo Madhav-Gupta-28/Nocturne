@@ -1,7 +1,8 @@
 # Architecture
 
-Six contracts. One of them holds money, one of them decides things, and the
-other four are strategies or instruments.
+Seven contracts. The vault holds money, the factory makes vaults, three
+strategies decide things, and two small ones are instruments. Six are deployed;
+the vault is built by the factory, one per owner.
 
 > The long version — threat model, invariants, every chain fact marked as
 > measured or assumed — is `ARCHITECTURE.md` in the repository. This page is
@@ -44,6 +45,8 @@ That means a bad strategy can waste a run. It cannot take anything.
 
 One transaction, and the order inside it is the whole mechanism.
 
+<!-- figure: loop -->
+
 ```solidity
 function executeScheduled() external nonReentrant {
     if (!armed) return;                          // 1. a stale schedule
@@ -69,23 +72,27 @@ Three consequences fall out of it:
 - `executeScheduled` has **no access control**, so anyone can restart a chain
   that stopped.
 - A scheduled call arrives with `msg.sender == address(this)`, which is how the
-  vault tells its own wake-up from an uninvited caller.
+  vault tells its own wake-up from a manual revival.
 
 ---
 
-## 03 · The six contracts
+## 03 · The seven contracts
 
 | Contract | Job |
 | --- | --- |
 | `NocturneVault` | Holds funds, books schedules, checks plans, pays its own fee |
-| `NocturneFactory` | One vault per call, funded at birth, ownership transferred out |
+| `NocturneFactory` | One vault per call, funded at birth, owned by the caller |
+| `Heartbeat` | A counter a vault can call, and the evidence that it did |
 | `HeartbeatStrategy` | Fixed cadence. The reference implementation, 69 lines |
 | `ProtectiveExitStrategy` | Sells to a floor, refuses when sources disagree |
 | `DriftRebalanceStrategy` | Holds a ratio, tightens as it drifts |
 | `PriceLens` | Stateless view over `PriceGuard`, so a frontend sees what a vault sees |
 
-`PriceGuard` is a library, not a contract — the two-source check is shared code
-rather than a deployment, so a strategy cannot be pointed at a different one.
+`PriceGuard` is a library, not a contract. The two-source check is compiled into
+each strategy, so there is no oracle contract to trust, upgrade or swap out.
+Both readings are real testnet numbers: a pool on its peg, and a pool 22x adrift.
+
+<!-- figure: gate -->
 
 > **Vaults are deployed with `new`, not cloned.** EIP-1167 minimal proxies break
 > HSS scheduling: a delegatecall frame gets a `delegatable_contract_id` admin

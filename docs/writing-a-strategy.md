@@ -25,6 +25,8 @@ interface INocturneStrategy {
 }
 ```
 
+<!-- figure: swap -->
+
 Four rules follow from that signature, and all four are enforced rather than
 suggested.
 
@@ -36,7 +38,7 @@ review.
 **An empty array is a decision, not an error.** It is how you say *nothing to
 do*: the position is healthy, the trade is too small to be worth its fee, the
 price sources disagree. The vault records it as a refusal, emits your `explain`
-output, and asks again sooner.
+output, and runs again after whatever `nextInterval` returned.
 
 **Do not revert because the market is unfavourable.** Reverting is for malformed
 config and broken assumptions. Declining is for everything else. A strategy that
@@ -61,7 +63,7 @@ strategy is the only party that knows how close the position is, and it has no
 way to say so.
 
 It is not a stylistic point. At roughly **1.63 HBAR per execution** (measured —
-see [fuel and runway](/docs/fuel)), a fixed hourly cadence costs about 38 HBAR a
+see [fuel and runway](/docs/fuel)), a fixed hourly cadence costs about 39 HBAR a
 day whether or not anything is happening, and a fixed daily cadence can sleep
 through the event it exists to catch. Only the strategy can tell which of those
 is currently wrong.
@@ -180,6 +182,9 @@ be inherited by the new one.
 ## 06 · Build your own
 
 Say you want a vault that tops up a gas tank when it drops below a threshold.
+This exact contract is in the repository as
+`contracts/examples/TopUpStrategy.sol`, and CI tests it, so it compiles and does
+what this page says.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -258,36 +263,31 @@ You do not need a network, and you should not use one for this. The repository
 ships `MockHederaScheduleService`, so the whole loop runs in Hardhat.
 
 ```typescript
-import { expect } from "chai";
-import { ethers } from "hardhat";
+it("tops the tank up through a vault, with nobody sending the run", async () => {
+  const { tank, vault, hss, user, config } = await loadFixture(deployFixture);
+  await tank.setBalance(user.address, 40n);
 
-describe("TopUpStrategy", () => {
-  it("declines while the balance is healthy", async () => {
-    const strategy = await ethers.deployContract("TopUpStrategy");
-    const config = await strategy.encodeConfig(tank.target, user.address, 100n, 500n);
+  await vault.setAllowedCall(await tank.getAddress(), tank.interface.getFunction("topUp")!.selector, true);
+  await vault.configure(config);
+  await vault.arm();
 
-    await tank.setBalance(user.address, 200n);
+  // Jump to the booked time and let the mock scheduler fire it.
+  await time.increaseTo((await vault.nextRunAt()) + 1n);
+  await expect(hss.fireLatest()).to.emit(vault, "Executed");
 
-    expect(await strategy.plan(config)).to.have.length(0);
-    expect(await strategy.nextInterval(config)).to.equal(6n * 60n * 60n);
-  });
-
-  it("tightens the interval as the balance falls", async () => {
-    await tank.setBalance(user.address, 120n);
-    expect(await strategy.nextInterval(config)).to.equal(60n * 60n);
-
-    await tank.setBalance(user.address, 40n);
-    expect(await strategy.nextInterval(config)).to.equal(5n * 60n);
-  });
+  expect(await tank.balanceOf(user.address)).to.equal(500n);
 });
 ```
+
+That is one of three tests in `test/TopUpStrategy.test.ts`; the fixture above
+it deploys the mock scheduler, a `MockGasTank`, the strategy and a vault.
 
 ```bash
 npm run hardhat:test
 ```
 
-Look at `test/NocturneVault.test.ts` for the full-loop pattern — 51 tests that
-arm a vault against the mock scheduler and step it through executions, refusals,
+`test/NocturneVault.test.ts` has the full-loop pattern: 34 tests that arm a
+vault against the mock scheduler and step it through executions, refusals,
 rejected plans and running out of fuel.
 
 ---
@@ -304,15 +304,17 @@ Point a vault at it:
 
 ```typescript
 const vault = await ethers.getContractAt("NocturneVault", vaultAddress);
+const topUp = ethers.id("topUp(address,uint256)").slice(0, 10);
 
 await vault.setStrategy(strategy.target);
+await vault.setAllowedCall(tank, topUp, true);
 await vault.configure(await strategy.encodeConfig(tank, user, 100n, 500n));
-await vault.setAllowedCall(tank, IGasTank.topUp.selector, true);
 await vault.arm();
 ```
 
-Order matters. `setStrategy` clears the allow-list, so grants come after it, and
-`arm()` comes last.
+Order matters. `setStrategy` wipes the config and every grant, so both come
+after it, and `arm()` comes last. A vault made by the factory for your strategy
+already has it set; skip that line.
 
 ---
 

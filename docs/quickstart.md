@@ -27,7 +27,7 @@ You get one repository with two workspaces:
 
 | Workspace | What is in it |
 | --- | --- |
-| `packages/hardhat` | Six contracts, 123 offline tests, deploy and demo scripts |
+| `packages/hardhat` | The vault, factory and three strategies, 127 offline tests, deploy and demo scripts |
 | `packages/nextjs` | This site — the landing page, these docs, a vault dashboard |
 
 Node 20.18.3 or newer. The CLI installs dependencies for you.
@@ -62,7 +62,7 @@ npm run hardhat:account
 ```
 
 Fund it from the [Hedera portal faucet](https://portal.hedera.com/faucet). For
-the whole of this page, **40 HBAR is enough** — about 8 for the deploy and the
+the whole of this page, **40 HBAR is enough**: about 10 for the deploy and the
 rest for the vault to spend on itself.
 
 ---
@@ -105,18 +105,22 @@ FUEL_HBAR=12 INTERVAL=120 npx hardhat run scripts/armVault.ts --network hederaTe
 
 What it does, in order:
 
-1. `factory.createVault(strategy)` with the fuel attached
-2. `vault.configure(...)` with the heartbeat address and the interval
-3. `vault.setAllowedCall(heartbeat, beat.selector, true)` — the allow-list
+1. `factory.createVault(strategy)`, with the fuel attached
+2. `vault.setAllowedCall(heartbeat, beat.selector, true)`, the allow-list
+3. `vault.configure(...)`, with the heartbeat address and the interval
 4. `vault.arm()`
 
-The last transaction is the last one your account ever sends. Everything after
-it is the network calling the vault.
+That last transaction is the last one your account ever sends. Everything after
+it is the network calling the vault. The script ends by printing what the vault
+believes about itself:
 
 ```
-vault   0.0.10684549
-armed   first run at 12:04:31
-runway  6 runs
+armed    true
+next run 2026-09-25T12:06:31.000Z
+balance  12.0000 HBAR
+reserve  3.2700 HBAR per run  (accepted only above this)
+charge   1.6350 HBAR per run  (what it actually costs)
+runway   6 runs
 ```
 
 **`INTERVAL` is in seconds and the floor is 60.** `FUEL_HBAR` defaults to 24.
@@ -129,14 +133,14 @@ runway  6 runs
 npx hardhat run scripts/watchVault.ts --network hederaTestnet
 ```
 
-It polls the vault and prints each execution as it lands. Nothing this script
-does is a transaction — it only reads.
+It finds your latest vault, polls it, and prints a line each time the network
+runs it. Nothing this script does is a transaction.
 
 ```
 watching — nothing below is sent by this script
 
-run 1   beats 1   next in 120s   runway 5 runs
-run 2   beats 2   next in 120s   runway 4 runs
+12:06:33  runs=1 refusals=0 beats=1 next=12:08:33 runway=5 armed=true
+12:08:34  runs=2 refusals=0 beats=2 next=12:10:34 runway=4 armed=true
 ```
 
 Or open the frontend and watch the same numbers:
@@ -165,7 +169,7 @@ and the smallest one that works is 69 lines.
 → **[Write a strategy](/docs/writing-a-strategy)**
 
 Before you deploy anything with money behind it, read
-[the six silent failures](/docs/landmines). Every one of them reports SUCCESS.
+[the six silent failures](/docs/landmines). None of them ever reaches your screen.
 
 ---
 
@@ -174,7 +178,7 @@ Before you deploy anything with money behind it, read
 | Command | What it does |
 | --- | --- |
 | `npm run hardhat:compile` | Compile the contracts |
-| `npm run hardhat:test` | 123 offline tests, no network |
+| `npm run hardhat:test` | 127 offline tests, no network |
 | `npm run hardhat:test:live` | Live price-guard tests against testnet |
 | `npm run hardhat:deploy -- --network hederaTestnet` | Deploy all six contracts |
 | `npm run hardhat:verify:sourcify -- --network hederaTestnet` | Publish source to Sourcify |

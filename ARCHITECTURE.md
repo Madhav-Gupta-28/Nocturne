@@ -933,7 +933,7 @@ runsRemaining = floor(tinybarBalance / reservePerRun)
 ```
 
 The network tests a payer against the whole gas allowance before accepting the
-transaction, then charges only for the gas burned (~1.43M of the 3M reserved,
+transaction, then charges only for the gas burned (~1.5M of the 3M reserved,
 about 1.63 HBAR). Dividing by the observed cost therefore reports fuel the vault
 cannot actually spend — which is exactly how the first demo vault died with
 2.7628 HBAR in it (§1.4, landmine 5).

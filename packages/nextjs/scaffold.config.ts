@@ -31,7 +31,10 @@ const scaffoldConfig = {
 
   pollingInterval: 10000,
 
-  enableBurnerWallet: true,
+  // Off. On testnet a burner is a fresh account holding 0 HBAR, auto-connected,
+  // that can pay for nothing — it made every visitor look like they had a
+  // wallet with no money in it. Real wallets connect as normal.
+  enableBurnerWallet: false,
 
   rpcOverrides: {
     [chains.hedera.id]: process.env.NEXT_PUBLIC_HEDERA_MAINNET_RPC_URL || "https://mainnet.hashio.io/api",

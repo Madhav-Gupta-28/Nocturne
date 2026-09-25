@@ -17,16 +17,15 @@ import { motion, useInView, useReducedMotion } from "framer-motion";
  * premise rather than as another feature, and gives the comparison underneath
  * something to sit symmetrically beneath.
  *
- * The four rows are the whole pitch. Same questions, two answers, and they
+ * The three rows are the whole pitch. Same questions, two answers, and they
  * arrive a row at a time so the eye is walked down them rather than handed a
  * finished table.
  */
 
 const ROWS = [
-  { ask: "What calls it", keeper: "A server you rent", here: "The Hedera network" },
-  { ask: "Who keeps it alive", keeper: "You. Forever", here: "Nobody" },
-  { ask: "Who pays", keeper: "Your card, monthly", here: "The vault itself" },
-  { ask: "How it dies", keeper: "Silently", here: "When its HBAR runs out" },
+  { ask: "What runs it", keeper: "A server you rent", here: "The Hedera network" },
+  { ask: "Who pays", keeper: "Your card, monthly", here: "The contract itself" },
+  { ask: "If it stops", keeper: "Nothing tells you", here: "Its runway warns you first" },
 ];
 
 export const Problem = () => {
@@ -39,10 +38,10 @@ export const Problem = () => {
     <section className="shell pt-28 sm:pt-36">
       <Reveal>
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="display display-lit mb-0 text-[clamp(2rem,5vw,4rem)]">Something has to press the button.</h2>
+          <h2 className="display display-lit mb-0 text-[clamp(2rem,5vw,4rem)]">Other chains need a bot.</h2>
           <p className="mx-auto mb-0 mt-8 max-w-xl text-balance text-lg leading-relaxed text-paper-dim">
-            On every chain, a repeating job is really a computer in a data centre.{" "}
-            <span className="text-paper">When it stops, your job stops — and nothing tells you.</span>
+            A contract can&apos;t wake itself up, so somebody runs a server to do it.{" "}
+            <span className="text-paper">On Hedera, the network can.</span>
           </p>
         </div>
       </Reveal>
@@ -50,8 +49,8 @@ export const Problem = () => {
       <div ref={ref} className="mt-16">
         <Reveal>
           <div className="lift grid grid-cols-[minmax(0,1fr)] border border-line bg-ink-raised/40 backdrop-blur-sm sm:grid-cols-2">
-            <Head title="A keeper" note="Everywhere else" />
-            <Head title="Nocturne" note="Here" lit />
+            <Head title="A keeper bot" note="Everywhere else" />
+            <Head title="Nocturne" note="On Hedera" lit />
 
             {ROWS.map((row, i) => (
               <Fragment key={row.ask}>

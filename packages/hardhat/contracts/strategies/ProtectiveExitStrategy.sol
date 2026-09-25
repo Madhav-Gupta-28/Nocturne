@@ -69,6 +69,12 @@ contract ProtectiveExitStrategy is INocturneStrategy {
     ///      "sleep for six hours".
     uint256 internal constant CHECK_DIVERGED = 5 minutes;
 
+    /// @dev Nothing left to protect, so there is nothing to watch for. The vault
+    ///      clamps this to its own ceiling; the point is to stop paying for
+    ///      checks. Without it an exited position sits below its floor forever
+    ///      and books a run every sixty seconds until its fuel is gone.
+    uint256 internal constant CHECK_EMPTY = 60 days;
+
     struct Config {
         /// @dev The vault holding the position. Passed explicitly rather than
         ///      taken from msg.sender so a UI can call `explain` directly.
@@ -144,6 +150,7 @@ contract ProtectiveExitStrategy is INocturneStrategy {
      */
     function nextInterval(bytes calldata config) external view override returns (uint256) {
         Config memory c = abi.decode(config, (Config));
+        if (IERC20(c.asset).balanceOf(c.vault) == 0) return CHECK_EMPTY;
 
         PriceGuard.Reading memory r = PriceGuard.read(c.sources);
         if (!r.agreed) return CHECK_DIVERGED;
@@ -220,6 +227,7 @@ contract ProtectiveExitStrategy is INocturneStrategy {
     /// @dev For a UI that wants to show why the next check is when it is.
     function cadence(bytes calldata config) external view returns (uint256 distance1e18, uint256 intervalSeconds) {
         Config memory c = abi.decode(config, (Config));
+        if (IERC20(c.asset).balanceOf(c.vault) == 0) return (0, CHECK_EMPTY);
         PriceGuard.Reading memory r = PriceGuard.read(c.sources);
 
         if (!r.agreed) return (0, CHECK_DIVERGED);

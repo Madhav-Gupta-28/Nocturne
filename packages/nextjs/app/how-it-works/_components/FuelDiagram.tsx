@@ -39,7 +39,7 @@ const BARS = [
   },
   {
     label: "Actually charged",
-    sub: "about 1.43M gas burned",
+    sub: "about 1.5M gas burned",
     value: 1.63,
     tone: "paper" as const,
   },
