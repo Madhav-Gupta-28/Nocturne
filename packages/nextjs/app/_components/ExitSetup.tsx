@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Panel } from "./ui";
 import type { Address } from "viem";
 import { encodeAbiParameters, parseAbiParameters, parseEther, parseUnits, toFunctionSelector } from "viem";
-import { useReadContract } from "wagmi";
-import { useDeployedContractInfo, useSelectedNetwork } from "~~/hooks/scaffold-hbar";
-import { useVaultRead, useVaultWrite } from "~~/hooks/useNocturneVault";
+import { useReadContract, useWriteContract } from "wagmi";
+import { useDeployedContractInfo, useSelectedNetwork, useTransactor } from "~~/hooks/scaffold-hbar";
+import { useNetworkGasPrice, useVaultRead, useVaultWrite } from "~~/hooks/useNocturneVault";
 
 /**
  * Arming a protective exit, one step at a time.
@@ -72,7 +72,20 @@ const EXACT_INPUT_SINGLE = toFunctionSelector(
   "function exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
 );
 
+/**
+ * An HTS token approval runs through the token's EVM facade and costs far more
+ * than an ERC-20 one; 600k gas ran out of gas on testnet, 1M did not.
+ */
+const APPROVE_GAS = 1_000_000n;
+
 const ERC20_ABI = [
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [{ type: "address" }, { type: "uint256" }],
+    outputs: [{ type: "bool" }],
+  },
   {
     type: "function",
     name: "balanceOf",
@@ -97,6 +110,24 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
     setPosition(MARKETS[name].position);
     setFloor(MARKETS[name].floor);
   };
+
+  // The deposit is a pull: the vault calls transferFrom, so the wallet has to
+  // approve the vault for the amount first. That approval is sent to the token,
+  // from the wallet, not through the vault.
+  const writeTx = useTransactor();
+  const gasPrice = useNetworkGasPrice();
+  const { writeContractAsync } = useWriteContract();
+  const approveVault = (amount: bigint) =>
+    writeTx(() =>
+      writeContractAsync({
+        address: m.token,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [vault, amount],
+        gas: APPROVE_GAS,
+        gasPrice,
+      }),
+    );
 
   // Each of these is the chain's own answer to "has this step happened yet".
   const tokenAllowed = useVaultRead(vault, "allowedCall", [m.token, APPROVE]);
@@ -163,13 +194,12 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
           detail={`You need ${market} in your own wallet first. ${m.howToGet}`}
           done={hasPosition}
           busy={isPending}
-          action="Deposit"
+          action="Approve and deposit"
           input={{ value: position, onChange: setPosition, suffix: market }}
           onClick={async () => {
-            await send({
-              functionName: "depositToken",
-              args: [m.token, parseUnits(position || "0", m.decimals)],
-            });
+            const amount = parseUnits(position || "0", m.decimals);
+            await approveVault(amount);
+            await send({ functionName: "depositToken", args: [m.token, amount] });
             await refresh();
           }}
         />
