@@ -166,7 +166,27 @@ npx hardhat run scripts/watchVault.ts --network hederaTestnet
 
 ---
 
-## 07 · What happens when it runs out
+## 07 · Headroom in your own wallet
+
+The same reserve rule applies to the owner. Hashio will not submit a
+transaction unless the sender holds `gasLimit × gasPrice` on top of any value
+sent, even though most of it comes back:
+
+| Call | Gas limit | Headroom at 114 tinybar/gas | Charged, measured |
+| --- | --- | --- | --- |
+| `createVault` | 4,000,000 | ~4.6 HBAR | ~2.6 HBAR |
+| `arm` | 2,500,000 | ~2.9 HBAR | ~1.7 HBAR |
+| `configure`, `setAllowedCall` | 1,000,000 | ~1.1 HBAR | cents |
+
+A wallet that prices gas EIP-1559 style sets `maxFeePerGas` at about twice the
+network price, and the reserve doubles with it: `createVault` then needs ~8.7
+HBAR of headroom, and the failure is a bare "insufficient funds". The app sends
+a legacy `gasPrice` at the network rate for exactly this reason. If you script
+against a vault, do the same.
+
+---
+
+## 08 · What happens when it runs out
 
 Nothing dramatic, which is the problem.
 

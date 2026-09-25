@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { parseEther } from "viem";
 import { useDeployedContractInfo, useScaffoldWriteContract } from "~~/hooks/scaffold-hbar";
-import { useReservePerRun } from "~~/hooks/useNocturneVault";
+import { useNetworkGasPrice, useRunsFor } from "~~/hooks/useNocturneVault";
 
 /**
  * Creating a vault, and being honest about the deposit while doing it.
@@ -39,7 +39,13 @@ export const CreateVault = () => {
   const heartbeat = useDeployedContractInfo({ contractName: "HeartbeatStrategy" });
   const exit = useDeployedContractInfo({ contractName: "ProtectiveExitStrategy" });
   const strategy = choice === "HeartbeatStrategy" ? heartbeat.data : exit.data;
-  const reserve = useReservePerRun();
+  const gasPrice = useNetworkGasPrice();
+  // The relay will not submit a transaction unless the sender holds its whole
+  // gas limit at this price, on top of any value sent. Most of it is refunded,
+  // but it has to be there, and a wallet short of it gets only "insufficient
+  // funds". Arming is sent with 2.5M gas.
+  const headroom = gasPrice === undefined ? undefined : Number(CREATE_GAS * gasPrice) / 1e18;
+  const armHeadroom = gasPrice === undefined ? undefined : Number(2_500_000n * gasPrice) / 1e18;
   const { writeContractAsync, isMining } = useScaffoldWriteContract({
     contractName: "NocturneFactory",
     // The vault's constructor runs inside this call; simulating it through the
@@ -47,12 +53,10 @@ export const CreateVault = () => {
     disableSimulate: true,
   });
 
-  // Quoted against what a run reserves, not what it is charged. The two differ
-  // by about a factor of two, and quoting the smaller one is how a vault ends
-  // up refused while it still holds HBAR.
-  const hbarPerRun = reserve === undefined ? undefined : Number(reserve) / 1e8;
+  // The vault's own runway() arithmetic: one reserve to be accepted, then the
+  // charge per run. See useRunsFor.
   const amount = Number(fuel);
-  const runs = hbarPerRun && Number.isFinite(amount) ? Math.floor(amount / hbarPerRun) : undefined;
+  const runs = useRunsFor(Number.isFinite(amount) && amount >= 0 ? BigInt(Math.floor(amount * 1e8)) : undefined);
 
   return (
     /*
@@ -119,6 +123,7 @@ export const CreateVault = () => {
               // balance reads back as tinybar inside the EVM.
               value: parseEther(fuel),
               gas: CREATE_GAS,
+              gasPrice,
             });
           }}
         >
@@ -132,6 +137,15 @@ export const CreateVault = () => {
             <>
               Buys about <span className="tabular font-mono text-paper">{runs}</span> runs. Withdraw the rest whenever
               you like.
+              {headroom !== undefined ? (
+                <>
+                  {" "}
+                  Your wallet also needs about{" "}
+                  <span className="tabular font-mono text-paper">{headroom.toFixed(1)}</span> HBAR of gas headroom to
+                  create it, and about <span className="tabular font-mono text-paper">{armHeadroom?.toFixed(1)}</span>{" "}
+                  more to arm it.
+                </>
+              ) : null}
             </>
           )}
         </p>

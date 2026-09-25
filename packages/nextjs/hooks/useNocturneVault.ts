@@ -40,33 +40,32 @@ const GAS_PLAIN = 1_000_000n;
 const WEIBAR_PER_TINYBAR = 10_000_000_000n;
 
 /**
- * What one execution requires a vault to hold, in tinybar.
- *
- * Not what a run costs — what it reserves. The network tests the payer against
- * the whole gas allowance before accepting the transaction and then charges
- * only for the gas burned, which is roughly half. A vault holding one run's
- * worth of *cost* is refused; that is how the first demo vault died with 2.76
- * HBAR in it. See `docs/hedera-landmines.md`, landmine 5.
- *
- * An existing vault answers this itself with `reservePerRun()`. This hook is
- * for the case before one exists, where there is nothing to ask.
- *
- * The relay's `eth_gasPrice` runs a few percent above the price the EVM reports,
- * so the figure here is slightly high — the safe direction for a deposit.
- */
-export function useReservePerRun(): bigint | undefined {
-  const chainId = useSelectedNetwork().id;
-  const { data: weibarPerGas } = useGasPrice({ chainId });
-  if (weibarPerGas === undefined) return undefined;
-  return (GAS_BOOKING_RESERVE * weibarPerGas) / WEIBAR_PER_TINYBAR;
-}
-
-/**
  * `NocturneVault.MIN_SCHEDULE_GAS`, which is what every schedule is booked with
  * and therefore what each one reserves. Mirrored here because the figure is
  * needed before any vault exists to be asked.
  */
 const GAS_BOOKING_RESERVE = 3_000_000n;
+
+/** `NocturneVault.GAS_PER_RUN`: what a run is charged for, as opposed to what it reserves. */
+const GAS_PER_RUN = 1_500_000n;
+
+/**
+ * How many runs `tinybar` of fuel buys, by the vault's own `runway()` formula.
+ *
+ * The balance has to clear one reserve for a run to be accepted, and each run
+ * then costs only the charge, so it is `(balance - reserve) / charge + 1`, not
+ * `balance / reserve`. Dividing by the reserve quotes a 24 HBAR vault at 7 runs
+ * when the contract will report 13.
+ */
+export function useRunsFor(tinybar: bigint | undefined): number | undefined {
+  const chainId = useSelectedNetwork().id;
+  const { data: weibarPerGas } = useGasPrice({ chainId });
+  if (weibarPerGas === undefined || tinybar === undefined) return undefined;
+  const reserve = (GAS_BOOKING_RESERVE * weibarPerGas) / WEIBAR_PER_TINYBAR;
+  const charge = (GAS_PER_RUN * weibarPerGas) / WEIBAR_PER_TINYBAR;
+  if (tinybar < reserve) return 0;
+  return Number((tinybar - reserve) / charge + 1n);
+}
 
 export type VaultStatus = {
   armed: boolean;
@@ -149,6 +148,21 @@ export function useVaultStatus(address?: Address) {
   };
 }
 
+/**
+ * The network's gas price, in weibar, for sending as a legacy `gasPrice`.
+ *
+ * Without it a wallet sends an EIP-1559 transaction with `maxFeePerGas` at
+ * about twice the network price, and the relay will not submit anything unless
+ * the sender holds `maxFeePerGas x gasLimit`. For `createVault` at 4M gas that
+ * is ~8.7 HBAR of headroom on top of the fuel, against ~4.6 with the network
+ * price, and it fails as a bare "insufficient funds". Measured on testnet; the
+ * charge afterwards is the same either way.
+ */
+export function useNetworkGasPrice(): bigint | undefined {
+  const chainId = useSelectedNetwork().id;
+  return useGasPrice({ chainId }).data;
+}
+
 type VaultCall = {
   functionName: string;
   args?: readonly unknown[];
@@ -170,6 +184,7 @@ export function useVaultWrite(address?: Address) {
   const { chain } = useAccount();
   const selectedNetwork = useSelectedNetwork();
   const writeTx = useTransactor();
+  const gasPrice = useNetworkGasPrice();
   const { writeContractAsync, isPending } = useWriteContract();
 
   const send = async ({ functionName, args = [], value, books }: VaultCall) => {
@@ -194,6 +209,7 @@ export function useVaultWrite(address?: Address) {
         args,
         value,
         gas: books ? GAS_BOOKING : GAS_PLAIN,
+        gasPrice,
       }),
     );
   };

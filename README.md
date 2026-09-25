@@ -274,7 +274,11 @@ asks a coding agent to add a DCA strategy and grades the result:
 
 **Budget against the reserve, not the fee.** A run needs 3.27 HBAR in the vault
 to be accepted and is charged about 1.63, so 12 HBAR buys six runs, not seven.
-Keep ~3 HBAR in the owner account too, because arming reserves gas of its own.
+The owner's wallet needs gas headroom too: the relay will not submit a
+transaction unless the sender holds its whole gas limit. At 114 tinybar per gas
+that is ~4.6 HBAR to create a vault (4M gas) and ~2.9 to arm it (2.5M), on top
+of the fuel, and about twice that if the wallet prices gas EIP-1559 style. The
+app sends the network price so the lower figure applies.
 
 ![Docs, served by the app](docs/images/docs.jpg)
 

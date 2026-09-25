@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ExitSetup } from "./ExitSetup";
 import { Panel, Stat, encodeHeartbeatConfig, formatDuration, formatHbar, useNow } from "./ui";
 import type { Address } from "viem";
-import { toFunctionSelector } from "viem";
+import { parseEther, toFunctionSelector } from "viem";
 import { useDeployedContractInfo, useHederaAccountId, useTargetNetwork } from "~~/hooks/scaffold-hbar";
 import { useVaultRead, useVaultStatus, useVaultWrite } from "~~/hooks/useNocturneVault";
 import { chainIdToHederaNetwork, getBlockExplorerAddressLink, mirrorNodeUrl } from "~~/utils/scaffold-hbar";
@@ -74,14 +74,71 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
         {overdue ? <Overdue vault={vault} onDone={refetch} /> : null}
 
         {/* Which controls to show depends on what the vault is actually running,
-            read from the vault rather than remembered from how it was made. */}
-        {isExit ? null : <Controls vault={vault} armed={status?.armed ?? false} onDone={refetch} />}
+            read from the vault rather than remembered from how it was made. An
+            armed vault of any kind can be disarmed; setting one up is per
+            strategy, and the exit strategy has its own panel below. */}
+        {status?.armed || !isExit ? <Controls vault={vault} armed={status?.armed ?? false} onDone={refetch} /> : null}
+
+        <Fuel vault={vault} fuel={fuelTinybar} onDone={refetch} />
       </Panel>
 
       {isExit && !status?.armed ? <ExitSetup vault={vault} onDone={refetch} /> : null}
 
       <Proof vault={vault} />
     </>
+  );
+};
+
+/**
+ * Putting HBAR in and taking it out.
+ *
+ * Anyone may top a vault up, so a third party can keep a public one alive; only
+ * the owner can withdraw, and a withdrawal always goes to the owner. Withdrawing
+ * everything from an armed vault does not disarm it: the next run is simply
+ * refused for want of a reserve, which is why the button says what it does.
+ */
+const Fuel = ({ vault, fuel, onDone }: { vault: Address; fuel?: bigint; onDone: () => Promise<void> }) => {
+  const [amount, setAmount] = useState("17");
+  const { send, isPending } = useVaultWrite(vault);
+  const valid = Number(amount) > 0;
+
+  return (
+    <div className="mt-8 flex flex-wrap items-end gap-4 border-t border-line pt-6">
+      <label className="form-control">
+        <span className="label-text text-sm mb-1">Top up</span>
+        <div className="join">
+          <input
+            className="input input-bordered join-item w-24"
+            value={amount}
+            inputMode="decimal"
+            aria-label="HBAR to add"
+            onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+          />
+          <span className="btn btn-disabled join-item no-animation">HBAR</span>
+        </div>
+      </label>
+      <button
+        className="btn btn-outline"
+        disabled={isPending || !valid}
+        onClick={async () => {
+          // Weibar over JSON-RPC; the relay divides by 1e10 on the way in.
+          await send({ functionName: "depositHbar", value: parseEther(amount) });
+          await onDone();
+        }}
+      >
+        {isPending ? "Working…" : "Add fuel"}
+      </button>
+      <button
+        className="btn btn-ghost"
+        disabled={isPending || !fuel}
+        onClick={async () => {
+          await send({ functionName: "withdrawHbar", args: [fuel] });
+          await onDone();
+        }}
+      >
+        Withdraw all {fuel !== undefined ? `(${formatHbar(fuel)} HBAR)` : ""}
+      </button>
+    </div>
   );
 };
 
@@ -154,7 +211,7 @@ const Controls = ({ vault, armed, onDone }: { vault: Address; armed: boolean; on
           {isPending ? "Working…" : "Disarm"}
         </button>
         <span className="text-sm opacity-60">
-          Disarming deletes the pending schedule and refunds what it was holding.
+          Disarming deletes the pending schedule. The HBAR stays in the vault until you withdraw it.
         </span>
       </div>
     );
@@ -221,8 +278,8 @@ const Proof = ({ vault }: { vault: Address }) => {
       <p className="opacity-70 mt-0 text-sm max-w-2xl">
         Open the vault&apos;s transactions below. Each execution has{" "}
         <code className="text-xs">{accountId ?? "the vault"}</code> paying its own fee in the{" "}
-        <code className="text-xs">transfers</code> array. Your account appears once, for the transaction that armed it,
-        and never again.
+        <code className="text-xs">transfers</code> array. Your account appears only on the setup transactions you sent,
+        and never on a run.
       </p>
       <div className="flex flex-col gap-1 text-sm">
         <a className="link" href={getBlockExplorerAddressLink(targetNetwork, vault)} target="_blank" rel="noreferrer">
