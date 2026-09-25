@@ -1,0 +1,8 @@
+# Only the app and the docs it reads are needed to build the site.
+**/.next
+**/node_modules
+packages/hardhat/artifacts
+packages/hardhat/cache
+packages/hardhat/typechain-types
+packages/hardhat/deployments
+.harness/runs

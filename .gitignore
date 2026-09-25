@@ -31,3 +31,6 @@ dist
 .skill-cache/
 .harness-skills/
 .harness-context/
+
+# Vercel project link
+.vercel
