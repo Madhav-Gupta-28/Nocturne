@@ -1,6 +1,6 @@
 import { ethers, deployments, network } from "hardhat";
 import type { NocturneVault, ProtectiveExitStrategy } from "../typechain-types";
-import { PAIRS, ROUTER, USDC, USDC_DECIMALS, acquire } from "./lib/testnetTokens";
+import { PAIRS, ROUTER, USDC, USDC_DECIMALS, acquire, networkGasPrice } from "./lib/testnetTokens";
 
 /**
  * Puts a real protective exit on testnet, end to end.
@@ -98,7 +98,10 @@ async function build(): Promise<string> {
   await acquire(pair, position, POSITION);
 
   console.log(`\ncreating a vault with ${FUEL_HBAR} HBAR of fuel...`);
-  await (await factory.createVault(strategyAddr, { value: ethers.parseEther(FUEL_HBAR), gasLimit: 4_000_000 })).wait();
+  const gasPrice = await networkGasPrice();
+  await (
+    await factory.createVault(strategyAddr, { value: ethers.parseEther(FUEL_HBAR), gasLimit: 4_000_000, gasPrice })
+  ).wait();
   const vaultAddr = await factory.latestVaultOf(owner.address);
   const vault = await ethers.getContractAt("NocturneVault", vaultAddr);
   console.log(`vault    ${vaultAddr}`);
@@ -188,7 +191,7 @@ async function configure(vault: NocturneVault, vaultAddr: string, strategy: Prot
  */
 async function arm(vault: NocturneVault, vaultAddr: string) {
   console.log(`arming...`);
-  await (await vault.arm({ gasLimit: 2_500_000 })).wait();
+  await (await vault.arm({ gasLimit: 2_500_000, gasPrice: await networkGasPrice() })).wait();
 
   const [armed, runs, refusals, nextAt, runsLeft] = await vault.status();
   console.log(`\narmed    ${armed}`);

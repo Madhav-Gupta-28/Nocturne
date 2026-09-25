@@ -1,5 +1,5 @@
 import { ethers, deployments, network } from "hardhat";
-import { PAIRS, ROUTER, USDC, USDC_DECIMALS, acquire } from "./lib/testnetTokens";
+import { PAIRS, ROUTER, USDC, USDC_DECIMALS, acquire, networkGasPrice } from "./lib/testnetTokens";
 
 /**
  * Puts a real drift rebalance on testnet.
@@ -46,7 +46,10 @@ async function main() {
   await acquire(pair, position, POSITION);
 
   console.log(`\ncreating a vault with ${FUEL_HBAR} HBAR of fuel...`);
-  await (await factory.createVault(strategyAddr, { value: ethers.parseEther(FUEL_HBAR), gasLimit: 4_000_000 })).wait();
+  const gasPrice = await networkGasPrice();
+  await (
+    await factory.createVault(strategyAddr, { value: ethers.parseEther(FUEL_HBAR), gasLimit: 4_000_000, gasPrice })
+  ).wait();
   const vaultAddr = await factory.latestVaultOf(owner.address);
   const vault = await ethers.getContractAt("NocturneVault", vaultAddr);
   console.log(`vault    ${vaultAddr}`);
@@ -111,7 +114,7 @@ async function main() {
   console.log(`the strategy says: "${state}"  (${a}, ${b})`);
 
   console.log(`arming...`);
-  await (await vault.arm({ gasLimit: 2_500_000 })).wait();
+  await (await vault.arm({ gasLimit: 2_500_000, gasPrice: await networkGasPrice() })).wait();
 
   const [armed, runs, refusals, nextAt, runsLeft] = await vault.status();
   console.log(`\narmed    ${armed}`);

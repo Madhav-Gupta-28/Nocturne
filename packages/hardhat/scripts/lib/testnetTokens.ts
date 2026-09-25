@@ -16,6 +16,18 @@ export const HTS = "0x0000000000000000000000000000000000000167";
 
 export const USDC_DECIMALS = 6;
 
+/**
+ * The network gas price, to send as a legacy `gasPrice`.
+ *
+ * By default ethers sends EIP-1559 fees with `maxFeePerGas` at about twice the
+ * network price, and the relay will not submit unless the sender holds
+ * `maxFeePerGas x gasLimit`. For `createVault` (4M gas) that is ~8.7 HBAR of
+ * headroom instead of ~4.6. The charge is the same either way.
+ */
+export async function networkGasPrice(): Promise<bigint> {
+  return (await ethers.provider.getFeeData()).gasPrice ?? 0n;
+}
+
 export type Pair = {
   label: string;
   asset: string;

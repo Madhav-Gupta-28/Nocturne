@@ -4,13 +4,23 @@ import { useState } from "react";
 import { ExitSetup } from "./ExitSetup";
 import { Panel, Stat, encodeHeartbeatConfig, formatDuration, formatHbar, useNow } from "./ui";
 import type { Address } from "viem";
-import { parseEther, toFunctionSelector } from "viem";
-import { useDeployedContractInfo, useHederaAccountId, useTargetNetwork } from "~~/hooks/scaffold-hbar";
+import { formatUnits, parseEther, toFunctionSelector } from "viem";
+import { useReadContracts } from "wagmi";
+import {
+  useDeployedContractInfo,
+  useHederaAccountId,
+  useSelectedNetwork,
+  useTargetNetwork,
+} from "~~/hooks/scaffold-hbar";
 import { useVaultRead, useVaultStatus, useVaultWrite } from "~~/hooks/useNocturneVault";
 import { chainIdToHederaNetwork, getBlockExplorerAddressLink, mirrorNodeUrl } from "~~/utils/scaffold-hbar";
 
-/** Warn while there is still time to do something about it. */
-const FUEL_WARN_RUNS = 5n;
+/**
+ * Warn while there is still time to do something about it. Lower than the
+ * contract's own FuelLow threshold of 5, which is for indexers: a brand-new
+ * vault with a few runs of fuel should not open on a warning.
+ */
+const FUEL_WARN_RUNS = 2n;
 
 /** The vault's own floor. Anything shorter is clamped on chain. */
 const MIN_INTERVAL = 60;
@@ -62,11 +72,12 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
         </div>
 
         {status && status.runsLeft <= FUEL_WARN_RUNS && status.armed ? (
-          <div className="alert alert-warning mt-5 py-3">
-            <span className="text-sm">
-              Fuel is nearly out, and it runs out earlier than it looks: each run has to reserve the whole gas allowance
-              up front, about twice what it is then charged. A vault that still holds a run&apos;s worth of cost gets
-              refused anyway. Top it up to keep the chain alive.
+          <div className="mt-5 border-l-2 border-signal-dead bg-signal-dead/10 px-4 py-3">
+            <span className="text-sm text-paper-dim">
+              {status.runsLeft === 0n
+                ? "No runs left."
+                : `${status.runsLeft} run${status.runsLeft === 1n ? "" : "s"} left.`}{" "}
+              Each run must hold its whole gas reserve, about twice what it is charged, so top it up before it stops.
             </span>
           </div>
         ) : null}
@@ -80,6 +91,7 @@ export const VaultDashboard = ({ vault }: { vault: Address }) => {
         {status?.armed || !isExit ? <Controls vault={vault} armed={status?.armed ?? false} onDone={refetch} /> : null}
 
         <Fuel vault={vault} fuel={fuelTinybar} onDone={refetch} />
+        <Tokens vault={vault} />
       </Panel>
 
       {isExit && !status?.armed ? <ExitSetup vault={vault} onDone={refetch} /> : null}
@@ -138,6 +150,71 @@ const Fuel = ({ vault, fuel, onDone }: { vault: Address; fuel?: bigint; onDone: 
       >
         Withdraw all {fuel !== undefined ? `(${formatHbar(fuel)} HBAR)` : ""}
       </button>
+    </div>
+  );
+};
+
+/** The tokens a vault in this template can end up holding. */
+const TOKENS = [
+  { symbol: "DAI", address: "0x0000000000000000000000000000000000001599" as Address, decimals: 8 },
+  { symbol: "USDC", address: "0x0000000000000000000000000000000000001549" as Address, decimals: 6 },
+  { symbol: "WHBAR", address: "0x0000000000000000000000000000000000003aD2" as Address, decimals: 8 },
+] as const;
+
+const BALANCE_OF = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
+
+/**
+ * Tokens the vault holds, each with a way out.
+ *
+ * An exit or a rebalance leaves proceeds in the vault. Without this the only way
+ * to reach them was a script; `withdrawToken` always pays the owner.
+ */
+const Tokens = ({ vault }: { vault: Address }) => {
+  const chainId = useSelectedNetwork().id;
+  const { send, isPending } = useVaultWrite(vault);
+  const { data, refetch } = useReadContracts({
+    contracts: TOKENS.map(t => ({
+      chainId,
+      address: t.address,
+      abi: BALANCE_OF,
+      functionName: "balanceOf",
+      args: [vault],
+    })),
+    query: { refetchInterval: 8_000 },
+  });
+  const held = TOKENS.map((t, i) => ({ ...t, balance: (data?.[i]?.result as bigint | undefined) ?? 0n })).filter(
+    t => t.balance > 0n,
+  );
+  if (held.length === 0) return null;
+
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-4">
+      <span className="eyebrow">Holding</span>
+      {held.map(t => (
+        <span key={t.symbol} className="flex items-center gap-3">
+          <span className="tabular font-mono text-paper">
+            {formatUnits(t.balance, t.decimals)} {t.symbol}
+          </span>
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={isPending}
+            onClick={async () => {
+              await send({ functionName: "withdrawToken", args: [t.address, t.balance] });
+              await refetch();
+            }}
+          >
+            Withdraw
+          </button>
+        </span>
+      ))}
     </div>
   );
 };

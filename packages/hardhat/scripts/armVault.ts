@@ -1,4 +1,5 @@
 import { ethers, deployments, network } from "hardhat";
+import { networkGasPrice } from "./lib/testnetTokens";
 
 /**
  * Create a vault, fund it, point it at the Heartbeat, and arm it.
@@ -52,7 +53,11 @@ async function main() {
   // figure passed here would underfund the vault by a factor of ten billion.
   const fuel = ethers.parseEther(FUEL_HBAR);
   console.log(`\ncreating a vault, funded with ${FUEL_HBAR} HBAR...`);
-  const createTx = await factory.createVault(strategyAddr, { value: fuel, gasLimit: 4_000_000 });
+  const createTx = await factory.createVault(strategyAddr, {
+    value: fuel,
+    gasLimit: 4_000_000,
+    gasPrice: await networkGasPrice(),
+  });
   await createTx.wait();
 
   const vaultAddr = await factory.latestVaultOf(signer.address);
@@ -82,7 +87,7 @@ async function main() {
   // generously and the owner can be left unable to arm it, which is how this
   // number got measured in the first place.
   console.log(`arming...`);
-  const armTx = await vault.arm({ gasLimit: 2_500_000 });
+  const armTx = await vault.arm({ gasLimit: 2_500_000, gasPrice: await networkGasPrice() });
   await armTx.wait();
 
   const [armed, runs, refusals, nextAt, runsLeft] = await vault.status();
