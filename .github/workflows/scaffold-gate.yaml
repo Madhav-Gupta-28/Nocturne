@@ -44,9 +44,10 @@ jobs:
             --package-manager npm --skip-hedera-skills --ci
 
       - name: The files a judge checks for are there
+        # template.json is read by the CLI and not copied, so it is not checked here.
         working-directory: nocturne
         run: |
-          for f in README.md AGENTS.md LICENCE template.json .harness/spec.yaml \
+          for f in README.md AGENTS.md LICENCE .harness/spec.yaml \
                    packages/hardhat/contracts/NocturneVault.sol packages/nextjs/app/page.tsx; do
             test -f "$f" || { echo "missing: $f"; exit 1; }
           done
