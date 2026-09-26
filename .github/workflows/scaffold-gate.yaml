@@ -27,6 +27,12 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Give the runner a Git identity
+        # The CLI commits the new project, and refuses to start without one.
+        run: |
+          git config --global user.name "scaffold-gate"
+          git config --global user.email "scaffold-gate@users.noreply.github.com"
+
       - name: Scaffold from the template
         env:
           # Lets the CLI fetch this repo while it is private. Unused once public.
