@@ -180,7 +180,7 @@ Before you deploy anything with money behind it, read
 | `npm run hardhat:compile` | Compile the contracts |
 | `npm run hardhat:test` | 168 offline tests, no network |
 | `npm run hardhat:coverage` | Coverage of every shipped contract |
-| `npm run hardhat:test:live` | Live price-guard tests against testnet |
+| `npm run hardhat:test:live` | Live price-guard tests against testnet. Read-only, no key needed |
 | `npm run hardhat:deploy -- --network hederaTestnet` | Deploy all six contracts |
 | `npm run hardhat:verify:sourcify -- --network hederaTestnet` | Publish source to Sourcify |
 | `npm run hardhat:account` | Show the deployer address and balance |

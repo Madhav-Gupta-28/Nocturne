@@ -66,6 +66,12 @@ const RUNS: Run[] = [
 /** The DAI depeg guard left running: floor $0.85, checked every six hours. */
 const ON_DUTY: Address = "0xaFa895f727Fb0287fCB3E08DD9dA13287356837f";
 
+/**
+ * The same vault as a Hedera account. Scheduled runs are listed on HashScan's
+ * account page; the contract page shows only calls sent over JSON-RPC.
+ */
+const ON_DUTY_ACCOUNT = "0.0.10710268";
+
 export const Proof = () => (
   <section className="shell pt-28 sm:pt-36">
     <SectionHead id="proof" title="Same rule. Two markets.">
@@ -84,7 +90,7 @@ export const Proof = () => (
     </div>
 
     <Reveal>
-      <OnDuty vault={ON_DUTY} />
+      <OnDuty vault={ON_DUTY} account={ON_DUTY_ACCOUNT} />
     </Reveal>
   </section>
 );
@@ -157,14 +163,14 @@ const RunCard = ({ run }: { run: Run }) => {
  * countdown moves in the browser, the run count moves when the network calls
  * it, and nothing here is cached.
  */
-const OnDuty = ({ vault }: { vault: Address }) => {
+const OnDuty = ({ vault, account }: { vault: Address; account: string }) => {
   const now = useNow();
   const { status, decision } = useVaultStatus(vault);
   const due = status ? Number(status.nextRunAt) - now : undefined;
 
   return (
     <a
-      href={`${HASHSCAN}/contract/${vault}`}
+      href={`${HASHSCAN}/account/${account}`}
       target="_blank"
       rel="noreferrer"
       className="lift group mt-6 flex flex-wrap items-center gap-x-10 gap-y-4 border border-signal/40 bg-ink-raised/40 px-6 py-5 backdrop-blur-sm transition-colors hover:bg-signal-glow/30 sm:px-8"

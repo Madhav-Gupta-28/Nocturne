@@ -15,6 +15,18 @@ and won't trade unless SaucerSwap and Chainlink agree on the price.
 npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
 ```
 
+### Judging? Five checks, about ten minutes
+
+| # | Do this | You should see |
+| --- | --- | --- |
+| 1 | Open the [guard on duty](https://hashscan.io/testnet/account/0.0.10710268) | A DAI depeg guard. A scheduled `CONTRACT CALL` every six hours, each paid from the vault's own balance. |
+| 2 | Open the [refusal](https://hashscan.io/testnet/transaction/1790319391.014683746), the [sale](https://hashscan.io/testnet/transaction/1790319308.034520104) and the [rebalance](https://hashscan.io/testnet/transaction/1790351600.061675104) | Three scheduled transactions. Nobody sent them. The vault paid for each one ([how to check](#check-it-yourself)). |
+| 3 | `cd nocturne && npm run hardhat:test` | 168 passing. No network, no keys. |
+| 4 | `npm run hardhat:test:live` | The deployed guard reads the real SaucerSwap pool and Chainlink feed. They are about 20x apart, so it refuses. Read-only: no key, no HBAR. |
+| 5 | `npm run next:dev`, connect a testnet wallet, create a Heartbeat vault with 24 HBAR, then close the tab | The run counter keeps moving. None of the runs come from your wallet. |
+
+A run costs under **2 HBAR** (1.78 at today's gas price), and the vault pays it. You pay nothing after `arm`.
+
 ![Nocturne landing page](docs/images/hero.jpg)
 
 ---
@@ -38,7 +50,7 @@ The DAI vault's next run found nothing left to protect and booked its next check
 60 days out, rather than checking every minute until its fuel ran out.
 
 A third vault is **still running**: a DAI depeg guard at
-[`0.0.10710268`](https://hashscan.io/testnet/contract/0.0.10710268), floor $0.85,
+[`0.0.10710268`](https://hashscan.io/testnet/account/0.0.10710268), floor $0.85,
 checking every six hours and paying for each check itself.
 
 ### Check it yourself
@@ -60,8 +72,8 @@ names whoever *created* the schedule, so it looks as if someone sent the call.
 The transfer list shows who actually paid.
 
 The same refusal is visible right now, before you arm anything:
-`npm run hardhat:test:live` reads the real pool and feed and asserts that the
-guard refuses.
+`npm run hardhat:test:live` reads the real pool and feed through the deployed
+`PriceLens` and asserts that the guard refuses. It only reads, so it needs no key.
 
 ---
 

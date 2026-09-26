@@ -17,7 +17,7 @@ const EXPLORE = [
     what: "Every vault it has built",
     path: "contract/0xc0f202Ac01475AFBD07e09643d56bdacC9294B78",
   },
-  { label: "On duty now", what: "The DAI depeg guard, running", path: "contract/0.0.10710268" },
+  { label: "On duty now", what: "The DAI depeg guard, running", path: "account/0.0.10710268" },
   { label: "It refused", what: "WHBAR, sources 22x apart", path: "transaction/1790319391.014683746" },
   { label: "It sold", what: "1 DAI for 1.001757 USDC", path: "transaction/1790319308.034520104" },
   {
