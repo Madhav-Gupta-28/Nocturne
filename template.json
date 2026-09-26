@@ -11,8 +11,7 @@
         "hardhat"
       ],
       "packageManager": [
-        "npm",
-        "yarn"
+        "npm"
       ]
     },
     "defaults": {
