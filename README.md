@@ -9,6 +9,7 @@ and won't trade unless SaucerSwap and Chainlink agree on the price.
 **Live: [hedera-nocturne.vercel.app](https://hedera-nocturne.vercel.app)** · [Docs](https://hedera-nocturne.vercel.app/docs/quickstart) · [How it works](https://hedera-nocturne.vercel.app/how-it-works)
 
 [![CI](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml)
+[![Scaffold gate](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/scaffold-gate.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/scaffold-gate.yaml)
 &nbsp;MIT · Hedera testnet · 168 offline tests + 5 live · 100% line coverage
 
 ```bash

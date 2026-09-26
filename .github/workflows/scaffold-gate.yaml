@@ -1,0 +1,74 @@
+name: Scaffold gate
+
+# The eligibility gate, the way a judge meets it: not this checkout, but a
+# fresh project created by the published CLI from this repo. It catches what
+# the CI job cannot see — a file the CLI drops or rewrites, a template.json it
+# rejects, a dependency that only resolves inside this workspace.
+#
+# Runs on every push to main and once a day, so a change upstream in
+# create-scaffold-hbar shows up here before it shows up in judging.
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Scaffold from the template
+        env:
+          # Lets the CLI fetch this repo while it is private. Unused once public.
+          GIGET_AUTH: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx -y create-scaffold-hbar@latest nocturne \
+            --template ${{ github.repository }} \
+            -f nextjs-app -s hardhat --network testnet \
+            --package-manager npm --skip-hedera-skills --ci
+
+      - name: The files a judge checks for are there
+        working-directory: nocturne
+        run: |
+          for f in README.md AGENTS.md LICENCE template.json .harness/spec.yaml \
+                   packages/hardhat/contracts/NocturneVault.sol packages/nextjs/app/page.tsx; do
+            test -f "$f" || { echo "missing: $f"; exit 1; }
+          done
+          test ! -e .env || { echo ".env shipped"; exit 1; }
+
+      - name: Compile and test the contracts
+        working-directory: nocturne
+        run: |
+          npm run hardhat:compile
+          npm run hardhat:test
+
+      - name: Lint
+        working-directory: nocturne
+        run: npm run lint
+
+      - name: Build the app
+        working-directory: nocturne
+        run: npm run next:build
+
+      - name: Boot it and load every core route
+        working-directory: nocturne
+        run: |
+          npm run next:start -- -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000 > /dev/null && break; sleep 2; done
+          fail=0
+          for r in / /how-it-works /docs/quickstart /docs/fuel /docs/landmines /debug /blockexplorer; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000$r")
+            echo "$code  $r"
+            [ "$code" = "200" ] || fail=1
+          done
+          exit $fail
