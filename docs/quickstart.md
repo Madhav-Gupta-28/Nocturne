@@ -27,7 +27,7 @@ You get one repository with two workspaces:
 
 | Workspace | What is in it |
 | --- | --- |
-| `packages/hardhat` | The vault, factory and three strategies, 127 offline tests, deploy and demo scripts |
+| `packages/hardhat` | The vault, factory and three strategies, 168 offline tests, deploy and demo scripts |
 | `packages/nextjs` | This site — the landing page, these docs, a vault dashboard |
 
 Node 20.18.3 or newer. The CLI installs dependencies for you.
@@ -178,7 +178,8 @@ Before you deploy anything with money behind it, read
 | Command | What it does |
 | --- | --- |
 | `npm run hardhat:compile` | Compile the contracts |
-| `npm run hardhat:test` | 127 offline tests, no network |
+| `npm run hardhat:test` | 168 offline tests, no network |
+| `npm run hardhat:coverage` | Coverage of every shipped contract |
 | `npm run hardhat:test:live` | Live price-guard tests against testnet |
 | `npm run hardhat:deploy -- --network hederaTestnet` | Deploy all six contracts |
 | `npm run hardhat:verify:sourcify -- --network hederaTestnet` | Publish source to Sourcify |

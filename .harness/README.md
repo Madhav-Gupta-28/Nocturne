@@ -45,4 +45,4 @@ the template with no env files:
   `findings=0`, `playwrightGate=true routes=5`. That implementation's four
   tests (a buy through a real vault fired by the mock scheduler, a refusal when
   the sources disagree, the 60-day park once funds run out, and config
-  validation) passed alongside the existing 127.
+  validation) passed alongside the rest of the suite.

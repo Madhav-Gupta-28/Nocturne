@@ -127,8 +127,48 @@ describe("PriceGuard and TwapLib", () => {
       // -7/2 must be -4, not -3. Getting this wrong biases every negative
       // price upward by a tick, quietly and forever.
       const { harness, pool } = await loadFixture(deployFixture);
-      await pool.setTick(-100);
-      expect(await harness.meanTick(await pool.getAddress(), WINDOW)).to.equal(-100);
+      const p = await pool.getAddress();
+      await pool.setRawCumulatives(0, -7);
+      expect(await harness.meanTick(p, 2)).to.equal(-4);
+
+      // The non-reverting path the guard actually uses must floor the same way.
+      const [ok, price] = await harness.tryTwapPrice(p, 2, false, WHBAR_DECIMALS, USDC_DECIMALS);
+      expect(ok).to.equal(true);
+      expect(price).to.equal(await harness.priceFromTick(-4, false, WHBAR_DECIMALS, USDC_DECIMALS));
+
+      // An exact negative mean is left alone: -8/2 is -4, not -5.
+      await pool.setRawCumulatives(0, -8);
+      expect(await harness.meanTick(p, 2)).to.equal(-4);
+    });
+
+    it("rejects a zero window, loudly on one path and quietly on the other", async () => {
+      const { harness, pool } = await loadFixture(deployFixture);
+      const p = await pool.getAddress();
+      await expect(harness.meanTick(p, 0)).to.be.revertedWithCustomError(harness, "WindowTooShort");
+      expect(await harness.tryTwapPrice(p, 0, false, WHBAR_DECIMALS, USDC_DECIMALS)).to.deep.equal([false, 0n]);
+    });
+
+    it("reports no price from a pool that is not a pool", async () => {
+      // An address with no code answers every staticcall with success and no
+      // data. Decoding that would revert; the guard has to see it as silence.
+      const { harness, pool } = await loadFixture(deployFixture);
+      const nobody = ethers.Wallet.createRandom().address;
+      expect(await harness.tryTwapPrice(nobody, WINDOW, false, 8, 6)).to.deep.equal([false, 0n]);
+
+      // And a pool that answers with fewer than two observations.
+      await pool.setShort(true);
+      expect(await harness.tryTwapPrice(await pool.getAddress(), WINDOW, false, 8, 6)).to.deep.equal([false, 0n]);
+    });
+
+    it("prices spot from the pool's current tick, and TWAP from its mean", async () => {
+      const { harness, pool } = await loadFixture(deployFixture);
+      // The mock pool holds one tick for the whole window, so the two agree.
+      expect(await harness.twapPrice(await pool.getAddress(), WINDOW, false, WHBAR_DECIMALS, USDC_DECIMALS)).to.equal(
+        await harness.priceFromTick(LIVE_TICK, false, WHBAR_DECIMALS, USDC_DECIMALS),
+      );
+      expect(await harness.spotPrice(await pool.getAddress(), false, WHBAR_DECIMALS, USDC_DECIMALS)).to.equal(
+        await harness.priceFromTick(LIVE_TICK, false, WHBAR_DECIMALS, USDC_DECIMALS),
+      );
     });
   });
 
@@ -221,6 +261,68 @@ describe("PriceGuard and TwapLib", () => {
       const r = await harness.read(await sources());
       expect(r.agreed).to.equal(true);
       expect(r.feed).to.be.closeTo(ethers.parseEther("2.05"), ethers.parseEther("0.001"));
+
+      // More than 18 decimals scales down rather than up.
+      await feed.setDecimals(20);
+      await feed.setAnswer(ethers.parseUnits("2.05", 20));
+      expect((await harness.read(await sources())).feed).to.equal(ethers.parseEther("2.05"));
+    });
+
+    it("refuses a feed that has never reported", async () => {
+      const { harness, feed, sources } = await loadFixture(deployFixture);
+      await feed.setUpdatedAt(0);
+      const r = await harness.read(await sources());
+      expect(r.agreed).to.equal(false);
+      expect(r.reason).to.equal("feed unavailable");
+    });
+
+    it("reads a feed timestamped ahead of the block as fresh, not as an underflow", async () => {
+      // Hedera's consensus clock and a feed's own can disagree by a second or
+      // two. That must read as age zero, never revert.
+      const { harness, feed, sources } = await loadFixture(deployFixture);
+      await feed.setUpdatedAt((await time.latest()) + 60);
+      const r = await harness.read(await sources());
+      expect(r.feedAge).to.equal(0n);
+      expect(r.agreed).to.equal(true);
+    });
+
+    it("refuses a pool that prices the asset at zero", async () => {
+      // At the bottom of the tick range, with an 18-decimal quote and a 0-decimal
+      // asset, the price rounds to nothing. Zero is not a price to compare.
+      const { harness, pool, sources } = await loadFixture(deployFixture);
+      await pool.setTick(-887272);
+      const r = await harness.read(await sources({ assetIsToken0: true, assetDecimals: 0, quoteDecimals: 18 }));
+      expect(r.twap).to.equal(0n);
+      expect(r.agreed).to.equal(false);
+      expect(r.reason).to.equal("pool price is zero");
+    });
+  });
+
+  describe("PriceLens", () => {
+    it("shows the same reading a strategy would act on, without a vault", async () => {
+      const { harness, feed, sources } = await loadFixture(deployFixture);
+      const lens = await (await ethers.getContractFactory("PriceLens")).deploy();
+
+      const direct = await harness.read(await sources());
+      const viaLens = await lens.read(await sources());
+      expect(viaLens.agreed).to.equal(true);
+      expect(viaLens.twap).to.equal(direct.twap);
+      expect(viaLens.feed).to.equal(direct.feed);
+
+      // And the refusal, with its reason, which is the point of the contract.
+      await feed.setAnswer(300_000_000n);
+      const refused = await lens.read(await sources());
+      expect(refused.agreed).to.equal(false);
+      expect(refused.reason).to.equal("sources disagree");
+
+      // Selling takes the lower price, buying the higher.
+      const lo = viaLens.twap < viaLens.feed ? viaLens.twap : viaLens.feed;
+      const hi = viaLens.twap < viaLens.feed ? viaLens.feed : viaLens.twap;
+      // Results come back frozen, and the encoder needs a plain copy.
+      const { agreed, twap, feed: feedPrice, divergenceBps, feedAge, reason } = viaLens;
+      const reading = { agreed, twap, feed: feedPrice, divergenceBps, feedAge, reason };
+      expect(await lens.actionablePrice(reading, true)).to.equal(lo);
+      expect(await lens.actionablePrice(reading, false)).to.equal(hi);
     });
   });
 

@@ -106,7 +106,8 @@ which is the last point a bad config fails loudly instead of at 3am.
 npm install                 # root; the repo's .npmrc is required, see README
 
 # Contracts
-npm run hardhat:test        # 127 offline tests
+npm run hardhat:test        # 168 offline tests
+npm run hardhat:coverage    # line/branch coverage of the shipped contracts
 npm run hardhat:test:live   # 5 against live testnet contracts
 npm run hardhat:compile
 npm run hardhat:deploy -- --network hederaTestnet

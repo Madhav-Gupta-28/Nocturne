@@ -17,6 +17,7 @@
     "lint": "eslint",
     "lint-staged": "eslint",
     "test": "REPORT_GAS=true hardhat test test/*.test.ts",
+    "coverage": "hardhat coverage --testfiles 'test/*.test.ts'",
     "test:live": "hardhat test test/live/*.test.ts --network hederaTestnet",
     "verify:sourcify": "hardhat run scripts/verifyContracts.ts"
   },

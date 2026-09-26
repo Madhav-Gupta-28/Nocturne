@@ -9,7 +9,7 @@ and won't trade unless SaucerSwap and Chainlink agree on the price.
 **Live: [hedera-nocturne.vercel.app](https://hedera-nocturne.vercel.app)** · [Docs](https://hedera-nocturne.vercel.app/docs/quickstart) · [How it works](https://hedera-nocturne.vercel.app/how-it-works)
 
 [![CI](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml)
-&nbsp;MIT · Hedera testnet · 127 offline tests + 5 live
+&nbsp;MIT · Hedera testnet · 168 offline tests + 5 live · 100% line coverage
 
 ```bash
 npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
@@ -256,7 +256,8 @@ the deployer key, and a script writes it for you.
 ### Run it
 
 ```bash
-npm run hardhat:test                                   # 127 tests, no network
+npm run hardhat:test                                   # 168 tests, no network
+npm run hardhat:coverage                               # 100% of lines in every shipped contract
 npm run hardhat:account:generate                       # then fund it at the faucet
 npm run hardhat:deploy -- --network hederaTestnet      # six contracts
 npm run hardhat:verify:sourcify -- --network hederaTestnet
@@ -309,7 +310,7 @@ All Sourcify-verified, so HashScan shows source.
 | --- | --- |
 | **Ecosystem integration** | SaucerSwap V2 (TWAP + router swap) and Chainlink HBAR/USD decide every trade. [Load-bearing](#why-saucerswap-and-chainlink-are-load-bearing), [on-chain proof](#proof-on-testnet), `test/live/`. |
 | **Documentation** | This README, seven docs pages served in the app at `/docs` ([`docs/`](docs)), [`ARCHITECTURE.md`](ARCHITECTURE.md), [`AGENTS.md`](AGENTS.md) for coding agents. |
-| **Code quality** | 127 offline tests + 5 live, CI on Node 20 and 22, zero lint warnings, every contract Sourcify-verified, and a [Hedera Harness recipe](.harness/README.md) verified both ways. |
+| **Code quality** | 168 offline tests + 5 live; 100% of lines and functions in every shipped contract (`npm run hardhat:coverage`), including a Schedule Service that is missing, reverts or answers short. CI on Node 20 and 22, zero lint warnings, every contract Sourcify-verified, and a [Hedera Harness recipe](.harness/README.md) verified both ways. |
 | **Hedera service depth** | [Depth over breadth](#depth-over-breadth): the Schedule Service is the engine, with [six measured failure modes](docs/hedera-landmines.md). Plus the Token Service and Mirror Node. |
 
 ---

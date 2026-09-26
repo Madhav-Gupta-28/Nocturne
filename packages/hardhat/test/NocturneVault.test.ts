@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, setBalance, time } from "@nomicfoundation/hardhat-network-helpers";
 import { installMockScheduleService } from "./MockHederaScheduleService.test";
 import { CallSink, MockHederaScheduleService, MockStrategy, NocturneVault } from "../typechain-types";
 
@@ -513,19 +513,29 @@ describe("NocturneVault", () => {
     });
 
     it("warns before the fuel runs out rather than after", async () => {
-      const { vault, strategy, hss, sink, owner } = await loadFixture(deployFixture);
+      const { vault, strategy, hss, sink } = await loadFixture(deployFixture);
       await strategy.setActions(await pingAction(sink));
+      const addr = await vault.getAddress();
 
-      // Leave just under the warning threshold.
-      const perRun = await vault.reservePerRun();
-      const balance = await ethers.provider.getBalance(await vault.getAddress());
-      const keep = perRun * 3n;
-      await vault.withdrawHbar(balance - keep);
+      // The reserve scales with the gas price the run is sent at, so every
+      // read and every run here uses one fixed price. Left to defaults, the
+      // local chain and the coverage build price gas differently, and the
+      // balance reads as ample under one and empty under the other.
+      const gasPrice = (await ethers.provider.getFeeData()).gasPrice! * 2n;
+      const reserve = await vault.reservePerRun({ gasPrice });
 
+      // The control: twenty reserves is forty runs of runway. No warning.
+      await setBalance(addr, reserve * 20n);
       await vault.arm();
       await time.increaseTo((await vault.nextRunAt()) + 1n);
-      await expect(hss.fireLatest()).to.emit(vault, "FuelLow");
-      expect(owner).to.not.equal(undefined);
+      await expect(hss.fireLatest({ gasPrice })).to.not.emit(vault, "FuelLow");
+
+      // Three reserves is (3R - R) / (R/2) + 1 = 5 runs, the threshold.
+      await setBalance(addr, reserve * 3n);
+      await time.increaseTo((await vault.nextRunAt()) + 1n);
+      await expect(hss.fireLatest({ gasPrice }))
+        .to.emit(vault, "FuelLow")
+        .withArgs(reserve * 3n, await vault.FUEL_WARN_RUNS());
     });
   });
 

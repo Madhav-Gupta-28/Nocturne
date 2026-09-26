@@ -75,7 +75,7 @@ describe("DriftRebalanceStrategy", () => {
 
     await setPrice(pool, feed, 2);
 
-    const config = async (over: Record<string, unknown> = {}) =>
+    const config = async (over: Record<string, unknown> = {}, src: Record<string, unknown> = {}) =>
       strategy.encodeConfig({
         vault: await vault.getAddress(),
         assetA: await tokenA.getAddress(),
@@ -97,6 +97,7 @@ describe("DriftRebalanceStrategy", () => {
           assetIsToken0: false,
           assetDecimals: DEC_A,
           quoteDecimals: DEC_B,
+          ...src,
         },
         ...over,
       });
@@ -146,6 +147,7 @@ describe("DriftRebalanceStrategy", () => {
       expect(p.driftBps).to.equal(1666n);
       // Restoring half of $300 means moving $50 out of A.
       expect(p.tradeValue).to.equal(ethers.parseEther("50"));
+      expect(await strategy.explain(await config())).to.deep.equal(["selling A", 6666n, 5000n]);
     });
 
     it("notices when A is light", async () => {
@@ -156,6 +158,7 @@ describe("DriftRebalanceStrategy", () => {
       expect(p.overweightA).to.equal(false);
       expect(p.currentBpsA).to.equal(2500n);
       expect(p.tradeValue).to.equal(ethers.parseEther("50"));
+      expect(await strategy.explain(await config())).to.deep.equal(["buying A", 2500n, 5000n]);
     });
   });
 
@@ -286,18 +289,33 @@ describe("DriftRebalanceStrategy", () => {
       expect(await strategy.validateConfig(await config())).to.equal(true);
     });
 
-    const bad: Array<[string, Record<string, unknown>]> = [
+    const bad: Array<[string, Record<string, unknown>, Record<string, unknown>?]> = [
       ["a target of nothing", { targetBpsA: 0 }],
       ["a target of everything", { targetBpsA: 10_000 }],
       ["no band", { bandBps: 0 }],
       ["no minimum trade", { minTradeValue1e18: 0n }],
       ["no slippage bound", { slippageBps: 0n }],
+      ["slippage of 100%", { slippageBps: 10_000n }],
+      ["a band of 100%", { bandBps: 10_000 }],
+      ["no vault", { vault: ethers.ZeroAddress }],
+      ["no router", { router: ethers.ZeroAddress }],
+      ["no first asset", { assetA: ethers.ZeroAddress }],
+      ["no second asset", { assetB: ethers.ZeroAddress }],
+      ["no pool", {}, { pool: ethers.ZeroAddress }],
+      ["no feed", {}, { feed: ethers.ZeroAddress }],
+      ["no TWAP window", {}, { twapWindow: 0 }],
+      ["no feed age limit", {}, { maxFeedAge: 0n }],
     ];
 
-    for (const [label, over] of bad) {
+    it("rejects rebalancing a token against itself", async () => {
+      const { strategy, tokenA, config } = await loadFixture(deployFixture);
+      expect(await strategy.validateConfig(await config({ assetB: await tokenA.getAddress() }))).to.equal(false);
+    });
+
+    for (const [label, over, src] of bad) {
       it(`rejects ${label}`, async () => {
         const { strategy, config } = await loadFixture(deployFixture);
-        expect(await strategy.validateConfig(await config(over))).to.equal(false);
+        expect(await strategy.validateConfig(await config(over, src))).to.equal(false);
       });
     }
   });

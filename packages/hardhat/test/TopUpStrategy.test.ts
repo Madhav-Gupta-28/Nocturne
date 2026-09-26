@@ -48,6 +48,25 @@ describe("TopUpStrategy (the docs example)", () => {
     expect(await strategy.nextInterval(config)).to.equal(5n * 60n);
   });
 
+  it("explains itself, and rejects a config that could not work", async () => {
+    const { tank, strategy, user, config } = await loadFixture(deployFixture);
+    await tank.setBalance(user.address, 200n);
+    expect(await strategy.explain(config)).to.deep.equal(["healthy", 200n, FLOOR]);
+    await tank.setBalance(user.address, 40n);
+    expect(await strategy.explain(config)).to.deep.equal(["topping up", 40n, FLOOR]);
+
+    const t = await tank.getAddress();
+    expect(await strategy.validateConfig(config)).to.equal(true);
+    for (const bad of [
+      [ethers.ZeroAddress, user.address, FLOOR, TARGET],
+      [t, ethers.ZeroAddress, FLOOR, TARGET],
+      [t, user.address, 0n, TARGET],
+      [t, user.address, FLOOR, FLOOR], // a target at the floor tops up by nothing
+    ] as const) {
+      expect(await strategy.validateConfig(await strategy.encodeConfig(...bad))).to.equal(false);
+    }
+  });
+
   it("tops the tank up through a vault, with nobody sending the run", async () => {
     const { tank, vault, hss, user, config } = await loadFixture(deployFixture);
     await tank.setBalance(user.address, 40n);

@@ -76,7 +76,7 @@ describe("ProtectiveExitStrategy", () => {
     // Both sources start at $2.50, comfortably above the $2.00 floor.
     await setPrices(pool, feed, 2.5, 2.5);
 
-    const config = async (over: Record<string, unknown> = {}) =>
+    const config = async (over: Record<string, unknown> = {}, src: Record<string, unknown> = {}) =>
       strategy.encodeConfig({
         vault: await vault.getAddress(),
         asset: await asset.getAddress(),
@@ -96,6 +96,7 @@ describe("ProtectiveExitStrategy", () => {
           assetIsToken0: false,
           assetDecimals: ASSET_DECIMALS,
           quoteDecimals: QUOTE_DECIMALS,
+          ...src,
         },
         ...over,
       });
@@ -241,6 +242,8 @@ describe("ProtectiveExitStrategy", () => {
         const { strategy, pool, feed, config } = await loadFixture(deployFixture);
         await setPrices(pool, feed, price, price);
         expect(await strategy.nextInterval(await config())).to.equal(expected);
+        // The UI's view of the same decision must never disagree with it.
+        expect((await strategy.cadence(await config()))[1]).to.equal(expected);
       });
     }
 
@@ -274,6 +277,25 @@ describe("ProtectiveExitStrategy", () => {
       const { strategy, pool, feed, config } = await loadFixture(deployFixture);
       await setPrices(pool, feed, 3.0, 3.6);
       expect(await strategy.nextInterval(await config())).to.equal(CLOSE);
+      expect(await strategy.cadence(await config())).to.deep.equal([0n, CLOSE]);
+    });
+
+    it("explains itself in the words the vault logs", async () => {
+      // `explain` is what lands in a Refused event and on the dashboard, so each
+      // state has to come back as the phrase the docs promise.
+      const { strategy, vault, asset, pool, feed, config } = await loadFixture(deployFixture);
+
+      await setPrices(pool, feed, 2.5, 2.5);
+      expect((await strategy.explain(await config()))[0]).to.equal("holding");
+
+      await setPrices(pool, feed, 1.9, 1.9);
+      expect((await strategy.explain(await config()))[0]).to.equal("exiting");
+
+      await setPrices(pool, feed, 1.9, 3.0);
+      expect((await strategy.explain(await config()))[0]).to.equal("sources disagree");
+
+      await vault.withdrawToken(await asset.getAddress(), HELD);
+      expect(await strategy.explain(await config())).to.deep.equal(["nothing held", 0n, 0n]);
     });
 
     it("reports the distance behind its choice", async () => {
@@ -296,18 +318,24 @@ describe("ProtectiveExitStrategy", () => {
       expect(await strategy.validateConfig(await config())).to.equal(true);
     });
 
-    const bad: Array<[string, Record<string, unknown>]> = [
+    const bad: Array<[string, Record<string, unknown>, Record<string, unknown>?]> = [
       ["no floor", { floorPrice1e18: 0n }],
       ["no slippage bound", { slippageBps: 0n }],
       ["slippage of 100%", { slippageBps: 10_000n }],
       ["no vault", { vault: ethers.ZeroAddress }],
       ["no router", { router: ethers.ZeroAddress }],
+      ["no asset", { asset: ethers.ZeroAddress }],
+      ["no quote", { quote: ethers.ZeroAddress }],
+      ["no pool", {}, { pool: ethers.ZeroAddress }],
+      ["no feed", {}, { feed: ethers.ZeroAddress }],
+      ["no TWAP window", {}, { twapWindow: 0 }],
+      ["no feed age limit", {}, { maxFeedAge: 0n }],
     ];
 
-    for (const [label, over] of bad) {
+    for (const [label, over, src] of bad) {
       it(`rejects ${label}`, async () => {
         const { strategy, config } = await loadFixture(deployFixture);
-        expect(await strategy.validateConfig(await config(over))).to.equal(false);
+        expect(await strategy.validateConfig(await config(over, src))).to.equal(false);
       });
     }
 

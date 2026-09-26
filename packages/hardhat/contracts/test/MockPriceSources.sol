@@ -11,6 +11,13 @@ pragma solidity ^0.8.24;
 contract MockV3Pool {
     int24 public tickValue;
     bool public observeReverts;
+    /// @dev When set, `observe` returns these cumulatives verbatim instead of
+    ///      deriving them from `tickValue` — for means that do not divide evenly.
+    bool public raw;
+    int56 public rawOld;
+    int56 public rawNew;
+    /// @dev When set, `observe` returns a single observation, as a broken pool might.
+    bool public short;
     address public token0;
     address public token1;
 
@@ -29,13 +36,31 @@ contract MockV3Pool {
         observeReverts = v;
     }
 
+    function setRawCumulatives(int56 older, int56 newer) external {
+        raw = true;
+        rawOld = older;
+        rawNew = newer;
+    }
+
+    function setShort(bool v) external {
+        short = v;
+    }
+
     function observe(
         uint32[] calldata secondsAgos
     ) external view returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidity) {
         require(!observeReverts, "OLD");
 
+        if (short) return (new int56[](1), new uint160[](1));
+
         tickCumulatives = new int56[](secondsAgos.length);
         secondsPerLiquidity = new uint160[](secondsAgos.length);
+
+        if (raw) {
+            tickCumulatives[0] = rawOld;
+            tickCumulatives[1] = rawNew;
+            return (tickCumulatives, secondsPerLiquidity);
+        }
 
         uint32 window = secondsAgos[0];
         tickCumulatives[0] = 0;

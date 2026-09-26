@@ -39,6 +39,16 @@ contract PriceLensHarness {
         return TwapLib.tryTwapPrice(pool, window, assetIsToken0, assetDecimals, quoteDecimals);
     }
 
+    function twapPrice(
+        address pool,
+        uint32 window,
+        bool assetIsToken0,
+        uint8 assetDecimals,
+        uint8 quoteDecimals
+    ) external view returns (uint256) {
+        return TwapLib.twapPrice(pool, window, assetIsToken0, assetDecimals, quoteDecimals);
+    }
+
     function spotPrice(
         address pool,
         bool assetIsToken0,
