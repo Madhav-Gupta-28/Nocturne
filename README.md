@@ -15,6 +15,8 @@
 
 🌐 **[Live app](https://hedera-nocturne.vercel.app)** · 📚 **[Docs](https://hedera-nocturne.vercel.app/docs/quickstart)** · 🟢 **[Guard on duty](https://hashscan.io/testnet/account/0.0.10710268)** · 📄 **[Architecture](ARCHITECTURE.md)**
 
+**[36 runs on testnet](#proven-on-hedera)**, executed by the network · **65.05 HBAR** paid by the vaults themselves · **0** sent by an owner
+
 </div>
 
 ```bash
@@ -29,7 +31,7 @@ A contract only runs when somebody calls it. A stop-loss, a rebalance or a payro
 
 Other chains rent that somebody from a keeper network. Chainlink Automation [doesn't run on Hedera](https://docs.chain.link/chainlink-automation/overview/supported-networks), so teams run their own bot: a server, a cron job and a hot key that must all be up at 3am. When the bot stops, the job stops, and nothing on chain says so.
 
-Hedera has the fix built in. The **Schedule Service** lets a contract book its own future call. But it is raw, and we measured [six ways](docs/hedera-landmines.md) it stops for good while every transaction still says `SUCCESS`.
+Hedera has the fix built in. [HIP-1215](https://github.com/hiero-ledger/hiero-improvement-proposals/blob/main/HIP/hip-1215.md) lets a contract book its own future call through the [Schedule Service](https://docs.hedera.com/evm/hedera-services/system-contracts/schedule-service). Ethereum has nothing built in like it. But it is raw, and we measured [six ways](docs/hedera-landmines.md) it stops for good while every transaction still says `SUCCESS`.
 
 A job that trades adds one more risk: acting on a bad price. In July 2026 one manipulated oracle price took [$9.05M out of Bonzo Lend](https://www.coindesk.com/web3/2026/07/11/lending-protocol-bonzo-loses-77-of-value-locked-as-usd9-million-oracle-exploit-rattles-hedera).
 
@@ -40,11 +42,25 @@ A template for **contracts that run themselves**. You write a strategy, one file
 - **The engine.** `NocturneVault` books its next run *before* doing any work, so a failing strategy costs one run, never the chain.
 - **The fuel.** The vault pays for every run itself, and `runway()` counts runs left the way the network counts them.
 - **The pace.** The strategy picks each gap: six hours when nothing is close, sixty seconds when something is.
-- **The guard.** No trade unless a 30-minute SaucerSwap V2 TWAP and a Chainlink feed agree within 2%. Otherwise the vault refuses and logs why.
+- **The guard.** No trade unless a 30-minute SaucerSwap V2 TWAP and a [Chainlink feed](https://docs.chain.link/data-feeds/price-feeds/addresses?network=hedera) agree within 2%. Otherwise the vault refuses and logs why.
 
 Three strategies ship on the same engine: a **heartbeat**, a **protective exit** (sell below a floor) and a **drift rebalancer** (hold a ratio).
 
 > 🔓 **Try it**: [hedera-nocturne.vercel.app](https://hedera-nocturne.vercel.app). Create a vault, arm it and close the tab. Come back later and it will have run, with no transaction from you.
+
+## What you can build
+
+Every repeating job answers three questions: **what** to do (`plan`), **when** to look again (`nextInterval`), and **whether it's safe** right now (`PriceGuard`). If a job fits those, it's one strategy file.
+
+| Job | What each run does | Status |
+| --- | --- | --- |
+| Stop-loss and depeg guards | Sells below a floor, checking more often as the price nears it | ✅ `ProtectiveExitStrategy`: [sold on testnet](https://hashscan.io/testnet/transaction/1790319308.034520104) |
+| Portfolio rebalancing | Trades back to a target ratio once drift passes a band | ✅ `DriftRebalanceStrategy`: [rebalanced on testnet](https://hashscan.io/testnet/transaction/1790351600.061675104) |
+| Keep-alive and top-ups | Pings a contract or refills a balance on a cadence | ✅ `HeartbeatStrategy` · `TopUpStrategy` |
+| Dollar-cost averaging | Buys a fixed amount each interval, only when prices agree | Specified: the [Harness recipe](.harness/README.md) |
+| Vesting and payroll | Releases tokens to a fixed payee on a schedule | One file |
+| LP fee compounding | Collects fees and adds them back as liquidity | One file |
+| Agents that act later | An AI agent sets the config once; the vault carries it out, without the agent's key | One file |
 
 ## How it works
 
@@ -77,9 +93,11 @@ flowchart TD
     AGREE -->|yes| DUE{"floor broken, or<br/>drift past the band?"}
     DUE -->|no| HOLD["😴 <b>holds</b>"]
     DUE -->|yes| SWAP["✅ <b>swaps on SaucerSwap</b><br/>allow-listed calls only · minimum output set"]
-    REF -.->|"next booked run"| FIRE
-    HOLD -.-> FIRE
-    SWAP -.-> FIRE
+    REF --> NEXT
+    HOLD --> NEXT
+    SWAP --> NEXT
+    NEXT(["🌙 sleeps until the run it booked"])
+    NEXT -.->|"loops, unattended"| FIRE
 
     style CFG fill:#D97706,stroke:#B45309,color:#FFFFFF
     style ARM fill:#D97706,stroke:#B45309,color:#FFFFFF
@@ -92,9 +110,23 @@ flowchart TD
 ```
 
 - **Book first, then think.** The next run is booked before the strategy is asked anything, and `executeScheduled` never reverts.
-- **The strategy sets the pace.** Six hours far from the floor, sixty seconds within 1% of it. Hedera's own `ScheduledVault` example can only take a fixed interval.
+- **The strategy sets the pace.** Six hours far from the floor, sixty seconds within 1% of it.
 - **Refusing is a result.** A bad reading becomes a reason (`sources disagree`, `feed stale`) in a `Refused` event, not a revert.
 - **The vault pays.** Each run is charged to its own balance. `runway()` counts the reserve the network checks, which is twice the fee.
+
+## From example to template
+
+Hedera's reference example, [`AlarmClockSimple`](https://github.com/hedera-dev/hedera-code-snippets/blob/main/hss-schedule-sc-calls/contracts/AlarmClockSimple.sol), shows the Schedule Service in one short contract. Here is what it takes to trust it with money:
+
+| | The reference example | Nocturne |
+| --- | --- | --- |
+| **Interval** | Fixed when the alarm is set | Chosen by the strategy every run, 60s to 60 days |
+| **Order** | Reschedules *after* the work | Books the next run *first* |
+| **If booking fails** | `require` reverts, and the chain ends | Logs `ScheduleFailed`, keeps the due time, anyone can revive it |
+| **Capacity** | Not checked | `hasScheduleCapacity` before every booking |
+| **Gas** | 2M per call | 3M. Our [DAI sale](https://hashscan.io/testnet/transaction/1790319308.034520104) burned 2.42M |
+| **Fuel** | Not tracked | `runway()` counts the reserve the network checks |
+| **Acts on** | Emits an event | Allow-listed calls, behind a two-source price check |
 
 ## The trust ladder
 
@@ -107,7 +139,7 @@ Automation normally asks you to trust six things. Each rung removes one.
 | 🔮 **One price feed** | A DEX TWAP and an oracle must agree, or nothing trades | **SaucerSwap V2** + **Chainlink** |
 | 🧩 **The strategy's code** | It only proposes. The vault runs calls you allowed by exact `(target, selector)` | `_callsAllowed` |
 | ⛽ **Your fuel maths** | `runway()` counts the 3M-gas reserve, not the ~1.5M charged | `tx.gasprice`, in tinybar |
-| 🚪 **Being able to leave** | Withdraw any time, armed or not. `disarm` can't be blocked | no lock |
+| 🚪 **Being able to leave** | Withdraw any time, armed or not. `disarm` can't be blocked | `withdrawHbar` · `withdrawToken` |
 
 ## Hedera, used end-to-end
 
@@ -130,11 +162,11 @@ Read back off **testnet** on 27 September 2026 across ten vaults. [See the guard
 
 | | |
 | --- | --- |
-| Runs executed by the network, unattended | **32** |
-| HBAR those runs cost, paid by the vaults | **57.94** |
+| Runs executed by the network, unattended | **36** |
+| HBAR those runs cost, paid by the vaults | **65.05** |
 | ↳ executed a plan | **19**: 15 heartbeats, 3 sales, 1 rebalance |
 | ↳ refused, sources disagreed | **5** |
-| ↳ held, or nothing left to protect | **8** |
+| ↳ held, or nothing left to protect | **12** |
 | Runs any owner sent | **0** |
 
 ```bash
@@ -143,7 +175,7 @@ for a in 0.0.10684549 0.0.10690925 0.0.10691327 0.0.10691817 0.0.10710164 \
          0.0.10710193 0.0.10710268 0.0.10715956 0.0.10716071 0.0.10716165; do
   curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?account.id=$a&limit=100" \
     | jq '[.transactions[] | select(.scheduled and .result == "SUCCESS")] | length'
-done | paste -sd+ - | bc      # 32, and growing while the guard runs
+done | paste -sd+ - | bc      # 36, and growing while the guard runs
 ```
 
 Same code, same 2% tolerance, three markets:
@@ -187,11 +219,11 @@ All Sourcify-verified.
 config:
   flowchart:
     nodeSpacing: 34
-    rankSpacing: 70
+    rankSpacing: 50
     padding: 8
     useMaxWidth: true
 ---
-flowchart LR
+flowchart TB
     subgraph you["You, once"]
         UI["🌐 App or scripts<br/>create · arm · withdraw"]
     end
@@ -236,10 +268,14 @@ The engine, the fuel accounting and the price guard are done. A new job is one f
 
 ```solidity
 interface INocturneStrategy {
-    function plan(bytes calldata config) external view returns (Action[] memory);       // what to do; empty = refuse
-    function nextInterval(bytes calldata config) external view returns (uint256);       // when to look again
-    function validateConfig(bytes calldata config) external view returns (bool);        // checked at configure
-    function explain(bytes calldata config) external view returns (string memory, uint256, uint256); // why
+    // What to do this run. An empty list is a refusal.
+    function plan(bytes calldata config) external view returns (Action[] memory);
+    // How long to wait before the next run.
+    function nextInterval(bytes calldata config) external view returns (uint256);
+    // Checked once, when the owner configures the vault.
+    function validateConfig(bytes calldata config) external view returns (bool);
+    // Why, in words: this is what a Refused event records.
+    function explain(bytes calldata config) external view returns (string memory, uint256, uint256);
 }
 ```
 
