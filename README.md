@@ -4,7 +4,7 @@
 
 ### Cron for contracts, on Hedera. No server.
 
-**A contract can't wake itself up, so every on-chain job ends up needing a server.** Nocturne is a Scaffold-HBAR template without one. A vault books its own next run through the **Hedera Schedule Service** (HIP-1215), pays for it from its own balance, and chooses how soon to look again. When a job moves money, it won't trade unless **SaucerSwap** and **Chainlink** agree on the price.
+**Smart contracts can't wake themselves up, so every on-chain job needs a server to call it.** Nocturne is a Scaffold-HBAR template that removes the server. A vault schedules its own next run with the **Hedera Schedule Service** (HIP-1215), pays the fee from its own balance, and decides when to run again. If the job trades, it only trades when **SaucerSwap** and **Chainlink** agree on the price.
 
 [![CI](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml)
 [![Scaffold gate](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/scaffold-gate.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/scaffold-gate.yaml)
@@ -15,7 +15,7 @@
 
 🌐 **[Live app](https://hedera-nocturne.vercel.app)** · 📚 **[Docs](https://hedera-nocturne.vercel.app/docs/quickstart)** · 🟢 **[Guard on duty](https://hashscan.io/testnet/account/0.0.10710268)** · 📄 **[Architecture](ARCHITECTURE.md)**
 
-**[36 runs on testnet](#proven-on-hedera)**, executed by the network · **65.05 HBAR** paid by the vaults themselves · **0** sent by an owner
+**[36 runs on testnet](#proven-on-hedera)**, all started by the network · **65.05 HBAR** in fees, paid by the vaults · **0** triggered by a person
 
 </div>
 
@@ -27,44 +27,44 @@ npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
 
 ## The problem
 
-A contract only runs when somebody calls it. A stop-loss, a rebalance or a payroll needs somebody to show up on time.
+A contract only runs when somebody calls it. A stop-loss, a rebalance or a payroll needs somebody to call it on time.
 
-Other chains rent that somebody from a keeper network. Chainlink Automation [doesn't run on Hedera](https://docs.chain.link/chainlink-automation/overview/supported-networks), so teams run their own bot: a server, a cron job and a hot key that must all be up at 3am. When the bot stops, the job stops, and nothing on chain says so.
+On other chains, you pay a keeper network such as Chainlink Automation to make those calls. Chainlink Automation [doesn't run on Hedera](https://docs.chain.link/chainlink-automation/overview/supported-networks), so teams run their own bot: a server, a cron job and a hot key that must stay up around the clock. When the bot goes down, the job silently stops.
 
-Hedera has the fix built in. [HIP-1215](https://github.com/hiero-ledger/hiero-improvement-proposals/blob/main/HIP/hip-1215.md) lets a contract book its own future call through the [Schedule Service](https://docs.hedera.com/evm/hedera-services/system-contracts/schedule-service). Ethereum has nothing built in like it. But it is raw, and we measured [six ways](docs/hedera-landmines.md) it stops for good while every transaction still says `SUCCESS`.
+Hedera has a native fix. With [HIP-1215](https://github.com/hiero-ledger/hiero-improvement-proposals/blob/main/HIP/hip-1215.md), a contract can schedule its own future call through the [Schedule Service](https://docs.hedera.com/evm/hedera-services/system-contracts/schedule-service). No bot needed, and Ethereum has no built-in equivalent. But the feature is low-level: we measured [six ways](docs/hedera-landmines.md) a self-scheduling contract stops for good while every transaction still reports `SUCCESS`.
 
-A job that trades adds one more risk: acting on a bad price. In July 2026 one manipulated oracle price took [$9.05M out of Bonzo Lend](https://www.coindesk.com/web3/2026/07/11/lending-protocol-bonzo-loses-77-of-value-locked-as-usd9-million-oracle-exploit-rattles-hedera).
+Anything automated that moves money has a second risk: trusting one bad price. In July 2026, a single manipulated oracle price [drained $9.05M from Bonzo Lend](https://www.coindesk.com/web3/2026/07/11/lending-protocol-bonzo-loses-77-of-value-locked-as-usd9-million-oracle-exploit-rattles-hedera).
 
 ## What Nocturne is
 
-A template for **contracts that run themselves**. You write a strategy, one file with four functions. Nocturne supplies the rest:
+A template for **contracts that run themselves**. You write the logic, a strategy: one file, four functions. Nocturne gives you the rest:
 
-- **The engine.** `NocturneVault` books its next run *before* doing any work, so a failing strategy costs one run, never the chain.
-- **The fuel.** The vault pays for every run itself, and `runway()` counts runs left the way the network counts them.
-- **The pace.** The strategy picks each gap: six hours when nothing is close, sixty seconds when something is.
-- **The guard.** No trade unless a 30-minute SaucerSwap V2 TWAP and a [Chainlink feed](https://docs.chain.link/data-feeds/price-feeds/addresses?network=hedera) agree within 2%. Otherwise the vault refuses and logs why.
+- **It never stops.** `NocturneVault` schedules its next run *before* doing anything else. If your strategy fails, you lose one run, not the schedule.
+- **It pays for itself.** Fees come out of the vault's own HBAR, and `runway()` tells you how many runs are left.
+- **It picks its own pace.** The strategy decides when to run next: every six hours when nothing is happening, every minute when something is.
+- **It won't trade on a bad price.** A trade goes through only if SaucerSwap's 30-minute average price (TWAP) and a [Chainlink feed](https://docs.chain.link/data-feeds/price-feeds/addresses?network=hedera) agree within 2%. Otherwise the vault refuses and records why.
 
-Three strategies ship on the same engine: a **heartbeat**, a **protective exit** (sell below a floor) and a **drift rebalancer** (hold a ratio).
+It ships with three strategies: a **heartbeat** (runs on a fixed schedule), a **protective exit** (sells if the price falls below a floor) and a **drift rebalancer** (keeps a portfolio at a target mix).
 
-> 🔓 **Try it**: [hedera-nocturne.vercel.app](https://hedera-nocturne.vercel.app). Create a vault, arm it and close the tab. Come back later and it will have run, with no transaction from you.
+> 🔓 **Try it**: [hedera-nocturne.vercel.app](https://hedera-nocturne.vercel.app). Create a vault, arm it and close the tab. Come back later: it will have run on its own, with no transaction from you.
 
 ## What you can build
 
-Every repeating job answers three questions: **what** to do (`plan`), **when** to look again (`nextInterval`), and **whether it's safe** right now (`PriceGuard`). If a job fits those, it's one strategy file.
+Any repeating job comes down to three questions: **what** to do (`plan`), **when** to run next (`nextInterval`), and **is it safe** right now (`PriceGuard`). Answer them and you have a strategy.
 
 | Job | What each run does | Status |
 | --- | --- | --- |
-| Stop-loss and depeg guards | Sells below a floor, checking more often as the price nears it | ✅ `ProtectiveExitStrategy`: [sold on testnet](https://hashscan.io/testnet/transaction/1790319308.034520104) |
-| Portfolio rebalancing | Trades back to a target ratio once drift passes a band | ✅ `DriftRebalanceStrategy`: [rebalanced on testnet](https://hashscan.io/testnet/transaction/1790351600.061675104) |
-| Keep-alive and top-ups | Pings a contract or refills a balance on a cadence | ✅ `HeartbeatStrategy` · `TopUpStrategy` |
+| Stop-loss and depeg guards | Sells below a floor, checking more often as the price gets close | ✅ `ProtectiveExitStrategy`: [sold on testnet](https://hashscan.io/testnet/transaction/1790319308.034520104) |
+| Portfolio rebalancing | Trades back to a target mix when it drifts too far | ✅ `DriftRebalanceStrategy`: [rebalanced on testnet](https://hashscan.io/testnet/transaction/1790351600.061675104) |
+| Keep-alive and top-ups | Pings a contract or refills a balance on a schedule | ✅ `HeartbeatStrategy` · `TopUpStrategy` |
 | Dollar-cost averaging | Buys a fixed amount each interval, only when prices agree | Specified: the [Harness recipe](.harness/README.md) |
 | Vesting and payroll | Releases tokens to a fixed payee on a schedule | One file |
 | LP fee compounding | Collects fees and adds them back as liquidity | One file |
-| Agents that act later | An AI agent sets the config once; the vault carries it out, without the agent's key | One file |
+| Agents that act later | An AI agent sets the plan once. The vault carries it out, and the agent's key never has to be online | One file |
 
 ## How it works
 
-One vault, from creation to a loop the network runs by itself. **Amber is our code, blue is Hedera acting on its own**, green is an outcome and red is a refusal.
+You set a vault up once. After that, the network runs it in a loop. **Amber is our code, blue is Hedera acting on its own**, green is an outcome and red is a refusal.
 
 ```mermaid
 ---
@@ -78,21 +78,21 @@ config:
     fontSize: 12px
 ---
 flowchart TD
-    NEW(["👤 <b>createVault</b> — HBAR in, as fuel"])
+    NEW(["👤 <b>createVault</b> — deposit HBAR as fuel"])
     NEW --> CFG
-    CFG["<b>configure</b> · allow exact calls — checked on the spot"]
+    CFG["<b>configure</b> · allow the exact calls it may make"]
     CFG --> ARM
     ARM["<b>arm()</b> — books run #1, then you leave"]
     ARM --> FIRE
-    FIRE["⏰ <b>Hedera calls the vault</b><br/>HIP-1215 · the vault pays the fee"]
+    FIRE["⏰ <b>Hedera calls the vault</b><br/>on time · the vault pays the fee"]
     FIRE --> BOOK
-    BOOK["📅 <b>books its next run first</b><br/>the strategy picks the gap · 60s to 60 days"]
+    BOOK["📅 <b>books its next run first</b><br/>the strategy picks when · 60s to 60 days"]
     BOOK --> AGREE
-    AGREE{"SaucerSwap TWAP and<br/>Chainlink within 2%?"}
-    AGREE -->|no| REF["🚫 <b>refuses</b> — logs why, nothing moves"]
-    AGREE -->|yes| DUE{"floor broken, or<br/>drift past the band?"}
+    AGREE{"do SaucerSwap and<br/>Chainlink agree within 2%?"}
+    AGREE -->|no| REF["🚫 <b>refuses</b> — records why, nothing moves"]
+    AGREE -->|yes| DUE{"time to act?<br/>below floor · off target"}
     DUE -->|no| HOLD["😴 <b>holds</b>"]
-    DUE -->|yes| SWAP["✅ <b>swaps on SaucerSwap</b><br/>allow-listed calls only · minimum output set"]
+    DUE -->|yes| SWAP["✅ <b>swaps on SaucerSwap</b><br/>only calls you allowed · minimum output set"]
     REF --> NEXT
     HOLD --> NEXT
     SWAP --> NEXT
@@ -109,65 +109,65 @@ flowchart TD
     style REF fill:#BE123C,stroke:#9F1239,color:#FFFFFF
 ```
 
-- **Book first, then think.** The next run is booked before the strategy is asked anything, and `executeScheduled` never reverts.
-- **The strategy sets the pace.** Six hours far from the floor, sixty seconds within 1% of it.
-- **Refusing is a result.** A bad reading becomes a reason (`sources disagree`, `feed stale`) in a `Refused` event, not a revert.
-- **The vault pays.** Each run is charged to its own balance. `runway()` counts the reserve the network checks, which is twice the fee.
+- **Book first, then think.** The next run is scheduled before the strategy runs, and `executeScheduled` never reverts, so nothing can break the loop.
+- **The strategy sets the pace.** Every six hours while the price is far from the floor, every minute once it's within 1%.
+- **A refusal is recorded, not thrown.** A bad price becomes a readable reason (`sources disagree`, `feed stale`) in a `Refused` event, and the run still completes.
+- **The vault pays.** Each fee comes from its own balance. The network won't start a run unless the vault holds about twice the fee, and `runway()` accounts for that.
 
 ## From example to template
 
-Hedera's reference example, [`AlarmClockSimple`](https://github.com/hedera-dev/hedera-code-snippets/blob/main/hss-schedule-sc-calls/contracts/AlarmClockSimple.sol), shows the Schedule Service in one short contract. Here is what it takes to trust it with money:
+Hedera's own example, [`AlarmClockSimple`](https://github.com/hedera-dev/hedera-code-snippets/blob/main/hss-schedule-sc-calls/contracts/AlarmClockSimple.sol), is a good way to learn the Schedule Service. Trusting it with money takes more:
 
-| | The reference example | Nocturne |
+| | Hedera's example | Nocturne |
 | --- | --- | --- |
-| **Interval** | Fixed when the alarm is set | Chosen by the strategy every run, 60s to 60 days |
-| **Order** | Reschedules *after* the work | Books the next run *first* |
-| **If booking fails** | `require` reverts, and the chain ends | Logs `ScheduleFailed`, keeps the due time, anyone can revive it |
-| **Capacity** | Not checked | `hasScheduleCapacity` before every booking |
-| **Gas** | 2M per call | 3M. Our [DAI sale](https://hashscan.io/testnet/transaction/1790319308.034520104) burned 2.42M |
-| **Fuel** | Not tracked | `runway()` counts the reserve the network checks |
-| **Acts on** | Emits an event | Allow-listed calls, behind a two-source price check |
+| **When it runs** | A fixed interval, set once | The strategy picks each time, 60s to 60 days |
+| **Order** | Schedules the next run *after* the work | Schedules the next run *first* |
+| **If scheduling fails** | `require` reverts, and the alarm stops for good | Records the failure and when it was due, and anyone can restart it |
+| **Free slot** | Not checked | Checks `hasScheduleCapacity` first |
+| **Gas** | 2M per run | 3M. Our [DAI sale](https://hashscan.io/testnet/transaction/1790319308.034520104) alone used 2.42M |
+| **Fuel** | Not tracked | `runway()` shows runs left |
+| **What a run does** | Emits an event | Makes only calls you allowed, and trades only when two prices agree |
 
 ## The trust ladder
 
 Automation normally asks you to trust six things. Each rung removes one.
 
-| You'd normally trust | Nocturne | Hedera primitive |
+| You'd normally trust | Nocturne | How |
 | --- | --- | --- |
-| 🖥️ **A keeper server** | The network calls the vault at the second it booked | **Schedule Service** (HIP-1215) |
-| 🔑 **The keeper's hot key** | None exists. A scheduled call arrives as the vault calling itself | `msg.sender == address(this)` |
-| 🔮 **One price feed** | A DEX TWAP and an oracle must agree, or nothing trades | **SaucerSwap V2** + **Chainlink** |
-| 🧩 **The strategy's code** | It only proposes. The vault runs calls you allowed by exact `(target, selector)` | `_callsAllowed` |
-| ⛽ **Your fuel maths** | `runway()` counts the 3M-gas reserve, not the ~1.5M charged | `tx.gasprice`, in tinybar |
-| 🚪 **Being able to leave** | Withdraw any time, armed or not. `disarm` can't be blocked | `withdrawHbar` · `withdrawToken` |
+| 🖥️ **A keeper server** | Hedera itself calls the vault, at the second it booked | **Schedule Service** (HIP-1215) |
+| 🔑 **The keeper's hot key** | There is no key. The scheduled call arrives as the vault calling itself | `msg.sender == address(this)` |
+| 🔮 **One price feed** | A DEX price and an oracle must agree, or nothing trades | **SaucerSwap V2** + **Chainlink** |
+| 🧩 **The strategy's code** | It can only suggest calls. The vault runs only the exact functions you allowed | `(target, selector)` allow-list |
+| ⛽ **Your fuel maths** | `runway()` counts what the network really reserves (3M gas), not just the fee (~1.5M) | `tx.gasprice`, in tinybar |
+| 🚪 **Being able to leave** | Withdraw any time, even while it runs. Disarming can't be blocked | `withdrawHbar` · `withdrawToken` |
 
 ## Hedera, used end-to-end
 
-Take any row away and a shipped strategy stops working.
+What each service does in Nocturne:
 
-| Capability | What Nocturne does with it | Live |
+| Service | What it does here | Live |
 | --- | --- | --- |
-| **Schedule Service** | `scheduleCall` books each next run from inside the contract. `hasScheduleCapacity` is checked first, and `deleteSchedule` releases a run on disarm | [guard's runs](https://hashscan.io/testnet/account/0.0.10710268) |
-| **SaucerSwap V2** pool | A 30-minute TWAP from `observe`, through our own [`TwapLib`](packages/hardhat/contracts/lib/TwapLib.sol) + [`TickMath`](packages/hardhat/contracts/lib/TickMath.sol) | [USDC/DAI pool](https://hashscan.io/testnet/contract/0xb431866114b634f611774ec0d094bf11cb91c7e4) |
-| **SaucerSwap V2** router | The trade: `exactInputSingle`, minimum output set from the more cautious price | [the sale](https://hashscan.io/testnet/transaction/1790319308.034520104) |
-| **Chainlink** | The second opinion. Staleness checked per feed, decimals normalised | [DAI/USD](https://hashscan.io/testnet/contract/0xdA2aBF7C90aDC73CDF5cA8d720B87bD5F5863389) |
-| **Token Service** | The vault associates itself with every HTS token before holding it | [`associate`](packages/hardhat/contracts/NocturneVault.sol) |
-| **Mirror Node** | The proof: a scheduled transaction's transfer list shows the vault paid | [below](#proven-on-hedera) |
+| **Schedule Service** | `scheduleCall` books every next run from inside the contract. `hasScheduleCapacity` checks the slot is free first, and `deleteSchedule` cancels a run when you disarm | [guard's runs](https://hashscan.io/testnet/account/0.0.10710268) |
+| **SaucerSwap V2** pool | A 30-minute average price (TWAP), read with our own [`TwapLib`](packages/hardhat/contracts/lib/TwapLib.sol) + [`TickMath`](packages/hardhat/contracts/lib/TickMath.sol) | [USDC/DAI pool](https://hashscan.io/testnet/contract/0xb431866114b634f611774ec0d094bf11cb91c7e4) |
+| **SaucerSwap V2** router | Makes the trade (`exactInputSingle`), with a minimum output set from the safer of the two prices | [the sale](https://hashscan.io/testnet/transaction/1790319308.034520104) |
+| **Chainlink** | The second opinion. Rejected if too old for that feed; decimals normalised | [DAI/USD](https://hashscan.io/testnet/contract/0xdA2aBF7C90aDC73CDF5cA8d720B87bD5F5863389) |
+| **Token Service** | The vault associates itself with each HTS token, which Hedera requires before the vault can hold it | [`associate`](packages/hardhat/contracts/NocturneVault.sol) |
+| **Mirror Node** | Shows who paid: a scheduled run's transfer list names the vault | [below](#proven-on-hedera) |
 
-We built on one service and went deep instead of touching five. The [six silent failure modes](docs/hedera-landmines.md) we measured are each guarded in the vault and reproducible from the docs.
+We went deep on one service instead of touching five. We found [six ways it fails silently](docs/hedera-landmines.md), measured each on testnet, and guard against every one in the vault.
 
 ## Proven on Hedera
 
-Read back off **testnet** on 27 September 2026 across ten vaults. [See the guard on duty](https://hashscan.io/testnet/account/0.0.10710268).
+Read back off **testnet** on 27 September 2026, across ten vaults. [See the guard on duty](https://hashscan.io/testnet/account/0.0.10710268).
 
 | | |
 | --- | --- |
-| Runs executed by the network, unattended | **36** |
-| HBAR those runs cost, paid by the vaults | **65.05** |
-| ↳ executed a plan | **19**: 15 heartbeats, 3 sales, 1 rebalance |
-| ↳ refused, sources disagreed | **5** |
+| Runs started by the network, unattended | **36** |
+| Fees paid by the vaults themselves | **65.05 HBAR** |
+| ↳ acted | **19**: 15 heartbeats, 3 sales, 1 rebalance |
+| ↳ refused: prices disagreed | **5** |
 | ↳ held, or nothing left to protect | **12** |
-| Runs any owner sent | **0** |
+| Runs triggered by a person | **0** |
 
 ```bash
 # count them yourself: no key, no account
@@ -180,15 +180,15 @@ done | paste -sd+ - | bc      # 36, and growing while the guard runs
 
 Same code, same 2% tolerance, three markets:
 
-| Vault | SaucerSwap | Chainlink | What happened | Paid by vault |
+| Vault | SaucerSwap | Chainlink | What happened | Fee, paid by vault |
 | --- | --- | --- | --- | --- |
 | [WHBAR](https://hashscan.io/testnet/transaction/1790319391.014683746) | $2.0382 | $0.0920 | **Refused.** 22x apart. Kept all 0.1 WHBAR. | 1.81 HBAR |
 | [DAI](https://hashscan.io/testnet/transaction/1790319308.034520104) | $1.0023 | $0.9999 | **Sold.** 0.24% apart. 1 DAI → 1.001757 USDC. | 2.64 HBAR |
 | [DAI/USDC](https://hashscan.io/testnet/transaction/1790351600.061675104) | $1.0023 | $0.9999 | **Rebalanced.** 100% DAI vs a 50% target. 0.5 DAI → 0.500878 USDC. | 2.66 HBAR |
 
-**The refusal is the point.** The testnet WHBAR pool sits ~20x above the real HBAR price, because nobody arbitrages testnet. From inside a contract that looks exactly like a manipulated price. The vault's floor was broken, and it still refused to sell into a price it couldn't confirm.
+**The refusal is the point.** Nobody arbitrages testnet, so SaucerSwap's WHBAR pool sits about 20x above the real HBAR price. To a contract, that looks exactly like a manipulated price. Chainlink put HBAR below the vault's floor, so it wanted to sell. The pool disagreed by 22x, so it refused.
 
-**Who paid?** Read the transfer list, not the transaction id. The id names whoever created the schedule. The transfer list shows the vault paid, and nobody else:
+**Who paid?** Check the transfer list, not the transaction ID. The ID names whoever created the schedule. The transfer list shows the vault paid, and no one else:
 
 ```bash
 curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?timestamp=1790319308.034520104" \
@@ -196,11 +196,11 @@ curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?timestamp=179
 # { "scheduled": true, "result": "SUCCESS", "paid_by": [{ "account": "0.0.10710193", ... }] }
 ```
 
-After the sale, the DAI vault found nothing left to protect and booked its next check **60 days** out instead of burning fuel every minute.
+After the sale, the DAI vault had nothing left to protect, so it booked its next check **60 days** out instead of burning fuel every minute.
 
 ### Live contracts
 
-All Sourcify-verified.
+All verified on Sourcify, so HashScan shows the source.
 
 | | Address | Hedera id |
 | --- | --- | --- |
@@ -230,8 +230,8 @@ flowchart TB
 
     subgraph nocturne["Nocturne · our contracts"]
         V["<b>NocturneVault</b><br/>holds funds · books runs<br/>allow-list · runway"]
-        S["Strategy<br/>view only · proposes calls"]
-        PG["PriceGuard<br/>TWAP vs feed"]
+        S["Strategy<br/>read-only · suggests calls"]
+        PG["PriceGuard<br/>pool price vs feed"]
     end
 
     subgraph hedera["Hedera"]
@@ -260,11 +260,11 @@ flowchart TB
     style hedera stroke:#2563EB
 ```
 
-The vault is the only contract that holds your funds or makes calls for you. A strategy is a view-only advisor: it reads and proposes, and the vault checks every call against your allow-list first.
+Only the vault holds your funds or makes calls for you. A strategy only reads and suggests; the vault checks every call against your allow-list before running it.
 
 ## Write a strategy
 
-The engine, the fuel accounting and the price guard are done. A new job is one file:
+The vault, the fuel accounting and the price guard are already built. A new job is one file that implements this:
 
 ```solidity
 interface INocturneStrategy {
@@ -274,12 +274,12 @@ interface INocturneStrategy {
     function nextInterval(bytes calldata config) external view returns (uint256);
     // Checked once, when the owner configures the vault.
     function validateConfig(bytes calldata config) external view returns (bool);
-    // Why, in words: this is what a Refused event records.
+    // Why, in words. This is what a Refused event records.
     function explain(bytes calldata config) external view returns (string memory, uint256, uint256);
 }
 ```
 
-The worked example, [`TopUpStrategy`](packages/hardhat/contracts/examples/TopUpStrategy.sol), is under 80 lines with its own tests. The guide is at [/docs/writing-a-strategy](https://hedera-nocturne.vercel.app/docs/writing-a-strategy). DCA, loan protection, vesting and LP compounding all fit the same four functions.
+The worked example, [`TopUpStrategy`](packages/hardhat/contracts/examples/TopUpStrategy.sol), is under 80 lines and has its own tests. The step-by-step guide is at [/docs/writing-a-strategy](https://hedera-nocturne.vercel.app/docs/writing-a-strategy).
 
 ## Tech stack
 
@@ -293,25 +293,27 @@ The worked example, [`TopUpStrategy`](packages/hardhat/contracts/examples/TopUpS
 
 | Suite | Tests | Covers |
 | --- | --- | --- |
-| Engine | **67** | Vault, factory, scheduler: arming, chain survival, early callers, allow-list, fuel, withdrawals, and a Schedule Service that is [missing, reverts or answers short](packages/hardhat/test/NocturneVault.edges.test.ts) |
-| Strategies | **75** | Exit, rebalance, heartbeat, docs example: decisions, cadence, every config rejection, end to end |
-| Price guard | **26** | Tick maths vs the live pool, TWAP rounding, stale / missing / malformed feeds, `PriceLens` |
+| Engine | **67** | Vault, factory, scheduler: arming, the loop surviving failures, early callers, allow-list, fuel, withdrawals, and a Schedule Service that is [missing, reverts or answers short](packages/hardhat/test/NocturneVault.edges.test.ts) |
+| Strategies | **75** | Exit, rebalance, heartbeat and the docs example: decisions, timing, every rejected config, end to end |
+| Price guard | **26** | Tick maths against the live pool, TWAP rounding, stale, missing and malformed feeds, `PriceLens` |
 | [Live](packages/hardhat/test/live/PriceGuardLive.test.ts) | **5** | The deployed guard against the real pool and feed. Read-only, no key |
 
 Coverage on every shipped contract: **100% of lines and functions, 98.8% of statements, 94.3% of branches** (`npm run hardhat:coverage`).
 
-There is no Schedule Service on a local chain, so [`MockHederaScheduleService`](packages/hardhat/contracts/test/MockHederaScheduleService.sol) is installed at `0x16b` and follows the real one's rules: response codes instead of reverts, one booking per transaction, nothing past 62 days. CI runs on Node 20 and 22, and a [scaffold gate](.github/workflows/scaffold-gate.yaml) creates a fresh project from this repo with the published CLI, then tests, builds and boots it, on every push and daily.
+A local chain has no Schedule Service, so a mock ([`MockHederaScheduleService`](packages/hardhat/contracts/test/MockHederaScheduleService.sol)) is installed at its address, `0x16b`. It follows the real rules: errors come back as response codes, not reverts; one booking per transaction; nothing past 62 days.
+
+CI runs on Node 20 and 22. A second workflow, the [scaffold gate](.github/workflows/scaffold-gate.yaml), creates a fresh project with the official CLI, the way a new user would, then tests, builds and boots it, on every push and daily.
 
 ## Security notes
 
-- **`executeScheduled` never reverts.** A revert would take the next booking with it. Early or unarmed calls return. A failing `plan` is caught.
-- **Consent is per `(target, selector)`.** Allowing `approve` on a token doesn't allow `transfer`. One call off the list rejects the whole plan before anything runs.
-- **A plan can't move HBAR.** Any action with `value`, or without a selector, is refused.
-- **New strategy, no old grants.** `setStrategy` retires every permission given to the previous one.
-- **Strategies can't write state.** `plan` is called as a view, and [a test](packages/hardhat/test/NocturneVault.test.ts) tries to break that.
-- **No early runs by outsiders.** Calls more than 10s before the booked time are ignored.
-- **The owner can always leave.** Withdrawals ignore state, and `disarm` succeeds even if the network refuses the delete.
-- **Known limit, pinned by a test:** if the swap reverts, the approve before it has landed. It can only point at the configured router, and the next run overwrites it.
+- **The loop can't break.** `executeScheduled` never reverts, because a revert would cancel the next booking too. Early or disarmed calls just return, and a failing `plan` is caught.
+- **Permissions are per function.** Allowing `approve` on a token doesn't allow `transfer`. If one suggested call isn't allowed, the whole plan is rejected before anything runs.
+- **A plan can't move HBAR.** Any call that sends value, or names no function, is refused.
+- **New strategy, clean slate.** Switching strategy (`setStrategy`) wipes every permission given to the old one.
+- **Strategies can't write state.** `plan` is called read-only, and [a test](packages/hardhat/test/NocturneVault.test.ts) tries to break that.
+- **No early runs by outsiders.** Calls more than 10 seconds before the booked time are ignored.
+- **You can always leave.** Withdrawals work in any state, and disarming succeeds even if the network refuses to cancel the schedule.
+- **Known limit, pinned by a test:** if a swap fails after its `approve`, the approval stays. It can only point at the router you configured, and the next run replaces it.
 
 ## Quick start
 
@@ -322,9 +324,9 @@ npm create scaffold-hbar@latest -- nocturne --template Madhav-Gupta-28/Nocturne
 cd nocturne
 ```
 
-The `--` is required, or `--template` goes to npm, not the CLI. If GitHub rate-limits the CLI it silently falls back to Foundry, so pin the stack with `-f nextjs-app -s hardhat --package-manager npm`.
+Keep the `--`: without it, `--template` never reaches the CLI. If GitHub rate-limits the CLI, it quietly falls back to Foundry; adding `-f nextjs-app -s hardhat --package-manager npm` prevents that.
 
-**Environment.** Everything has a testnet default. The only value you create is the deployer key, and a script writes it.
+**Environment.** Everything has a testnet default. The only value you create is the deployer key, and a script writes it for you.
 
 | Variable | File | What it is |
 | --- | --- | --- |
@@ -332,8 +334,8 @@ The `--` is required, or `--template` goes to npm, not the CLI. If GitHub rate-l
 | `HEDERA_RPC_URL` | `packages/hardhat/.env` | Optional. Default Hashio testnet. |
 | `NEXT_PUBLIC_HEDERA_TESTNET_RPC_URL` | `packages/nextjs/.env.local` | Optional. Default Hashio testnet. |
 | `NEXT_PUBLIC_HEDERA_MAINNET_RPC_URL` | `packages/nextjs/.env.local` | Optional. Default Hashio mainnet. |
-| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | `packages/nextjs/.env.local` | Optional. A shared dev id ships. |
-| `HEDERA_MIRROR_TESTNET_URL` | `packages/nextjs/.env.local` | Optional. Default public mirror. |
+| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | `packages/nextjs/.env.local` | Optional. A shared dev ID is included. |
+| `HEDERA_MIRROR_TESTNET_URL` | `packages/nextjs/.env.local` | Optional. Default public mirror node. |
 
 **Run it.**
 
@@ -345,7 +347,7 @@ npm run hardhat:deploy -- --network hederaTestnet      # six contracts
 npm run next:dev                                       # http://localhost:3000
 ```
 
-Fund a vault against the reserve, not the fee: a run needs ~3.3 HBAR in the vault to start and is charged ~1.6, so 24 HBAR buys about a dozen runs. The app shows the count before you create one.
+**Budget for the reserve, not the fee.** A check costs about 1.8 HBAR (a trade, a bit more), but the network won't start one unless the vault holds about twice that. So 24 HBAR buys about a dozen runs. The app shows the count before you create a vault.
 
 ## Repository layout
 
@@ -365,13 +367,13 @@ docs/               the docs pages the app serves
 
 ## Roadmap
 
-- **More strategies, same engine.** DCA is already specified as the [Harness recipe](.harness/README.md). Loan protection and vesting are next.
-- **A sponsor that pays.** HIP-1215's `scheduleCallWithPayer` would let a protocol fund its users' runs.
+- **More strategies, same engine.** DCA is already specified in the [Harness recipe](.harness/README.md). Loan protection and vesting are next.
+- **A sponsor that pays.** HIP-1215's `scheduleCallWithPayer` would let a protocol pay for its users' runs.
 - **Mainnet**, after a professional audit of `NocturneVault` and the price guard.
 
 ## Built on Scaffold-HBAR
 
-Next.js, wagmi + RainbowKit, Hardhat, Hashio and Mirror Node config, the Debug Contracts page and the block explorer are all kept. Two fixes on top: a root `.npmrc` so a workspace install doesn't fail on ERESOLVE, and `@x402/*` aliased out so `npm run next:build` passes.
+Next.js, wagmi + RainbowKit, Hardhat, Hashio and Mirror Node config, the Debug Contracts page and the block explorer are all kept. Two fixes on top: a root `.npmrc` so a workspace install doesn't fail with ERESOLVE, and `@x402/*` aliased out so `npm run next:build` passes.
 
 ## Licence
 
