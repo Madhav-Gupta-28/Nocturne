@@ -1,0 +1,3 @@
+# Vendored from Hedera's payments-scheduler template for the comparison tests.
+# Kept byte-for-byte apart from import paths, so it is not reformatted.
+contracts/test/reference/
