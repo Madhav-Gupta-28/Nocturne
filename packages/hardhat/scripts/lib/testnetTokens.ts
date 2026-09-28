@@ -72,8 +72,9 @@ export async function associateOwner(tokens: string[]) {
     try {
       await (await hts.associateToken(owner.address, token, { gasLimit: 800_000 })).wait();
     } catch {
-      // An account created from an EVM key has no automatic association slots,
-      // so this is needed once; afterwards it reverts and there is nothing to do.
+      // New accounts auto-associate on arrival, so this is belt and braces: it
+      // covers an account created with limited slots, and reverts harmlessly
+      // once the token is already associated.
     }
   }
 }

@@ -2,6 +2,7 @@
 
 import { CreateVault } from "./_components/CreateVault";
 import { Depth } from "./_components/Depth";
+import { Hardened } from "./_components/Hardened";
 import { Hero } from "./_components/Hero";
 import { Problem } from "./_components/Problem";
 import { Proof } from "./_components/Proof";
@@ -21,8 +22,9 @@ import { useScaffoldReadContract } from "~~/hooks/scaffold-hbar";
  *
  * Ordered as an argument, nothing on it twice. What you get; why that needed a
  * bot until now; two real vaults deciding with nobody watching; the mechanism,
- * played; why it is built deep on one service; how far it goes; and only then
- * a wallet, for somebody who wants one of their own.
+ * played; why it is built deep on one service; what it changes about Hedera's
+ * own ScheduledVault; how far it goes; and only then a wallet, for somebody who
+ * wants one of their own.
  *
  * The diagrams live on `/how-it-works` and the addresses on `/debug`.
  */
@@ -49,6 +51,7 @@ const Home: NextPage = () => {
       <Proof />
       <RunTheNight />
       <Depth />
+      <Hardened />
       <Unlocks />
 
       {/*

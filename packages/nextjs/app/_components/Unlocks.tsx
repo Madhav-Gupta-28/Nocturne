@@ -37,7 +37,8 @@ export const Unlocks = () => (
           does not run on Hedera
         </a>
         . The Schedule Service makes automation native. Nocturne makes it a template:{" "}
-        <span className="text-paper">each new job is one file and four functions.</span>
+        <span className="text-paper">each new job is one file and four functions.</span> Or hand it to a coding agent:{" "}
+        <code className="text-paper">AGENTS.md</code> and a Hedera Harness recipe ship with it.
       </p>
     </SectionHead>
 

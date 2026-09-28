@@ -12,11 +12,16 @@ import { useNetworkGasPrice, useVaultRead, useVaultWrite } from "~~/hooks/useNoc
  * Arming a protective exit, one step at a time.
  *
  * This is deliberately not a single button. Setting a vault up to sell a real
- * position takes seven transactions, and each one exists for a reason a reader
- * should be able to see: two HTS associations because Hedera will not let an
- * account hold a token it has not opted into, two `setAllowedCall`s because
- * consent is per function rather than per contract, and a config that is
- * validated before it is stored rather than at 3am inside a scheduled call.
+ * position takes five transactions, and each one exists for a reason a reader
+ * should be able to see: an approve and a deposit to hand it the position, two
+ * `setAllowedCall`s because consent is per function rather than per contract,
+ * and a config that is validated before it is stored rather than at 3am inside
+ * a scheduled call.
+ *
+ * Association is the optional first step. Vaults are created with unlimited
+ * automatic association slots, so a token associates itself the first time it
+ * arrives — verified by sending DAI to a vault that had never associated it.
+ * The step stays for an owner who wants the association on record up front.
  *
  * **Every step reads its own completion from the chain.** Nothing is remembered
  * in the browser, so closing the tab half way through loses nothing and the
@@ -154,7 +159,7 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
   return (
     <Panel
       title="Set up a protective exit"
-      subtitle="Seven transactions against live SaucerSwap and Chainlink. Each step checks the chain, so you can stop and come back."
+      subtitle="Five transactions against live SaucerSwap and Chainlink, plus an optional first step. Each step checks the chain, so you can stop and come back."
     >
       <div className="mb-6 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Market">
         <span className="eyebrow mr-2">Market</span>
@@ -177,8 +182,8 @@ export const ExitSetup = ({ vault, onDone }: { vault: Address; onDone: () => Pro
       <ol className="flex flex-col gap-4 m-0 p-0 list-none">
         <Step
           n={1}
-          title={`Let the vault hold ${market} and USDC`}
-          detail="Hedera will not let an account receive a token it has not associated. Doing this after the swap would fail at delivery, once the approve had already landed. Safe to repeat — the vault records the response code either way."
+          title={`Optional: associate ${market} and USDC`}
+          detail="You can skip this. Vaults are created with unlimited automatic association slots, so each token associates itself the first time it arrives. Associating up front just puts it on record, for about 0.8 HBAR per token."
           busy={isPending}
           action="Associate both"
           onClick={async () => {

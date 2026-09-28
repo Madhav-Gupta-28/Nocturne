@@ -106,9 +106,11 @@ async function build(): Promise<string> {
   const vault = await ethers.getContractAt("NocturneVault", vaultAddr);
   console.log(`vault    ${vaultAddr}`);
 
-  // Both sides must be associated: the asset to hold the position, USDC to
-  // receive the proceeds. A swap into an unassociated token fails at delivery,
-  // after the approve has already landed.
+  // Both sides, explicitly: the asset to hold the position, USDC to receive the
+  // proceeds. A vault auto-associates a token the first time it arrives, so
+  // this only puts the association on record up front. It matters for an
+  // account created with limited slots, where a swap into an unassociated
+  // token would fail at delivery, after the approve had already landed.
   for (const [name, token] of [
     [pair.label, pair.asset],
     ["USDC", USDC],
