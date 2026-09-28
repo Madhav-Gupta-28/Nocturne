@@ -106,7 +106,7 @@ which is the last point a bad config fails loudly instead of at 3am.
 npm install                 # root; the repo's .npmrc is required, see README
 
 # Contracts
-npm run hardhat:test        # 168 offline tests
+npm run hardhat:test        # 174 offline tests
 npm run hardhat:coverage    # line/branch coverage of the shipped contracts
 npm run hardhat:test:live   # 5 against live testnet contracts, read-only, no key needed
 npm run hardhat:compile
@@ -139,6 +139,7 @@ PRESET=sell   npx hardhat run scripts/armExitVault.ts --network hederaTestnet   
 PRESET=guard  npx hardhat run scripts/armExitVault.ts --network hederaTestnet          # DAI depeg guard, 6h cadence
 npx hardhat run scripts/armRebalanceVault.ts --network hederaTestnet                   # DAI/USDC, 50% target
 npx hardhat run scripts/watchVault.ts --network hederaTestnet
+npx hardhat run scripts/pokeVault.ts --network hederaTestnet                           # try to force the guard early: nothing runs
 ```
 
 All of them use the stock 2% divergence tolerance. The USDC/WHBAR pool is ~22x

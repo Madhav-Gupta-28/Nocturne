@@ -82,7 +82,10 @@ Hedera ships a `ScheduledVault` in the built-in `payments-scheduler` template.
 It is good code. It schedules, it re-schedules, it wraps execution in
 `try/catch`, it counts consecutive failures.
 
-It cannot do the sentence above. Four gaps, each verified by reading its source:
+It cannot do the sentence above, and it is not yet safe to leave holding money.
+Five gaps, each verified by reading its source, and the last two by running it
+(`packages/hardhat/test/ScheduledVault.comparison.test.ts` vendors Hedera's
+contract and runs it beside `NocturneVault` on the same mock scheduler):
 
 1. **`intervalSeconds` is fixed.** `IExecutionStrategy.plan()` returns a list of
    actions and nothing else. A strategy has no way to say *when to look again*,
@@ -92,8 +95,17 @@ It cannot do the sentence above. Four gaps, each verified by reading its source:
    verifies the vault holds the HBAR to pay for it. §3.3 shows what happens.
 3. **`consecutiveFailures` counts but never backs off.** It halts after N; it
    never slows down or speeds up.
-4. **No HTS association.** `depositTokens` calls `transferFrom` on a token the
-   vault was never associated with, which fails for any HTS asset (§3.7).
+4. **Anyone can run it, at any time.** `executeScheduled` has no caller check
+   and no due-time check. It runs the plan, then books a new schedule without
+   releasing the one already pending. Three uninvited calls straight after
+   setup run the plan three times and leave four schedules, each of which
+   re-books itself when it fires: a stranger chooses when the vault trades and
+   multiplies how fast it spends. Nocturne ignores a call that is not due, and a
+   call that is due releases the schedule it replaces (§4).
+5. **A strategy's actions run as-is.** Whatever `plan()` returns is executed,
+   including a call that sends the vault's HBAR to an arbitrary address. The
+   owner trusts the strategy completely. Nocturne checks every action against a
+   per-function allow-list and refuses any that carries HBAR (§4).
 
 ### 1.4 The six ways HSS automation silently breaks
 
@@ -341,8 +353,13 @@ cast call 0xb4f980DBdb7b62f5193d5Ab0680DB468b5143445 "ticks()(uint256)"  --rpc-u
    regardless, so the same bytecode is deployable on a chain without HSS and
    degrades to "scheduling unavailable" rather than reverting.
 
-3. **HTS tokens require association before an account can receive them**, and
-   that includes contracts (§3.7).
+3. **HTS association is automatic for new accounts, contracts included.**
+   Vaults, the factory and EVM-key wallets all report
+   `max_automatic_token_associations: -1` (unlimited), so a token associates
+   itself the first time it arrives. Explicit association (§3.7) matters only
+   for an account created with limited slots. Measured 2026-09-28: one base
+   unit of DAI sent to vault `0.0.10710164`, which had never associated DAI,
+   arrived and was listed with `automatic_association: true`.
 
 4. **`forge script --gas-limit` is silently ignored.** It aliases
    `--block-gas-limit`. The flag that matters is `-g` /
@@ -467,8 +484,14 @@ tokens returned 22.
 So the rule Nocturne follows: **associate the tokens it will custody; never
 associate a contract-deployed ERC-20.**
 
-Association is idempotent-ish but not free, so it is done once at vault
-creation, and `NocturneFactory` funds the new vault with enough HBAR to pay for it.
+**Correction, 2026-09-28: association is optional for Nocturne's vaults.** A
+contract created today gets unlimited automatic association slots, so a token
+associates itself on first arrival (§3.4, item 3). The scripts and the app still
+offer the explicit call, which costs about 0.8 HBAR per token and puts the
+association on record up front, and which an account created with limited
+slots does need. The contracts' own NatSpec still describes it as required;
+it is left unchanged because editing a verified source breaks its Sourcify
+match.
 
 ### 3.8 Dead ends — documented so the next person does not repeat them
 
@@ -869,7 +892,8 @@ shape as §5.5 but two-sided, which is precisely the point of shipping both
 
 1. Connect. Pick asset, quote, floor price, slippage.
 2. `factory.createVault(protectiveExit)` — one real deployment, value forwarded.
-3. `vault.associate(asset)` and `associate(quote)` — HTS, once (§3.7).
+3. Optionally, `vault.associate(asset)` and `associate(quote)`. Vaults
+   auto-associate on arrival, so this only records it up front (§3.7).
 4. `vault.depositToken(asset, amount)` and `vault.depositHbar{value: fuel}()`.
    The UI states the runway in **runs and in days at the current cadence**.
 5. `vault.configure(abi.encode(cfg))` — `validateConfig` rejects a bad floor now.
@@ -1052,7 +1076,8 @@ between two checks is a real outcome, and §13 says so.
 7. `withdraw*` is `onlyOwner` and always available, armed or not.
 8. A refusal emits `Refused` with both observed prices. Silence is never a
    decision.
-9. Tokens the vault custodies are HTS-associated before any transfer to it.
+9. Tokens the vault custodies are associated before or on arrival: explicitly
+   (§3.7), or automatically through its unlimited association slots.
 10. Funds only ever leave the vault to (a) the owner, or (b) the configured
     router as part of a planned action.
 

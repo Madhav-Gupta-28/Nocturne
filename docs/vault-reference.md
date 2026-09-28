@@ -59,9 +59,12 @@ Reads the grant for the current epoch.
 
 ### `associate(address token) onlyOwner → int64`
 
-Associates an HTS token so the vault can hold it. Returns the raw Hedera
-response code: **22 is success**, 167 means the address is not an HTS token.
-Required before any token transfer in.
+Associates an HTS token with the vault. Returns the raw Hedera response code:
+**22 is success**, 167 means the address is not an HTS token.
+
+Optional. Vaults are created with unlimited automatic association slots, so a
+token associates itself the first time it arrives. Call this to put the
+association on record up front, or on an account created with limited slots.
 
 ---
 
@@ -70,7 +73,7 @@ Required before any token transfer in.
 | Function | Who may call it |
 | --- | --- |
 | `depositHbar() payable` | **Anyone.** Adds fuel. A plain HBAR transfer works too. |
-| `depositToken(address, uint256) onlyOwner` | Pulls tokens in. Associate first. |
+| `depositToken(address, uint256) onlyOwner` | Pulls tokens in, after you `approve` the vault. |
 | `withdrawHbar(uint256 tinybar) onlyOwner` | Takes HBAR out. |
 | `withdrawToken(address, uint256) onlyOwner` | Takes tokens out. |
 

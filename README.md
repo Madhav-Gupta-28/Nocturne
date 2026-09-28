@@ -8,14 +8,14 @@
 
 [![CI](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/lint.yaml)
 [![Scaffold gate](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/scaffold-gate.yaml/badge.svg)](https://github.com/Madhav-Gupta-28/Nocturne/actions/workflows/scaffold-gate.yaml)
-![tests](https://img.shields.io/badge/tests-168%20passing%20%2B%205%20live-2ea44f)
+![tests](https://img.shields.io/badge/tests-174%20passing%20%2B%205%20live-2ea44f)
 ![coverage](https://img.shields.io/badge/coverage-100%25%20lines-2ea44f)
 ![hedera](https://img.shields.io/badge/HIP--1215%20·%20SaucerSwap%20V2%20·%20Chainlink-live%20on%20testnet-1D4ED8)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 🌐 **[Live app](https://hedera-nocturne.vercel.app)** · 📚 **[Docs](https://hedera-nocturne.vercel.app/docs/quickstart)** · 🟢 **[Guard on duty](https://hashscan.io/testnet/account/0.0.10710268)** · 📄 **[Architecture](ARCHITECTURE.md)**
 
-**[36 runs on testnet](#proven-on-hedera)**, all started by the network · **65.05 HBAR** in fees, paid by the vaults · **0** triggered by a person
+**[39 runs on testnet](#proven-on-hedera)**, all started by the network · **70.38 HBAR** in fees, paid by the vaults · **0** triggered by a person
 
 </div>
 
@@ -51,6 +51,8 @@ It ships with three strategies: a **heartbeat** (runs on a fixed schedule), a **
 ## What you can build
 
 Any repeating job comes down to three questions: **what** to do (`plan`), **when** to run next (`nextInterval`), and **is it safe** right now (`PriceGuard`). Answer them and you have a strategy.
+
+Hedera's own list of what HIP-1215 is for [starts with](https://hedera.com/blog/real-world-applications-of-protocol-level-smart-contract-automation-on-hedera/) *"self-monitoring vaults"* that schedule their own health checks, and vaults that *"schedule their own rebalancing at optimal intervals."* Nocturne ships both.
 
 | Job | What each run does | Status |
 | --- | --- | --- |
@@ -113,20 +115,29 @@ flowchart TD
 - **The strategy sets the pace.** Every six hours while the price is far from the floor, every minute once it's within 1%.
 - **A refusal is recorded, not thrown.** A bad price becomes a readable reason (`sources disagree`, `feed stale`) in a `Refused` event, and the run still completes.
 - **The vault pays.** Each fee comes from its own balance. The network won't start a run unless the vault holds about twice the fee, and `runway()` accounts for that.
+- **Only the network can run it.** Anyone can call `executeScheduled`, but a call before the booked second does nothing. [`scripts/pokeVault.ts`](packages/hardhat/scripts/pokeVault.ts) tries it on the live guard and shows that nothing changes.
+- **Anyone can restart it.** If a vault ever stops, say it ran out of fuel, it still remembers when it was due. Top it up, and anyone can call it once to start the loop again.
 
-## From example to template
+## Built on Hedera's own pattern
 
-Hedera's own example, [`AlarmClockSimple`](https://github.com/hedera-dev/hedera-code-snippets/blob/main/hss-schedule-sc-calls/contracts/AlarmClockSimple.sol), is a good way to learn the Schedule Service. Trusting it with money takes more:
+Scaffold-HBAR ships a template called `payments-scheduler`. Its [`ScheduledVault`](https://github.com/hedera-dev/scaffold-hbar/blob/templates/payments-scheduler/packages/foundry/contracts/ScheduledVault.sol) runs a pluggable strategy on the Schedule Service, and it's the right starting point. Nocturne keeps its shape (a vault, a factory, a strategy that returns a list of calls) and hardens it for money:
 
-| | Hedera's example | Nocturne |
+| | Hedera's `ScheduledVault` | Nocturne |
 | --- | --- | --- |
-| **When it runs** | A fixed interval, set once | The strategy picks each time, 60s to 60 days |
-| **Order** | Schedules the next run *after* the work | Schedules the next run *first* |
-| **If scheduling fails** | `require` reverts, and the alarm stops for good | Records the failure and when it was due, and anyone can restart it |
-| **Free slot** | Not checked | Checks `hasScheduleCapacity` first |
-| **Gas** | 2M per run | 3M. Our [DAI sale](https://hashscan.io/testnet/transaction/1790319308.034520104) alone used 2.42M |
+| **A stranger calls it three times** | Runs the plan 3 times, right away, and leaves **4 schedules** running | Runs nothing, and keeps **1 schedule** |
+| **When it runs** | A fixed interval, set by the owner | The strategy picks each time, 60s to 60 days |
+| **Order** | Runs the plan, then books the next run | Books the next run first |
+| **What a strategy can do** | Anything, including sending the vault's HBAR away | Only functions you allowed, and never send HBAR |
 | **Fuel** | Not tracked | `runway()` shows runs left |
-| **What a run does** | Emits an event | Makes only calls you allowed, and trades only when two prices agree |
+| **Price** | The example strategy caps what it pays, using the venue's own quote | No trade unless two independent sources agree |
+
+The first row is the one that matters. Its `executeScheduled` has no caller or timing check, and each call books a new schedule without cancelling the old one. So anyone can pick when its trades run, and every extra schedule keeps re-booking itself, paid from the vault. The stranger, interval and HBAR rows are tests you can run: [`ScheduledVault.comparison.test.ts`](packages/hardhat/test/ScheduledVault.comparison.test.ts) runs Hedera's contract, vendored with only its import paths changed, next to Nocturne's.
+
+```bash
+cd packages/hardhat && npx hardhat test test/ScheduledVault.comparison.test.ts
+```
+
+Try the first row on the live guard yourself. `npx hardhat run scripts/pokeVault.ts --network hederaTestnet` calls it hours early; runs, next run and schedule come back unchanged.
 
 ## The trust ladder
 
@@ -151,22 +162,22 @@ What each service does in Nocturne:
 | **SaucerSwap V2** pool | A 30-minute average price (TWAP), read with our own [`TwapLib`](packages/hardhat/contracts/lib/TwapLib.sol) + [`TickMath`](packages/hardhat/contracts/lib/TickMath.sol) | [USDC/DAI pool](https://hashscan.io/testnet/contract/0xb431866114b634f611774ec0d094bf11cb91c7e4) |
 | **SaucerSwap V2** router | Makes the trade (`exactInputSingle`), with a minimum output set from the safer of the two prices | [the sale](https://hashscan.io/testnet/transaction/1790319308.034520104) |
 | **Chainlink** | The second opinion. Rejected if too old for that feed; decimals normalised | [DAI/USD](https://hashscan.io/testnet/contract/0xdA2aBF7C90aDC73CDF5cA8d720B87bD5F5863389) |
-| **Token Service** | The vault associates itself with each HTS token, which Hedera requires before the vault can hold it | [`associate`](packages/hardhat/contracts/NocturneVault.sol) |
+| **Token Service** | The vault holds HTS tokens (DAI, USDC) directly. It auto-associates each token the first time it arrives, so association is optional | [arrival, unassociated](https://hashscan.io/testnet/transaction/1790599832.366311309) |
 | **Mirror Node** | Shows who paid: a scheduled run's transfer list names the vault | [below](#proven-on-hedera) |
 
-We went deep on one service instead of touching five. We found [six ways it fails silently](docs/hedera-landmines.md), measured each on testnet, and guard against every one in the vault.
+We went deep on one service instead of touching five. We found [six ways it fails silently](docs/hedera-landmines.md), measured each on testnet, and guard against every one in the vault. Two examples: a scheduled call sees a clock about two seconds early, and a run is charged for the gas it uses (about half its 3M limit) but only starts if the vault can cover all 3M.
 
 ## Proven on Hedera
 
-Read back off **testnet** on 27 September 2026, across ten vaults. [See the guard on duty](https://hashscan.io/testnet/account/0.0.10710268).
+Read back off **testnet** on 28 September 2026, across ten vaults. [See the guard on duty](https://hashscan.io/testnet/account/0.0.10710268).
 
 | | |
 | --- | --- |
-| Runs started by the network, unattended | **36** |
-| Fees paid by the vaults themselves | **65.05 HBAR** |
+| Runs started by the network, unattended | **39** |
+| Fees paid by the vaults themselves | **70.38 HBAR** |
 | ↳ acted | **19**: 15 heartbeats, 3 sales, 1 rebalance |
 | ↳ refused: prices disagreed | **5** |
-| ↳ held, or nothing left to protect | **12** |
+| ↳ held, or nothing left to protect | **15** |
 | Runs triggered by a person | **0** |
 
 ```bash
@@ -175,7 +186,7 @@ for a in 0.0.10684549 0.0.10690925 0.0.10691327 0.0.10691817 0.0.10710164 \
          0.0.10710193 0.0.10710268 0.0.10715956 0.0.10716071 0.0.10716165; do
   curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?account.id=$a&limit=100" \
     | jq '[.transactions[] | select(.scheduled and .result == "SUCCESS")] | length'
-done | paste -sd+ - | bc      # 36, and growing while the guard runs
+done | paste -sd+ - | bc      # 39, and growing while the guard runs
 ```
 
 Same code, same 2% tolerance, three markets:
@@ -252,7 +263,7 @@ flowchart TB
     PG -->|"30-min TWAP"| SS
     PG -->|"latestRoundData"| CL
     V -->|"swap, if allowed"| SS
-    V -->|"associate"| HTS
+    V -->|"holds DAI · USDC"| HTS
 
     style V fill:#D97706,stroke:#B45309,color:#FFFFFF
     style HSS fill:#2563EB,stroke:#1D4ED8,color:#FFFFFF
@@ -281,19 +292,27 @@ interface INocturneStrategy {
 
 The worked example, [`TopUpStrategy`](packages/hardhat/contracts/examples/TopUpStrategy.sol), is under 80 lines and has its own tests. The step-by-step guide is at [/docs/writing-a-strategy](https://hedera-nocturne.vercel.app/docs/writing-a-strategy).
 
+## Built for coding agents
+
+Most people will extend this with an AI coding agent, so the repo is set up for one:
+
+- [`AGENTS.md`](AGENTS.md) briefs Claude Code, Cursor and Codex on the rules that matter: never revert inside `executeScheduled`, book the next run first, fund for the reserve, and allow only the calls a strategy needs.
+- The [Hedera Harness recipe](.harness/README.md) asks an agent to add a DCA strategy, then grades the result with validators. Checked both ways: without the strategy it reports 5 findings, with a correct one it reports 0. Run `npm run harness:validate` to check the recipe, or `npm run harness:run` to hand it to an agent.
+
 ## Tech stack
 
 - **Contracts**: Solidity 0.8.28 · Hardhat · OpenZeppelin · `NocturneVault` · `NocturneFactory` · three strategies · `PriceGuard` / `TwapLib` / `TickMath` · `PriceLens`
 - **Hedera**: Schedule Service (HIP-1215) · Token Service · Mirror Node REST · Hashio JSON-RPC · Sourcify
 - **Ecosystem**: SaucerSwap V2 (pool TWAP + SwapRouter) · Chainlink price feeds
 - **Front end**: Scaffold-HBAR · Next.js App Router · wagmi · RainbowKit · docs served in-app
-- **Quality**: 168 offline tests + 5 live · 100% line coverage · zero lint warnings · CI + scaffold gate · [Hedera Harness recipe](.harness/README.md)
+- **Quality**: 174 offline tests + 5 live · 100% line coverage · zero lint warnings · CI + scaffold gate · [Hedera Harness recipe](.harness/README.md)
 
 ## Testing
 
 | Suite | Tests | Covers |
 | --- | --- | --- |
 | Engine | **67** | Vault, factory, scheduler: arming, the loop surviving failures, early callers, allow-list, fuel, withdrawals, and a Schedule Service that is [missing, reverts or answers short](packages/hardhat/test/NocturneVault.edges.test.ts) |
+| [Against Hedera's `ScheduledVault`](packages/hardhat/test/ScheduledVault.comparison.test.ts) | **6** | Uninvited callers, a strategy sending HBAR, who picks the interval: both vaults, same scheduler, same strategy |
 | Strategies | **75** | Exit, rebalance, heartbeat and the docs example: decisions, timing, every rejected config, end to end |
 | Price guard | **26** | Tick maths against the live pool, TWAP rounding, stale, missing and malformed feeds, `PriceLens` |
 | [Live](packages/hardhat/test/live/PriceGuardLive.test.ts) | **5** | The deployed guard against the real pool and feed. Read-only, no key |
@@ -311,7 +330,7 @@ CI runs on Node 20 and 22. A second workflow, the [scaffold gate](.github/workfl
 - **A plan can't move HBAR.** Any call that sends value, or names no function, is refused.
 - **New strategy, clean slate.** Switching strategy (`setStrategy`) wipes every permission given to the old one.
 - **Strategies can't write state.** `plan` is called read-only, and [a test](packages/hardhat/test/NocturneVault.test.ts) tries to break that.
-- **No early runs by outsiders.** Calls more than 10 seconds before the booked time are ignored.
+- **No early runs, and never two loops.** Calls more than 10 seconds before the booked time are ignored. A call that is due releases the schedule it replaces, so the loop can't be doubled.
 - **You can always leave.** Withdrawals work in any state, and disarming succeeds even if the network refuses to cancel the schedule.
 - **Known limit, pinned by a test:** if a swap fails after its `approve`, the approval stays. It can only point at the router you configured, and the next run replaces it.
 
@@ -337,10 +356,10 @@ Keep the `--`: without it, `--template` never reaches the CLI. If GitHub rate-li
 | `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | `packages/nextjs/.env.local` | Optional. A shared dev ID is included. |
 | `HEDERA_MIRROR_TESTNET_URL` | `packages/nextjs/.env.local` | Optional. Default public mirror node. |
 
-**Run it.**
+**Run it.** The app works straight after scaffolding: it points at the live testnet contracts, so you can watch the guard and create a vault without deploying anything.
 
 ```bash
-npm run hardhat:test                                   # 168 tests, no network
+npm run hardhat:test                                   # 174 tests, no network
 npm run hardhat:test:live                              # the live guard, read-only
 npm run hardhat:account:generate                       # then fund it at the faucet
 npm run hardhat:deploy -- --network hederaTestnet      # six contracts
@@ -359,7 +378,7 @@ packages/hardhat/
     examples/       TopUpStrategy, the one the docs walk through
     test/           mocks: scheduler, pool, feed, router, HTS
   scripts/          arm and watch vaults from a terminal
-  test/             168 offline tests · live/ for the 5 against testnet
+  test/             174 offline tests · live/ for the 5 against testnet
 packages/nextjs/    the app: landing, how it works, create / arm / watch, docs
 docs/               the docs pages the app serves
 .harness/           Hedera Harness recipe: spec, PRD, validators

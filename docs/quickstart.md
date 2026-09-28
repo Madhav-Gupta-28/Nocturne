@@ -27,7 +27,7 @@ You get one repository with two workspaces:
 
 | Workspace | What is in it |
 | --- | --- |
-| `packages/hardhat` | The vault, factory and three strategies, 168 offline tests, deploy and demo scripts |
+| `packages/hardhat` | The vault, factory and three strategies, 174 offline tests, deploy and demo scripts |
 | `packages/nextjs` | This site — the landing page, these docs, a vault dashboard |
 
 Node 20.18.3 or newer. The CLI installs dependencies for you.
@@ -143,6 +143,17 @@ watching — nothing below is sent by this script
 12:08:34  runs=2 refusals=0 beats=2 next=12:10:34 runway=4 armed=true
 ```
 
+Now try to make it run early yourself:
+
+```bash
+VAULT=<your vault> npx hardhat run scripts/pokeVault.ts --network hederaTestnet
+```
+
+`executeScheduled` has no access control, because the network has to be able to
+call it. A call before the booked second returns without doing anything, so the
+script reports runs, next run and schedule unchanged. Only the network, at the
+booked second, runs the vault. Without `VAULT` it tries the DAI guard on duty.
+
 Or open the frontend and watch the same numbers:
 
 ```bash
@@ -178,7 +189,7 @@ Before you deploy anything with money behind it, read
 | Command | What it does |
 | --- | --- |
 | `npm run hardhat:compile` | Compile the contracts |
-| `npm run hardhat:test` | 168 offline tests, no network |
+| `npm run hardhat:test` | 174 offline tests, no network |
 | `npm run hardhat:coverage` | Coverage of every shipped contract |
 | `npm run hardhat:test:live` | Live price-guard tests against testnet. Read-only, no key needed |
 | `npm run hardhat:deploy -- --network hederaTestnet` | Deploy all six contracts |

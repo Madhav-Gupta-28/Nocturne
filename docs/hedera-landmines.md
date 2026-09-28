@@ -184,7 +184,7 @@ Reproduce with `contracts/test/ScheduledSenderProbe.sol`, live at
 
 ---
 
-## Three more, not about scheduling
+## Four more, not about scheduling
 
 **`npx hardhat verify` does not work.** Sourcify retired the v1 API the pinned
 `hardhat-verify` still calls. The 404 comes back as HTML, so the error you see is
@@ -198,6 +198,15 @@ inside the EVM it is already tinybar per gas — the same unit as
 **EIP-1167 clones cannot schedule.** A delegatecall frame gets a
 `delegatable_contract_id` admin key, and `scheduleCall` then fails with
 `INVALID_PAYER_SIGNATURE` (hiero-consensus-node #27263). Deploy with `new`.
+
+**Token association is no longer a step.** A lot of Hedera guidance says an
+account must associate an HTS token before it can receive it. Accounts created
+today, contracts included, get unlimited automatic association slots
+(`max_automatic_token_associations: -1`), so a token associates itself the
+first time it arrives. Measured: one base unit of DAI sent to a vault that had
+never associated DAI [arrived](https://hashscan.io/testnet/transaction/1790599832.366311309)
+and was listed with `automatic_association: true`. Explicit association still
+matters for an account created with limited slots.
 
 ---
 
