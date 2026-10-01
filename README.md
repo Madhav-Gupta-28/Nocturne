@@ -13,9 +13,13 @@
 ![hedera](https://img.shields.io/badge/HIP--1215%20·%20SaucerSwap%20V2%20·%20Chainlink-live%20on%20testnet-1D4ED8)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
-🌐 **[Live app](https://hedera-nocturne.vercel.app)** · 📚 **[Docs](https://hedera-nocturne.vercel.app/docs/quickstart)** · 🟢 **[Guard on duty](https://hashscan.io/testnet/account/0.0.10710268)** · 📄 **[Architecture](ARCHITECTURE.md)**
+▶️ **[Demo video](https://www.youtube.com/watch?v=S0QB6onBXis)** · 🌐 **[Live app](https://hedera-nocturne.vercel.app)** · 📚 **[Docs](https://hedera-nocturne.vercel.app/docs/quickstart)** · 🟢 **[Guard on duty](https://hashscan.io/testnet/account/0.0.10710268)** · 📄 **[Architecture](ARCHITECTURE.md)**
 
-**[39 runs on testnet](#proven-on-hedera)**, all started by the network · **70.38 HBAR** in fees, paid by the vaults · **0** triggered by a person
+**[54 runs on testnet](#proven-on-hedera)**, all started by the network · **95.19 HBAR** in fees, paid by the vaults · **0** triggered by a person
+
+<a href="https://www.youtube.com/watch?v=S0QB6onBXis"><img src="docs/images/hero.jpg" alt="Nocturne demo video" width="760"></a>
+
+<sub>▶ <a href="https://www.youtube.com/watch?v=S0QB6onBXis">Watch the 3½-minute demo</a>: a vault is armed, and a minute later Hedera runs it on its own. It checks SaucerSwap against Chainlink, they agree, and it sells.</sub>
 
 </div>
 
@@ -169,24 +173,24 @@ We went deep on one service instead of touching five. We found [six ways it fail
 
 ## Proven on Hedera
 
-Read back off **testnet** on 28 September 2026, across ten vaults. [See the guard on duty](https://hashscan.io/testnet/account/0.0.10710268).
+Read back off **testnet** on 1 October 2026, across eleven vaults. [See the guard on duty](https://hashscan.io/testnet/account/0.0.10710268).
 
 | | |
 | --- | --- |
-| Runs started by the network, unattended | **39** |
-| Fees paid by the vaults themselves | **70.38 HBAR** |
-| ↳ acted | **19**: 15 heartbeats, 3 sales, 1 rebalance |
+| Runs started by the network, unattended | **54** |
+| Fees paid by the vaults themselves | **95.19 HBAR** |
+| ↳ acted | **20**: 15 heartbeats, 4 sales, 1 rebalance |
 | ↳ refused: prices disagreed | **5** |
-| ↳ held, or nothing left to protect | **15** |
+| ↳ held, or nothing left to protect | **29** |
 | Runs triggered by a person | **0** |
 
 ```bash
 # count them yourself: no key, no account
 for a in 0.0.10684549 0.0.10690925 0.0.10691327 0.0.10691817 0.0.10710164 \
-         0.0.10710193 0.0.10710268 0.0.10715956 0.0.10716071 0.0.10716165; do
+         0.0.10710193 0.0.10710268 0.0.10715956 0.0.10716071 0.0.10716165 0.0.10812935; do
   curl -s "https://testnet.mirrornode.hedera.com/api/v1/transactions?account.id=$a&limit=100" \
     | jq '[.transactions[] | select(.scheduled and .result == "SUCCESS")] | length'
-done | paste -sd+ - | bc      # 39, and growing while the guard runs
+done | paste -sd+ - | bc      # 54 on 1 October, and growing while the guard runs
 ```
 
 Same code, same 2% tolerance, three markets:
